@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@import "bootstrap/dist/css/bootstrap.min.css";
+
+
+[x-cloak] {
+    display: none;
+}
+
+.ts-dropdown {
+    background-color: #fff !important;     /* Fondo blanco */
+    border: 1px solid #ced4da !important;  /* Borde gris claro */
+    border-radius: 0.5rem !important;      /* Bordes redondeados */
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1) !important; /* Sombra sutil */
+    z-index: 1050 !important;              /* Asegura que quede por encima */
+}
+
+.ts-dropdown .option {
+    color: #212529;                        /* Texto oscuro */
+    padding: 8px 12px;
+    transition: background-color 0.2s ease;
+}
+
+.ts-dropdown .option:hover,
+.ts-dropdown .option.active {
+    background-color: #f1f1f1 !important;  /* Color de fondo al hacer hover */
+}
+

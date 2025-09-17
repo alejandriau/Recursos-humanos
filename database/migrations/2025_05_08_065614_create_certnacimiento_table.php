@@ -1,0 +1,33 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        Schema::create('certnacimiento', function (Blueprint $table) {
+            $table->integer('id', true);
+            $table->date('fecha')->nullable();
+            $table->string('descripcion', 250)->nullable();
+            $table->string('pdfcern', 250)->nullable();
+            $table->integer('idPersona')->index('fk_cernacimiento_idx');
+            $table->tinyInteger('estado')->default(1);
+            $table->timestamp('fechaRegistro')->useCurrent();
+            $table->timestamp('fechaActualización')->useCurrentOnUpdate()->nullable()->useCurrent();
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('certnacimiento');
+    }
+};
