@@ -6,6 +6,11 @@ use Illuminate\Http\Request;
 use App\Models\Persona;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Models\Puesto;
+use App\Models\historial;
+use App\Models\UnidadOrganizacional;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 
 
 class PersonaController extends Controller
@@ -183,30 +188,29 @@ public function mostrarFoto($id)
 
         //return view('admin.personas.show', compact('persona'));
     //}
-    public function show($id)
-    {
-        $persona = Persona::with([
-            'profesion',
-            'historial' => function ($q) {
-                $q->whereNull('fecha_fin')->with([
-                    'puesto.unidad',
-                    'puesto.direccion',
-                    'puesto.secretaria',
-                    'puesto.area',
-                ]);
-            }
-        ])->findOrFail($id);
+public function show($id)
+{
+    $persona = Persona::with([
+        'profesion',
+        'historial' => function ($q) {
+            $q->whereNull('fecha_fin')
+              ->orWhere('fecha_fin', '>', now())
+              ->with([
+                  'puesto.unidadOrganizacional.padre.padre.padre.padre' // Cargar hasta 4 niveles de jerarquía
+              ]);
+        }
+    ])->findOrFail($id);
 
-        $historial = $persona->historial->first(); // historial actual
+    $historial = $persona->historial->first();
 
-        return view('admin.personas.show', compact('persona', 'historial'));
-    }
-
+    return view('admin.personas.show', compact('persona', 'historial'));
+}
 
 
 
 
-    
+
+
 public function actualizarRutasArchivos()
 {
     $personas = Persona::whereNull('archivo')->get(); // Solo las que no tienen la ruta
@@ -230,4 +234,181 @@ public function actualizarRutasArchivos()
 
     return "Rutas de archivo actualizadas correctamente para " . count($personas) . " personas.";
 }
+
+
+
+
+
+public function historial($id)
+    {
+        $persona = Persona::with([
+            'historialPuestos.puesto.unidadOrganizacional',
+            'puestoActual.puesto.unidadOrganizacional'
+        ])->findOrFail($id);
+
+        $puestos = Puesto::where('estado', 1)->get();
+        $unidades = UnidadOrganizacional::where('estado', 1)->get();
+
+        return view('admin.personas.historial', compact('persona', 'puestos', 'unidades'));
+    }
+
+    /**
+     * Almacenar un nuevo registro en el historial
+     */
+    public function storeHistorial(Request $request, $id)
+    {
+        $request->validate([
+            'puesto_id' => 'required|exists:puestos,id',
+            'fecha_inicio' => 'required|date',
+            'fecha_fin' => 'nullable|date|after:fecha_inicio',
+            'observaciones' => 'nullable|string|max:500'
+        ]);
+
+        Historial::create([
+            'persona_id' => $id,
+            'puesto_id' => $request->puesto_id,
+            'fecha_inicio' => $request->fecha_inicio,
+            'fecha_fin' => $request->fecha_fin,
+            'observaciones' => $request->observaciones,
+            'usuario_registro' => auth()->id()
+        ]);
+
+        return redirect()->route('personas.historial', $id)
+            ->with('success', 'Registro de historial agregado correctamente.');
+    }
+
+    /**
+     * Actualizar un registro del historial
+     */
+    public function updateHistorial(Request $request, $id, $historialId)
+    {
+        $request->validate([
+            'puesto_id' => 'required|exists:puestos,id',
+            'fecha_inicio' => 'required|date',
+            'fecha_fin' => 'nullable|date|after:fecha_inicio',
+            'observaciones' => 'nullable|string|max:500'
+        ]);
+
+        $historial = Historial::where('id', $historialId)
+            ->where('persona_id', $id)
+            ->firstOrFail();
+
+        $historial->update([
+            'puesto_id' => $request->puesto_id,
+            'fecha_inicio' => $request->fecha_inicio,
+            'fecha_fin' => $request->fecha_fin,
+            'observaciones' => $request->observaciones,
+            'usuario_actualizacion' => auth()->id()
+        ]);
+
+        return redirect()->route('personas.historial', $id)
+            ->with('success', 'Registro de historial actualizado correctamente.');
+    }
+
+    /**
+     * Eliminar un registro del historial
+     */
+    public function destroyHistorial($id, $historialId)
+    {
+        $historial = Historial::where('id', $historialId)
+            ->where('persona_id', $id)
+            ->firstOrFail();
+
+        $historial->delete();
+
+        return redirect()->route('personas.historial', $id)
+            ->with('success', 'Registro de historial eliminado correctamente.');
+    }
+
+
+        public function generarExpediente($id)
+    {
+        $persona = Persona::with([
+            'profesion',
+            'historial' => function($q) {
+                $q->with([
+                    'puesto.unidadOrganizacional.padre.padre.padre.padre'
+                ])->orderBy('fecha_inicio', 'desc');
+            },
+            'historial.puesto' => function($q) {
+                $q->with(['unidadOrganizacional']);
+            }
+        ])->findOrFail($id);
+
+        $historialActual = $persona->historial->whereNull('fecha_fin')->first();
+
+        $datos = [
+            'persona' => $persona,
+            'historialActual' => $historialActual,
+            'fechaGeneracion' => now()->format('d/m/Y H:i'),
+            'antiguedad' => $this->calcularAntiguedad($persona->fechaIngreso),
+            'edad' => $this->calcularEdad($persona->fechaNacimiento)
+        ];
+
+        $pdf = Pdf::loadView('admin.personas.expediente-pdf', $datos);
+
+        // Configurar el papel y orientación
+        $pdf->setPaper('A4', 'portrait');
+        $pdf->setOption('margin-top', 15);
+        $pdf->setOption('margin-right', 15);
+        $pdf->setOption('margin-bottom', 15);
+        $pdf->setOption('margin-left', 15);
+
+        $nombreArchivo = "EXPEDIENTE_{$persona->ci}_{$persona->apellidoPat}_{$persona->nombre}.pdf";
+
+        return $pdf->download($nombreArchivo);
+    }
+
+    /**
+     * Vista previa del expediente en el navegador
+     */
+    public function verExpediente($id)
+    {
+        $persona = Persona::with([
+            'profesion',
+            'historial' => function($q) {
+                $q->with([
+                    'puesto.unidadOrganizacional.padre.padre.padre.padre'
+                ])->orderBy('fecha_inicio', 'desc');
+            },
+            'historial.puesto' => function($q) {
+                $q->with(['unidadOrganizacional']);
+            }
+        ])->findOrFail($id);
+
+        $historialActual = $persona->historial->whereNull('fecha_fin')->first();
+
+        $datos = [
+            'persona' => $persona,
+            'historialActual' => $historialActual,
+            'fechaGeneracion' => now()->format('d/m/Y H:i'),
+            'antiguedad' => $this->calcularAntiguedad($persona->fechaIngreso),
+            'edad' => $this->calcularEdad($persona->fechaNacimiento)
+        ];
+
+        $pdf = Pdf::loadView('admin.personas.expediente-pdf', $datos);
+        $pdf->setPaper('A4', 'portrait');
+
+        return $pdf->stream("EXPEDIENTE_{$persona->ci}.pdf");
+    }
+
+    private function calcularAntiguedad($fechaIngreso)
+    {
+        $ingreso = Carbon::parse($fechaIngreso);
+        $hoy = Carbon::now();
+
+        $diferencia = $ingreso->diff($hoy);
+
+        return [
+            'anos' => $diferencia->y,
+            'meses' => $diferencia->m,
+            'dias' => $diferencia->d,
+            'total_meses' => ($diferencia->y * 12) + $diferencia->m
+        ];
+    }
+
+    private function calcularEdad($fechaNacimiento)
+    {
+        return Carbon::parse($fechaNacimiento)->age;
+    }
 }

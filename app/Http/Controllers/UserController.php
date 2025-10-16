@@ -87,13 +87,13 @@ class UserController extends Controller
     }
 
     // Métodos específicos para gestión de roles
-    public function editRoles(User $user)
-    {
-        $roles = Role::all();
-        $user->load('roles');
+public function editRoles(User $user)
+{
+    $roles = Role::all();
+    $user->load('roles');
 
-        return view('users.edit-roles', compact('user', 'roles'));
-    }
+    return view('users.edit-roles', compact('user', 'roles'));
+}
 
     public function updateRoles(Request $request, User $user)
     {

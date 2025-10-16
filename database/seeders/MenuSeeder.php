@@ -22,6 +22,7 @@ class MenuSeeder extends Seeder
             'ver altas bajas',
             'ver bajas',
             'ver configuracion',
+            'ver organizacional',
         ];
 
         foreach ($permissions as $permission) {
@@ -37,12 +38,12 @@ class MenuSeeder extends Seeder
 
         $jefeUnidad->syncPermissions([
             'ver inicio', 'ver personal',
-            'ver perfiles', 'ver puestos', 'ver perfil profesional', 'ver configuracion',
+            'ver perfiles', 'ver puestos', 'ver perfil profesional', 'ver configuracion', 'ver organizacional',
         ]);
 
         $tecnico->syncPermissions([
             'ver inicio', 'ver personal', 'ver perfiles', 'ver puestos',
-            'ver perfil profesional', 'ver biblioteca planillas', 'ver asignar item',
+            'ver perfil profesional', 'ver biblioteca planillas', 'ver asignar item', 'ver organizacional',
         ]);
 
         $archivo->syncPermissions([

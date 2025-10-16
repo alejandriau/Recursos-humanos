@@ -30,6 +30,16 @@ use App\Http\Controllers\LicenciaConducirController;
 use App\Http\Controllers\LicenciaMilitarController;
 use App\Http\Controllers\CurriculumController;
 use App\Http\Controllers\BachillerController;
+use App\Http\Controllers\Formulario1Controller;
+use App\Http\Controllers\Formulario2Controller;
+use App\Http\Controllers\ForconsanguiController;
+use App\Http\Controllers\PersonaDashboardController;
+use App\Http\Controllers\PlanillaController;
+use App\Http\Controllers\PlanillasPdfController;
+use App\Http\Controllers\TxtToWordController;
+use App\Http\Controllers\AuditLogsController;
+use App\Http\Controllers\UnidadOrganizacionalController;
+use App\Http\Controllers\DashboardController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -41,17 +51,34 @@ Route::middleware([
     'verified',
 ])->group(function () {
     Route::get('/dashboard', function () {
-        return view('dashboard');
-    })->name('dashboard');
+        return view('inicio');
+    })->name('inicio');
 
-    Route::middleware(['role:admin'])->group(function () {
+
         Route::get('/reporte', [ReporteController::class, 'index'])->name('reportes.index');
-    });
+
+
+
+
+
 
 
     Route::get('/personas', [PersonaController::class, 'index']);
     Route::get('/personas/show/{id}', [PersonaController::class, 'show'])->name('personas.show');
+        Route::get('/personas/{id}/expediente', [PersonaController::class, 'generarExpediente'])->name('personas.expediente');
+    Route::get('/personas/{id}/expediente/ver', [PersonaController::class, 'verExpediente'])->name('personas.expediente.ver');
 
+
+// Rutas de reportes
+Route::prefix('reportes')->group(function () {
+    Route::get('/', [ReporteController::class, 'index'])->name('reportes.index');
+    Route::get('/buscar', [ReporteController::class, 'buscar'])->name('reportes.buscar');
+    Route::get('/tipo', [ReporteController::class, 'tipo'])->name('reportes.tipo');
+    Route::post('/filtros-avanzados', [ReporteController::class, 'filtrosAvanzados'])->name('reportes.filtros-avanzados');
+    Route::get('/personal-pdf', [ReporteController::class, 'personalPDF'])->name('reportes.personal');
+    Route::get('/personal-excel', [ReporteController::class, 'personalXLS'])->name('reportes.excel');
+        Route::get('/{id}/historial', [PersonaController::class, 'historial'])->name('personas.historial');
+});
 
     Route::get('/reportes/buscar', [ReporteController::class, 'buscar'])->name('reportes.buscar');
     Route::get('/reportes/tipo', [ReporteController::class, 'tipo'])->name('reportes.tipo');
@@ -61,22 +88,20 @@ Route::middleware([
     //pasivos uno
     Route::get('/pasivouno', [PasivounoController::class, 'index'])->name('pasivouno');
     Route::get('/pasivouno/buscar', [PasivounoController::class, 'buscar'])->name('pasivouno.buscar');
-    // pasivo dos
-    Route::get('/pasivodos', [PasivodosController::class, 'index'])->name('pasivodos');        // Obtener todos
 
-    //Route::get('/pasivodos/{id}', [PasivodosController::class, 'show'])->name('pasivodos');     // Obtener uno por ID
-    Route::post('/pasivodos/guardar', [PasivodosController::class, 'store'])->name('pasivodos.guardar');       // Crear nuevo
-    Route::put('/pasivodos/{id}', [PasivodosController::class, 'update'])->name('pasivodos');   // Actualizar
-    Route::post('/pasivodos/eliminar/{id}', [PasivodosController::class, 'destroy'])->name('pasivodos.eliminar');
-    Route::get('/pasivodos/letra', [PasivodosController::class, 'letra'])->name('pasivodos.letra');
-    //Route::get('/reserva/{id}', [PasivodosController::class, 'reserva'])->name('reserva');
-    //Route::get('/seleccionar/{id}', [PasivodosController::class, 'seleccionar'])->name('seleccionar');
-    Route::get('/pasivodos/buscar', [PasivodosController::class, 'buscar'])->name('pasivodos.buscar');
-    Route::get('/pasivodos/traer', [PasivodosController::class, 'traer'])->name('pasivodos.traer');
-    Route::get('/pasivodos/pdf', [PasivodosController::class, 'reportepasivos'])->name('pasivodos.pdf');
-    //ultimo registro
-    Route::get('/pasivodos/ultimo', [PasivodosController::class, 'ultimo'])->name('pasivodos.ultimo');
+    // pasivo dos ======================================================
+    Route::get('/pasivodos', [PasivodosController::class, 'index'])->name('pasivodos.index')->middleware('permission:ver_pasivos_dos');
+    Route::get('/pasivodos/ultimo', [PasivodosController::class, 'ultimo'])->name('pasivodos.ultimo')->middleware('permission:ver_ultimo_registro_pasivos_dos');
+    Route::get('/pasivodos/letra', [PasivodosController::class, 'letra'])->name('pasivodos.letra')->middleware('permission:filtrar_letra_pasivos_dos');
+    Route::get('/pasivodos/buscar', [PasivodosController::class, 'buscar'])->name('pasivodos.buscar')->middleware('permission:buscar_pasivos_dos');
+    Route::get('/pasivodos/traer', [PasivodosController::class, 'traer'])->name('pasivodos.traer')->middleware('permission:seleccionar_pasivos_dos');
+    Route::get('/pasivodos/pdf', [PasivodosController::class, 'reportepasivos'])->name('pasivodos.pdf')->middleware('permission:generar_pdf_pasivos_dos');
 
+    // Rutas de operaciones CRUD
+    Route::post('/pasivodos/guardar', [PasivodosController::class, 'store'])->name('pasivodos.guardar')->middleware('permission:crear_pasivos_dos');
+    Route::put('/pasivodos/{id}', [PasivodosController::class, 'update'])->name('pasivodos.actualizar')->middleware('permission:editar_pasivos_dos');
+    Route::post('/pasivodos/eliminar/{id}', [PasivodosController::class, 'destroy'])->name('pasivodos.eliminar')->middleware('permission:eliminar_pasivos_dos');
+    // ==================================================================
     //archivos
     Route::get('/archivos', [ArchivosController::class, 'index'])->name('archivos');
     Route::post('/archivos/store/{id}', [ArchivosController::class, 'store'])->name('archivos.store');
@@ -84,6 +109,8 @@ Route::middleware([
     Route::get('/archivos/formulario', [ArchivosController::class, 'formulario'])->name('archivos.formulario');
     // selecciones
     Route::delete('/seleccion/eliminar', [SeleccionController::class, 'destroy'])->name('seleccion.eliminar');
+    Route::delete('/seleccion/eliminar-todo', [SeleccionController::class, 'destroyAll'])->name('seleccion.eliminar.todo');
+
     //puestos
     Route::post('/puesto/store', [PuestoController::class, 'store'])->name('puesto.store');
     Route::put('/puesto/update/{id}', [PuestoController::class, 'update'])->name('puesto.update');
@@ -92,10 +119,95 @@ Route::middleware([
     Route::get('/puesto/edit/{id}', [PuestoController::class, 'edit'])->name('edit');
     Route::delete('/puesto/{id}', [PuestoController::class, 'destroy'])->name('puesto.destroy');
 
+
+
+
+// Listar unidades
+Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+Route::get('/unidades', [UnidadOrganizacionalController::class, 'index'])->name('unidades.index');
+
+// Mostrar formulario de creación
+Route::get('/unidades/crear', [UnidadOrganizacionalController::class, 'create'])->name('unidades.create');
+
+// Guardar nueva unidad
+Route::post('/unidades', [UnidadOrganizacionalController::class, 'store'])->name('unidades.store');
+
+// Mostrar detalles de unidad
+Route::get('/unidades/{unidad}', [UnidadOrganizacionalController::class, 'show'])->name('unidades.show');
+
+// Mostrar formulario de edición
+Route::get('/unidades/{unidad}/editar', [UnidadOrganizacionalController::class, 'edit'])->name('unidades.edit');
+
+// Actualizar unidad
+Route::put('/unidades/{unidad}', [UnidadOrganizacionalController::class, 'update'])->name('unidades.update');
+
+// Eliminar unidad
+Route::delete('/unidades/{unidad}', [UnidadOrganizacionalController::class, 'destroy'])->name('unidades.destroy');
+
+// Organigrama
+Route::get('/organigrama', [UnidadOrganizacionalController::class, 'arbolOrganizacional'])->name('unidades.arbol');
+
+// Estructura completa de unidad
+Route::get('/unidades/{unidad}/estructura', [UnidadOrganizacionalController::class, 'estructura'])->name('unidades.estructura');
+
+// Desactivar unidad
+Route::post('/unidades/{unidad}/desactivar', [UnidadOrganizacionalController::class, 'desactivar'])->name('unidades.desactivar');
+
+// Reactivar unidad
+Route::post('/unidades/{unidad}/reactivar', [UnidadOrganizacionalController::class, 'reactivar'])->name('unidades.reactivar');
+
+// =============================================
+// RUTAS ADMIN DE PUESTOS
+// =============================================
+
+// Listar puestos
+Route::get('/admin/puestos', [PuestoController::class, 'index'])->name('puestos.index');
+
+// Mostrar formulario de creación
+Route::get('/admin/puestos/crear', [PuestoController::class, 'create'])->name('puestos.create');
+
+// Guardar nuevo puesto
+Route::post('/admin/puestos', [PuestoController::class, 'store'])->name('puestos.store');
+
+// Mostrar detalles de puesto
+Route::get('/admin/puestos/{puesto}', [PuestoController::class, 'show'])->name('puestos.show');
+
+// Mostrar formulario de edición
+Route::get('/admin/puestos/{puesto}/editar', [PuestoController::class, 'edit'])->name('puestos.edit');
+
+// Actualizar puesto
+Route::put('/admin/puestos/{puesto}', [PuestoController::class, 'update'])->name('puestos.update');
+
+// Eliminar puesto
+Route::delete('/admin/puestos/{puesto}', [PuestoController::class, 'destroy'])->name('puestos.destroy');
+
+// Puestos vacantes
+Route::get('/admin/puestos/vacantes', [PuestoController::class, 'vacantes'])->name('puestos.vacantes');
+
+// Jefaturas
+Route::get('/admin/puestos/jefaturas', [PuestoController::class, 'jefaturas'])->name('puestos.jefaturas');
+
+// Estadísticas de puestos
+Route::get('/admin/puestos/estadisticas', [PuestoController::class, 'estadisticas'])->name('puestos.estadisticas');
+
+// Asignar jefatura
+Route::post('/admin/puestos/{puesto}/asignar-jefatura', [PuestoController::class, 'asignarJefatura'])->name('puestos.asignar-jefatura');
+
+// Quitar jefatura
+Route::post('/admin/puestos/{puesto}/quitar-jefatura', [PuestoController::class, 'quitarJefatura'])->name('puestos.quitar-jefatura');
+
+// Desactivar puesto
+Route::post('/admin/puestos/{puesto}/desactivar', [PuestoController::class, 'desactivar'])->name('puestos.desactivar');
+
+// Reactivar puesto
+Route::post('/admin/puestos/{puesto}/reactivar', [PuestoController::class, 'reactivar'])->name('puestos.reactivar');
+
+
+
     // Gerarquia
     Route::get('/secretarias', [GerarquiaController::class, 'secretarias'])->name('secretarias');
     Route::get('/direcciones', [GerarquiaController::class, 'direcciones'])->name('direcciones');
-    Route::get('/unidades', [GerarquiaController::class, 'unidades'])->name('unidades');
+    //Route::get('/unidades', [GerarquiaController::class, 'unidades'])->name('unidades');
     Route::get('/unidadessecre', [GerarquiaController::class, 'unidadesSecretaria'])->name('unidadessecre');
     Route::get('/areas', [GerarquiaController::class, 'areas'])->name('areas');
     Route::get('/areasdireccion', [GerarquiaController::class, 'areasDireccion'])->name('areasdireccion');
@@ -133,6 +245,33 @@ Route::middleware([
     Route::put('/personas/update/{id}', [PersonaController::class, 'update'])->name('personas.update');
     Route::patch('/personas/destroy/{id}', [PersonaController::class, 'destroy'])->name('personas.destroy');
     Route::get('/persona/foto/{id}', [PersonaController::class, 'mostrarFoto'])->name('persona.foto');
+
+    Route::get('/persona/{id}/dashboard', [PersonaDashboardController::class, 'show'])->name('persona.dashboard');
+    Route::get('/persona/index', [PersonaDashboardController::class, 'index'])->name('personas.index');
+
+
+
+    // Bachiller
+    Route::get('/bachiller/create', [BachillerController::class, 'createFromDashboard'])->name('persona.bachiller.create');
+    Route::get('/bachiller/{bachiller}/edit', [BachillerController::class, 'editFromDashboard'])->name('persona.bachiller.edit');
+
+    // Formulario1
+    Route::get('/formulario1/create', [Formulario1Controller::class, 'createFromDashboard'])->name('persona.formulario1.create');
+    Route::get('/formulario1/{formulario1}/edit', [Formulario1Controller::class, 'editFromDashboard'])->name('persona.formulario1.edit');
+
+    // Formulario2
+    Route::get('/formulario2/create', [Formulario2Controller::class, 'createFromDashboard'])->name('persona.formulario2.create');
+    Route::get('/formulario2/{formulario2}/edit', [Formulario2Controller::class, 'editFromDashboard'])->name('persona.formulario2.edit');
+
+    // Consanguinidad
+    Route::get('/consanguinidad/create', [ForconsanguiController::class, 'createFromDashboard'])->name('persona.consanguinidad.create');
+    Route::get('/consanguinidad/{consanguinidad}/edit', [ForconsanguiController::class, 'editFromDashboard'])->name('persona.consanguinidad.edit');
+
+
+
+
+
+
 
     //altas y bajas
     Route::get('/altasbajas', [PersonaController::class, 'index'])->name('altasbajas');
@@ -178,41 +317,39 @@ Route::middleware([
     //usuarios
 
 
-        Route::get('/users', [UserController::class, 'index'])->name('users.index');
-        Route::get('/users.create', [UserController::class, 'create'])->name('users.create');
-        Route::post('/users', [UserController::class, 'store'])->name('users.store');
-        Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
-        Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
-        Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
-        Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+    // Rutas de Users - Protegidas===========================================================================
+    // Solo Admin puede gestionar usuarios completamente
+    // Rutas básicas de usuarios
+    Route::get('/users', [UserController::class, 'index'])->name('users.index')->middleware('permission:ver_usuarios');
+    Route::get('/users/create', [UserController::class, 'create'])->name('users.create')->middleware('permission:crear_usuarios');
+    Route::post('/users', [UserController::class, 'store'])->name('users.store')->middleware('permission:crear_usuarios');
+    Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show')->middleware('permission:ver_usuarios');
+    Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit')->middleware('permission:editar_usuarios');
+    Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update')->middleware('permission:editar_usuarios');
+    Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy')->middleware('permission:eliminar_usuarios');
 
-        // Rutas adicionales para gestión de roles y permisos
-        Route::get('/users/{user}/roles/edit', [UserController::class, 'editRoles'])->name('users.roles.edit');
-        Route::get('/users/{user}/permissions/edit', [UserController::class, 'editPermissions'])->name('users.permissions.edit');
-        Route::get('users/{user}/rol/edit', [UserController::class, 'editRoles'])->name('users.rol.edit');
+    // Gestión de Roles de Usuario
+    Route::get('/users/{user}/roles/edit', [UserController::class, 'editRoles'])->name('users.roles.edit')->middleware('permission:asignar_roles_usuarios');
+    Route::put('/users/{user}/roles', [UserController::class, 'updateRoles'])->name('users.roles.update')->middleware('permission:asignar_roles_usuarios');
+    Route::delete('/users/{user}/roles/{role}/remove', [UserController::class, 'removeRole'])->name('users.roles.remove')->middleware('permission:asignar_roles_usuarios');
 
+    // Gestión de Permisos Directos de Usuario
+    Route::get('/users/{user}/permissions/edit', [UserController::class, 'editPermissions'])->name('users.permissions.edit')->middleware('permission:asignar_permisos_directos_usuarios');
+    Route::put('/users/{user}/permissions', [UserController::class, 'updatePermissions'])->name('users.permissions.update')->middleware('permission:asignar_permisos_directos_usuarios');
+    Route::delete('/users/{user}/permissions/{permission}/remove', [UserController::class, 'removePermission'])->name('users.permissions.remove')->middleware('permission:asignar_permisos_directos_usuarios');
 
-        Route::put('users/{user}/roles/update', [UserController::class, 'updateRoles'])->name('users.roles.update');
-        Route::delete('users/{user}/roles/{role}/remove', [UserController::class, 'removeRole'])->name('users.roles.remove');
+// Rutas de Roles - Protegidas
+    Route::get('/roles', [RoleController::class, 'index'])->name('roles.index')->middleware('permission:ver_roles');
+    Route::get('/roles/create', [RoleController::class, 'create'])->name('roles.create')->middleware('permission:crear_roles');
+    Route::post('/roles', [RoleController::class, 'store'])->name('roles.store')->middleware('permission:crear_roles');
+    Route::get('/roles/{role}/edit', [RoleController::class, 'edit'])->name('roles.edit')->middleware('permission:editar_roles');
+    Route::put('/roles/{role}', [RoleController::class, 'update'])->name('roles.update')->middleware('permission:editar_roles');
+    Route::delete('/roles/{role}', [RoleController::class, 'destroy'])->name('roles.destroy')->middleware('permission:eliminar_roles');
 
-        Route::get('/users/{user}/roles', [UserController::class, 'editRoles'])->name('roles.edit');
-        Route::put('/users/{user}/roles', [UserController::class, 'updateRoles'])->name('roles.update');
-        Route::get('/users/{user}/permissions', [UserController::class, 'editPermissions'])->name('permissions.edit');
-        Route::put('/users/{user}/permissions', [UserController::class, 'updatePermissions'])->name('permissions.update');
-
-        Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
-        Route::get('/roles/create', [RoleController::class, 'create'])->name('roles.create');
-        Route::post('/roles', [RoleController::class, 'store'])->name('roles.store');
-        Route::get('/roles/{role}/edit', [RoleController::class, 'edit'])->name('roles.edit');
-        Route::put('/roles/{role}', [RoleController::class, 'update'])->name('roles.update');
-        Route::delete('/roles/{role}', [RoleController::class, 'destroy'])->name('roles.destroy');
-        Route::get('/roles/{role}/permissions', [RoleController::class, 'editPermissions'])->name('roles.permissions.edit');
-        Route::put('/roles/{role}/permissions', [RoleController::class, 'updatePermissions'])->name('permissions.update');
-
-        // Rutas para gestión de permisos
-        Route::get('users/{user}/permissions/edit', [UserController::class, 'editPermissions'])->name('users.permissions.edit');
-        Route::put('users/{user}/permissions/update', [UserController::class, 'updatePermissions'])->name('users.permissions.update');
-        Route::delete('users/{user}/permissions/{permission}/remove', [UserController::class, 'removePermission'])->name('users.permissions.remove');
+    // Gestión de Permisos de Roles
+    Route::get('/roles/{role}/permissions/edit', [RoleController::class, 'editPermissions'])->name('roles.permissions.edit')->middleware('permission:gestionar_permisos_roles');
+    Route::put('/roles/{role}/permissions', [RoleController::class, 'updatePermissions'])->name('roles.permissions.update')->middleware('permission:gestionar_permisos_roles');
+    //===========================================================================================================
             // Lista de CENVI
     Route::get('/cenvis', [CenviController::class, 'index'])->name('cenvis.index');
     // Formulario de creación
@@ -336,5 +473,77 @@ Route::post('/geocode', [CroquiController::class, 'geocode'])->name('geocode');
     Route::get('/bachilleres/{bachiller}/edit', [BachillerController::class, 'edit'])->name('bachilleres.edit');
     Route::put('/bachilleres/{bachiller}', [BachillerController::class, 'update'])->name('bachilleres.update');
     Route::delete('/bachilleres/{bachiller}', [BachillerController::class, 'destroy'])->name('bachilleres.destroy');
+    //formularios
+    Route::get('formularios1/', [Formulario1Controller::class, 'index'])->name('formularios1.index');
+    Route::get('formularios1/create', [Formulario1Controller::class, 'create'])->name('formularios1.create');
+    Route::post('formularios1/', [Formulario1Controller::class, 'store'])->name('formularios1.store');
+    Route::get('formularios1/{formulario1}', [Formulario1Controller::class, 'show'])->name('formularios1.show');
+    Route::get('formularios1/{formulario1}/edit', [Formulario1Controller::class, 'edit'])->name('formularios1.edit');
+    Route::put('formularios1/{formulario1}', [Formulario1Controller::class, 'update'])->name('formularios1.update');
+    Route::delete('formularios1/{formulario1}', [Formulario1Controller::class, 'destroy'])->name('formularios1.destroy');
+    Route::get('formularios1/{formulario1}/download', [Formulario1Controller::class, 'download'])->name('formularios1.download');
+
+        Route::get('/formularios2', [Formulario2Controller::class, 'index'])->name('formularios2.index');
+    Route::get('/create', [Formulario2Controller::class, 'create'])->name('formularios2.create');
+    Route::post('/', [Formulario2Controller::class, 'store'])->name('formularios2.store');
+    Route::get('/{formulario2}', [Formulario2Controller::class, 'show'])->name('formularios2.show');
+    Route::get('/{formulario2}/edit', [Formulario2Controller::class, 'edit'])->name('formularios2.edit');
+    Route::put('/{formulario2}', [Formulario2Controller::class, 'update'])->name('formularios2.update');
+    Route::delete('/{formulario2}', [Formulario2Controller::class, 'destroy'])->name('formularios2.destroy');
+    Route::get('/{formulario2}/download', [Formulario2Controller::class, 'download'])->name('formularios2.download');
+
+    //consanguinidad
+    Route::get('/consanguinidades/index', [ForconsanguiController::class, 'index'])->name('consanguinidades.index');
+    Route::get('/consanguinidades/create', [ForconsanguiController::class, 'create'])->name('consanguinidades.create');
+    Route::post('/consanguinidades', [ForconsanguiController::class, 'store'])->name('consanguinidades.store');
+    Route::get('/consanguinidades/{consanguinidad}', [ForconsanguiController::class, 'show'])->name('consanguinidades.show');
+    Route::get('/consanguinidades/{consanguinidad}/edit', [ForconsanguiController::class, 'edit'])->name('consanguinidades.edit');
+    Route::put('/consanguinidades/{consanguinidad}', [ForconsanguiController::class, 'update'])->name('consanguinidades.update');
+    Route::delete('/consanguinidades/{consanguinidad}', [ForconsanguiController::class, 'destroy'])->name('consanguinidades.destroy');
+    Route::get('/consanguinidades/{consanguinidad}/download', [ForconsanguiController::class, 'download'])->name('consanguinidades.download');
+//planillas
+    Route::get('/planillas/index', [PlanillaController::class, 'index'])->name('planillas.index');
+    Route::get('/planillas/dashboard', [PlanillaController::class, 'dashboard'])->name('planillas.dashboard');
+    Route::post('/planillas/buscar', [PlanillaController::class, 'buscar'])->name('planillas.buscar');
+    Route::post('/planillas/subir', [PlanillaController::class, 'subirPlanillas'])->name('planillas.subir');
+    Route::get('/planillas/reporte/{id}', [PlanillaController::class, 'generarReporte'])->name('planillas.reporte');
+
+    //pdf panillas
+    Route::get('/planillas-pdf/index', [PlanillasPdfController::class, 'index'])->name('planillas-pdf.index');
+    Route::get('/planillas-pdf/crear', [PlanillasPdfController::class, 'create'])->name('planillas-pdf.create');
+    Route::post('/planillas-pdf', [PlanillasPdfController::class, 'store'])->name('planillas-pdf.store');
+    Route::get('/planillas-pdf/{planilla}', [PlanillasPdfController::class, 'show'])->name('planillas-pdf.show');
+
+    // Opcional: Si quieres agregar eliminar después
+    Route::delete('/planillas-pdf/{planilla}', [PlanillasPdfController::class, 'destroy'])->name('planillas-pdf.destroy');
+    Route::get('/planillas-pdf/{planilla}/edit', [PlanillasPdfController::class, 'edit'])->name('planillas-pdf.edit');
+    Route::put('/planillas-pdf/{planilla}/update', [PlanillasPdfController::class, 'update'])->name('planillas-pdf.update');
+    Route::delete('/planillas-pdf/{planilla}/delete', [PlanillasPdfController::class, 'destroy'])->name('planillas-pdf.destroy');
+
+    Route::get('/planillas-pdf/{planilla}/pdf', [PlanillasPdfController::class, 'viewPdf'])->name('planillas-pdf.view.pdf');
+    Route::get('/planillas-pdf/{planilla}/descargar', [PlanillasPdfController::class, 'downloadPdf'])->name('planillas-pdf.download');
+    Route::get('/planillas-pdf/{planilla}/ver', [PlanillasPdfController::class, 'show'])->name('planillas-pdf.show');
+
+
+
+
+
+
+Route::get('/convert/index', [TxtToWordController::class, 'showForm'])->name('convert.form');
+Route::post('/convert/word', [TxtToWordController::class, 'convertTxtToWord'])->name('convert.word');
+Route::post('/convert/wordsize7', [TxtToWordController::class, 'convertTxtToWordSize7'])->name('convert.size7');
+Route::post('/convert-txt-simple', [TxtToWordController::class, 'convertTxtToWordSimple'])->name('convert.txt-simple');
+
+//auditoria
+    Route::get('/audit-logs/index', [AuditLogsController::class, 'index'])->name('audit-logs.index');
+    Route::get('/audit-logs/{auditLog}', [AuditLogsController::class, 'show'])->name('audit-logs.show');
+    Route::get('/api/audit-logs/events', [AuditLogsController::class, 'getEvents'])->name('audit-logs.events');
+    Route::get('/api/audit-logs/model-types', [AuditLogsController::class, 'getModelTypes'])->name('audit-logs.model-types');
+
+    Route::get('/audit-logs/dashboard/auditoria', [AuditLogsController::class, 'dashboard'])->name('audit-logs.dashboard');
+    Route::get('/audit-logs/user-statistics/auditoria', [AuditLogsController::class, 'userStatistics'])->name('audit-logs.user-statistics');
+    Route::get('/audit-logs/user-statistics/{user}/auditoria', [AuditLogsController::class, 'userStatistics'])->name('audit-logs.user-statistics.show');
+    Route::get('/audit-logs/suspicious-activities/auditoria', [AuditLogsController::class, 'suspiciousActivities'])->name('audit-logs.suspicious-activities');
+    Route::get('/audit-logs/{auditLog}/auditoria', [AuditLogsController::class, 'show'])->name('audit-logs.show');
 });
 

@@ -15,10 +15,13 @@ return new class extends Migration
             $table->id();
             $table->integer('idPasivodos');
             $table->string('registro', 250)->nullable();
+            $table->unsignedBigInteger('user_id'); // Nuevo campo para el usuario
             $table->timestamps();
 
             // Clave foránea con referencia a la tabla pasivodos
             $table->foreign('idPasivodos')->references('id')->on('pasivodos')->onDelete('cascade');
+            // Nueva clave foránea para users
+            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
         });
     }
 

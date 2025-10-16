@@ -2,7 +2,7 @@
 
 @section('title', 'Crear Rol')
 
-@section('contenida')
+@section('contenido')
 <div class="container mx-auto px-4 py-8 max-w-2xl">
     <div class="bg-white shadow-md rounded-lg p-6">
         <h2 class="text-2xl font-bold text-gray-800 mb-6">Crear Nuevo Rol</h2>

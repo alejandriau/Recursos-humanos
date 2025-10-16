@@ -100,19 +100,25 @@
                                         </div>
 
                                         <!-- Dependencia -->
-                                        <div class="mt-3">
-                                            <label class="form-label">Dependencia:</label>
-                                            <div class="alert alert-light">
-                                                @php
-                                                    $niveles = [];
-                                                    if ($puesto->area?->denominacion) $niveles[] = $puesto->area->denominacion;
-                                                    if ($puesto->unidad?->denominacion) $niveles[] = $puesto->unidad->denominacion;
-                                                    if ($puesto->direccion?->denominacion) $niveles[] = $puesto->direccion->denominacion;
-                                                    if ($puesto->secretaria?->denominacion) $niveles[] = $puesto->secretaria->denominacion;
-                                                    echo implode(' → ', $niveles);
-                                                @endphp
-                                            </div>
-                                        </div>
+<!-- Dependencia -->
+<div class="mt-3">
+    <label class="form-label">Dependencia:</label>
+    <div class="alert alert-light">
+        @php
+            $unidad = $puesto->unidadOrganizacional;
+            $jerarquia = [];
+
+            // Obtener la jerarquía completa
+            while ($unidad) {
+                $jerarquia[] = $unidad->denominacion . ' (' . $unidad->tipo . ')';
+                $unidad = $unidad->padre;
+            }
+
+            // Mostrar en orden inverso (de mayor a menor jerarquía)
+            echo implode(' → ', array_reverse($jerarquia));
+        @endphp
+    </div>
+</div>
                                     </div>
                                 </div>
                             </div>

@@ -16,6 +16,7 @@ class PermissionSeeder extends Seeder
         // Lista de permisos
         $permissions = [
             'ver usuarios',
+            'ver roles',
             'crear usuarios',
             'editar usuarios',
             'eliminar usuarios',
@@ -51,6 +52,7 @@ class PermissionSeeder extends Seeder
         // Permisos para jefe de unidad
         $jefeUnidad->syncPermissions([
             'ver usuarios',
+            'ver roles',
             'crear usuarios',
             'editar usuarios',
             'eliminar usuarios',

@@ -64,11 +64,16 @@ class DjbrentaController extends Controller
         return view('admin.djbrentas.index', compact('djbrentas', 'tipos'));
     }
 
-    public function create()
-    {
-        $personas = Persona::where('estado', 1)->get();
-        return view('admin.djbrentas.create', compact('personas'));
-    }
+public function create()
+{
+    $personas = Persona::where('estado', 1)->get();
+
+    // Verificar si viene del show de una persona
+    $from_show = request()->has('from_dashboard');
+    $persona_id = request()->get('persona_id');
+
+    return view('admin.djbrentas.create', compact('personas', 'from_show', 'persona_id'));
+}
 
     public function store(Request $request)
     {
@@ -90,8 +95,14 @@ class DjbrentaController extends Controller
 
         Djbrenta::create($data);
 
+        if ($request->has('from_show')) {
+            return redirect()->route('personas.show', $request->idPersona)
+                ->with('success', 'DJBRenta creado exitosamente.');
+        }
+
         return redirect()->route('djbrentas.index')
             ->with('success', 'DJBRenta creado exitosamente.');
+
     }
 
     public function show(Djbrenta $djbrenta)

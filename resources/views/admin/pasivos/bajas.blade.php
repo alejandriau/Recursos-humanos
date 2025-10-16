@@ -17,6 +17,10 @@
         .acciones-dropdown {
             min-width: 200px;
         }
+        .jerarquia-text {
+            font-size: 0.75rem;
+            line-height: 1.2;
+        }
     </style>
 @endsection
 
@@ -180,7 +184,7 @@
                         @forelse ($puestos as $puesto)
                             <tr>
                                 <td><strong>{{ $puesto->item ?? 'N/A' }}</strong></td>
-                                <td>{{ $puesto->nivelgerarquico ?? 'N/A' }}</td>
+                                <td>{{ $puesto->nivelJerarquico ?? 'N/A' }}</td>
                                 <td>{{ $puesto->denominacion ?? 'N/A' }}</td>
                                 <td>
                                     @if($puesto->persona)
@@ -222,14 +226,19 @@
                                         <span class="badge bg-warning">Vacante</span>
                                     @endif
                                 </td>
-                                <td style="font-size: 0.8rem;">
+                                <td class="jerarquia-text">
                                     @php
-                                        $niveles = [];
-                                        if ($puesto->area?->denominacion) $niveles[] = $puesto->area->denominacion;
-                                        if ($puesto->unidad?->denominacion) $niveles[] = $puesto->unidad->denominacion;
-                                        if ($puesto->direccion?->denominacion) $niveles[] = $puesto->direccion->denominacion;
-                                        if ($puesto->secretaria?->denominacion) $niveles[] = $puesto->secretaria->denominacion;
-                                        echo implode(' → ', $niveles);
+                                        $unidad = $puesto->unidadOrganizacional;
+                                        $jerarquia = [];
+
+                                        // Obtener la jerarquía completa
+                                        while ($unidad) {
+                                            $jerarquia[] = $unidad->denominacion . ' (' . $unidad->tipo . ')';
+                                            $unidad = $unidad->padre;
+                                        }
+
+                                        // Mostrar en orden inverso (de mayor a menor jerarquía)
+                                        echo implode(' → ', array_reverse($jerarquia));
                                     @endphp
                                 </td>
                                 <td>
@@ -263,6 +272,50 @@
                                                         </button>
                                                     </form>
                                                 </li>
+                                                <li>
+                                                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#bajaModal{{ $puesto->historial_actual->id }}">BAJA</button>
+                                                    <div class="modal fade" id="bajaModal{{ $puesto->historial_actual->id }}" tabindex="-1" aria-hidden="true">
+                                                        <div class="modal-dialog modal-dialog-centered">
+                                                            <div class="modal-content"> <!-- Asegúrate de tener esta clase -->
+                                                                <form method="POST" action="{{ route('altasbajas.store') }}" enctype="multipart/form-data">
+                                                                    @csrf
+                                                                    <div class="modal-header">
+                                                                        <h5 class="modal-title">Dar de baja <p>{{ $puesto->historial_actual->apellidoPat." ". $puesto->historial_actual->apellidoMat ." ". $puesto->historial_actual->nombre }}</p></h5>
+
+                                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                                                                    </div>
+                                                                    <div class="modal-body">
+                                                                        <input type="hidden" name="idPersona" value="{{ $puesto->historial_actual->id }}">
+                                                                        <input type="hidden" name="apellidopaterno" value="{{ $puesto->historial_actual->apellidoPat }}">
+                                                                        <input type="hidden" name="apellidomaterno" value="{{ $puesto->historial_actual->apellidoMat }}">
+                                                                        <input type="hidden" name="nombre" value="{{ $puesto->historial_actual->nombre }}">
+
+                                                                        <div class="mb-3">
+                                                                            <label class="form-label">Fecha de retiro</label>
+                                                                            <input type="date" name="fechafin" class="form-control" required>
+                                                                        </div>
+                                                                        <div class="mb-3">
+                                                                            <label class="form-label">Motivo</label>
+                                                                            <input type="text" name="motivo" class="form-control" required>
+                                                                        </div>
+                                                                        <div class="mb-3">
+                                                                            <label class="form-label">Observaciones</label>
+                                                                            <textarea name="obser" class="form-control"></textarea>
+                                                                        </div>
+                                                                        <div class="mb-3">
+                                                                            <label class="form-label">PDF (Renuncia)</label>
+                                                                            <input type="file" name="pdffile" class="form-control">
+                                                                        </div>
+                                                                    </div>
+                                                                    <div class="modal-footer">
+                                                                        <button type="submit" class="btn btn-danger">Guardar</button>
+                                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                                                    </div>
+                                                                </form>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </li>
                                                 @endif
                                             @else
                                                 <li>
@@ -273,11 +326,13 @@
                                             @endif
                                             <li>
                                                 @if($puesto->historial_actual)
-                                                    <li>
-                                                        <a class="dropdown-item" href="{{ route('historial.edit', $puesto->historial_actual->id) }}">
-                                                            <i class="fas fa-edit me-2"></i>Editar Puesto
-                                                        </a>
-                                                    </li>
+                                                    <a class="dropdown-item" href="{{ route('historial.edit', $puesto->historial_actual->id) }}">
+                                                        <i class="fas fa-edit me-2"></i>Editar Designación
+                                                    </a>
+                                                @else
+                                                    <a class="dropdown-item" href="{{ route('puestos.edit', $puesto->id) }}">
+                                                        <i class="fas fa-edit me-2"></i>Editar Puesto
+                                                    </a>
                                                 @endif
                                             </li>
                                         </ul>
@@ -310,6 +365,14 @@ $(document).ready(function() {
         placeholder: "Seleccione...",
         allowClear: true
     });
+});
+</script>
+
+<!-- Script para manejar la jerarquía de unidades -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Puedes agregar aquí funcionalidades adicionales si es necesario
+    console.log('Vista de designaciones cargada correctamente');
 });
 </script>
 @endsection

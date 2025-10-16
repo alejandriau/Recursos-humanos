@@ -1,0 +1,29 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('historials', function (Blueprint $table) {
+            // Asegurarte de que el campo puesto_id existe y tiene el tipo correcto
+            $table->unsignedBigInteger('puesto_id')->change();
+
+            // Agregar la clave foránea
+            $table->foreign('puesto_id')
+                  ->references('id')
+                  ->on('puestos')
+                  ->onDelete('cascade');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('historials', function (Blueprint $table) {
+            $table->dropForeign(['puesto_id']);
+        });
+    }
+};

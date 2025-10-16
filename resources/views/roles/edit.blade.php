@@ -1,39 +1,45 @@
 @extends('dashboard')
 
-@section('title', 'Editar Roles de Usuario')
-
 @section('contenido')
-<div class="container mx-auto px-4 py-8 max-w-2xl">
-    <div class="bg-white shadow-md rounded-lg p-6">
-        <h2 class="text-2xl font-bold text-gray-800 mb-6">Editar Roles de: {{ $user->name }}</h2>
+<div class="container">
+    <h2 class="mb-4">Editar Rol</h2>
 
-        <form method="POST" action="{{ route('users.roles.update', $user) }}">
-            @csrf
-            @method('PUT')
+    {{-- Mensajes de error --}}
+    @if ($errors->any())
+        <div class="alert alert-danger">
+            <strong>Ups!</strong> Hubo algunos problemas con tus datos.<br><br>
+            <ul>
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
 
-            <div class="mb-6">
-                <label class="block text-sm font-medium text-gray-700 mb-3">Seleccionar Roles</label>
-                <div class="space-y-3">
-                    @foreach($roles as $role)
-                    <div class="flex items-center">
-                        <input type="checkbox" id="role-{{ $role->id }}" name="roles[]" value="{{ $role->name }}"
-                            {{ $user->hasRole($role->name) ? 'checked' : '' }}
-                            class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
-                        <label for="role-{{ $role->id }}" class="ml-2 text-sm text-gray-700">{{ $role->name }}</label>
-                    </div>
-                    @endforeach
+    {{-- Formulario de edición --}}
+    <form action="{{ route('roles.update', $role->id) }}" method="POST">
+        @csrf
+        @method('PUT')
+
+        <div class="mb-3">
+            <label for="name" class="form-label">Nombre del Rol:</label>
+            <input type="text" name="name" class="form-control" value="{{ $role->name }}" required>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Permisos:</label><br>
+            @foreach ($permissions as $permission)
+                <div class="form-check">
+                    <input type="checkbox" name="permissions[]" value="{{ $permission->id }}"
+                        class="form-check-input"
+                        {{ $role->permissions->contains($permission->id) ? 'checked' : '' }}>
+                    <label class="form-check-label">{{ $permission->name }}</label>
                 </div>
-            </div>
+            @endforeach
+        </div>
 
-            <div class="flex justify-end space-x-3">
-                <a href="{{ route('users.show', $user) }}" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-md transition duration-200">
-                    Cancelar
-                </a>
-                <button type="submit" class="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-md transition duration-200">
-                    Actualizar Roles
-                </button>
-            </div>
-        </form>
-    </div>
+        <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+        <a href="{{ route('roles.index') }}" class="btn btn-secondary">Cancelar</a>
+    </form>
 </div>
 @endsection

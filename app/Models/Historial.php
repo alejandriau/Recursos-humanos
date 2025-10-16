@@ -10,8 +10,6 @@ class Historial extends Model
 {
     use SoftDeletes;
 
-    protected $table = 'historials';
-
     protected $fillable = [
         'persona_id',
         'puesto_id',
@@ -46,25 +44,31 @@ class Historial extends Model
         'salario' => 'decimal:2'
     ];
 
-    // Relaciones
+    // Relaciones actualizadas
     public function persona(): BelongsTo
     {
         return $this->belongsTo(Persona::class, 'persona_id');
     }
 
-    public function puesto(): BelongsTo
+    public function puesto()
     {
         return $this->belongsTo(Puesto::class, 'puesto_id');
     }
 
-    public function puestoAnterior(): BelongsTo
+    public function unidadOrganizacional(): BelongsTo
     {
-        return $this->belongsTo(Puesto::class, 'puesto_anterior_id');
+        return $this->belongsTo(UnidadOrganizacional::class, 'idUniadadOrganizacional');
     }
 
-    public function puestoOriginal(): BelongsTo
+
+    public function unidadAnterior(): BelongsTo
     {
-        return $this->belongsTo(Puesto::class, 'puesto_original_id');
+        return $this->belongsTo(UnidadOrganizacional::class, 'idUniadadOrganizacional');
+    }
+
+    public function unidadOriginal(): BelongsTo
+    {
+        return $this->belongsTo(UnidadOrganizacional::class, 'idUnidadOriginal');
     }
 
     public function historialAnterior(): BelongsTo

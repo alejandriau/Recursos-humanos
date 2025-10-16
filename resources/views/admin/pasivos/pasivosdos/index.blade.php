@@ -4,128 +4,130 @@
 <div class="container-fluid pt-4 px-4">
 
     <h5 class="text-center">File de personal pasivo dos, en las gabetas de madera</h5><br>
+
     <div>
         <div>
             <h4 class="">Filtra por letra</h4>
         </div>
+        @can('filtrar_letra_pasivos_dos')
         <div class="letras-bus" id="letterForm">
             <div class="d-flex flex-wrap gap-2 justify-content-center">
                 @foreach (range('A', 'Z') as $letra)
-                    @continue($letra == 'I') {{-- Omitir letras si quieres --}}
+                    @continue($letra == 'I')
                     <form action="{{ route('pasivodos.letra') }}" method="GET">
                         <input type="hidden" name="letra" value="{{ $letra }}">
-                        <button class="btn btn-primary" type="submit">{{ $letra }}</button>
+                        <button class="btn btn-{{ $letra == ($letter ?? 'A') ? 'success' : 'primary' }}" type="submit">
+                            {{ $letra }}
+                        </button>
                     </form>
                 @endforeach
+                <!-- Botón para limpiar filtros -->
+                @if(isset($letter) && $letter != 'A')
+                <a href="{{ route('pasivodos.index') }}" class="btn btn-outline-secondary">
+                    Limpiar
+                </a>
+                @endif
             </div>
         </div>
-
+        @endcan
     </div>
+
     <div class="row">
+        @can('buscar_pasivos_dos')
         <div class="col-md-8 g-4">
-            <form class="form" method="GET" action="{{ url('pasivodos/buscar') }}">
-                <label for="search" class="w-100">
-                    @csrf
-                    <input class="form-control mb-3" type="search" name="query" placeholder="Buscar por nombre completo" id="search">
-                </label>
+            <form class="form" method="GET" action="{{ route('pasivodos.buscar') }}">
+                <div class="input-group">
+                    <input class="form-control" type="search" name="query" placeholder="Buscar por nombre completo"
+                        id="search" value="{{ request('query', $search ?? '') }}">
+                    <button class="btn btn-primary" type="submit">Buscar</button>
+                    @if(request('query') || isset($search))
+                    <a href="{{ route('pasivodos.index') }}" class="btn btn-outline-secondary">Limpiar</a>
+                    @endif
+                </div>
+                <!-- Mantener el parámetro de letra en la búsqueda -->
+                @if(isset($letter) && $letter != 'A')
+                <input type="hidden" name="letra" value="{{ $letter }}">
+                @endif
             </form>
         </div>
-    </div>
-    <div class="col-md-4 registro-p">
-        <!-- Button trigger modal -->
-        <button type="button" class="btn btn-primary flotanteg" data-bs-toggle="modal" data-bs-target="#staticBackdrop">
-            Registrar o agregar nuevo persona
-        </button>
-        <!-- Modal -->
-        <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                <div class="modal-header forcolo">
-                    <h1 class="modal-title fs-5" id="staticBackdropLabel">Registro de nueva persona</h1>
-                    <button type="button" class="btn-close cerrarf" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                    <form method="POST" action="{{ route('pasivodos.guardar')}}">
-                        @csrf
-                        <div class="modal-body">
-                            <div class="container mt-5">
-                                    <!-- Campo para el Número -->
-                                    <div class="row">
-                                        <div class="mb-3 col-md-6">
-                                            <label for="numero" class="form-label">Número:</label>
-                                            <input type="number" class="form-control" id="numero" name="codigo" required>
+        @endcan
+
+        @can('crear_pasivos_dos')
+        <div class="col-md-4 registro-p">
+            <!-- Button trigger modal -->
+            <button type="button" class="btn btn-primary flotanteg" data-bs-toggle="modal" data-bs-target="#staticBackdrop">
+                Registrar o agregar nuevo persona
+            </button>
+            <!-- Modal -->
+            <div class="modal fade" id="staticBackdrop" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                    <div class="modal-header forcolo">
+                        <h1 class="modal-title fs-5" id="staticBackdropLabel">Registro de nueva persona</h1>
+                        <button type="button" class="btn-close cerrarf" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                        <form method="POST" action="{{ route('pasivodos.guardar')}}">
+                            @csrf
+                            <div class="modal-body">
+                                <div class="container mt-5">
+                                        <!-- Campo para el Número -->
+                                        <div class="row">
+                                            <div class="mb-3 col-md-6">
+                                                <label for="numero" class="form-label">Número:</label>
+                                                <input type="number" class="form-control" id="numero" name="codigo" required>
+                                            </div>
+                                            <!-- Campo para la Letra (opciones) -->
+                                            <div class="mb-3 col-md-6">
+                                                <label for="letra" class="form-label">Letra:</label>
+                                                <select class="form-select" id="letra" name="letra" required>
+                                                    <option value="">Seleccione una letra</option>
+                                                    @foreach (['A','B','C','D','E','G','H','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'] as $letra)
+                                                        <option value="{{ $letra }}">{{ $letra }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
                                         </div>
-                                        <!-- Campo para la Letra (opciones) -->
-                                        <div class="mb-3 col-md-6">
-                                            <label for="letra" class="form-label">Letra:</label>
-                                            <select class="form-select" id="letra" name="letra" required>
-                                                <option value="">Seleccione una letra</option>
-                                                <option value="A">A</option>
-                                                <option value="B">B</option>
-                                                <option value="C">C</option>
-                                                <option value="D">D</option>
-                                                <option value="E">E</option>
-                                                <option value="G">G</option>
-                                                <option value="H">H</option>
-                                                <option value="I">I</option>
-                                                <option value="J">J</option>
-                                                <option value="K">K</option>
-                                                <option value="L">L</option>
-                                                <option value="M">M</option>
-                                                <option value="N">N</option>
-                                                <option value="O">O</option>
-                                                <option value="P">P</option>
-                                                <option value="Q">Q</option>
-                                                <option value="R">R</option>
-                                                <option value="S">S</option>
-                                                <option value="T">T</option>
-                                                <option value="U">U</option>
-                                                <option value="V">V</option>
-                                                <option value="W">W</option>
-                                                <option value="X">X</option>
-                                                <option value="Y">Y</option>
-                                                <option value="Z">Z</option>
-                                                <!-- Puedes agregar más opciones si lo necesitas -->
-                                            </select>
+
+                                        <!-- Campo para el Nombre Completo -->
+                                        <div class="mb-3">
+                                            <label for="nombre" class="form-label">Nombre Completo:</label>
+                                            <input type="text" class="form-control" id="nombre" name="nombrecompleto" required>
                                         </div>
-                                    </div>
 
-                                    <!-- Campo para el Nombre Completo -->
-                                    <div class="mb-3">
-                                        <label for="nombre" class="form-label">Nombre Completo:</label>
-                                        <input type="text" class="form-control" id="nombre" name="nombrecompleto" required>
-                                    </div>
-
-                                    <!-- Campo para Observaciones -->
-                                    <div class="mb-3">
-                                        <label for="observaciong" class="form-label">Observación:</label>
-                                        <textarea class="form-control" id="observaciong" name="observacion" rows="4" placeholder="Escribe aquí..."></textarea>
-                                    </div>
-
-                                    <!-- Botón de Enviar -->
+                                        <!-- Campo para Observaciones -->
+                                        <div class="mb-3">
+                                            <label for="observaciong" class="form-label">Observación:</label>
+                                            <textarea class="form-control" id="observaciong" name="observacion" rows="4" placeholder="Escribe aquí..."></textarea>
+                                        </div>
+                                </div>
                             </div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                            <button type="submit" class="btn btn-primary" name="guardarpasivo">Guardar</button>
-                        </div>
-                    </form>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                <button type="submit" class="btn btn-primary" name="guardarpasivo">Guardar</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
-
+        @endcan
     </div>
-    <div class="">
-            <div class="row">
-                <div class="col-md-8">
-                    <h4 class="mb-4">Lista de Personas</h4>
-                </div>
-                <div class="col-md-4 d-flex justify-content-end mt-3">
-                    <a href="{{ route('pasivodos.ultimo') }}" class="btn btn-outline-primary rounded-pill shadow-sm px-1">
-                        Ver último registro &raquo;
-                    </a>
-                </div>
 
+    <div class="">
+        <div class="row">
+            <div class="col-md-8">
+                <h4 class="mb-4">Lista de Personas</h4>
             </div>
+            @can('ver_ultimo_registro_pasivos_dos')
+            <div class="col-md-4 d-flex justify-content-end mt-3">
+                <a href="{{ route('pasivodos.ultimo') }}" class="btn btn-outline-primary rounded-pill shadow-sm px-1">
+                    Ver último registro &raquo;
+                </a>
+            </div>
+            @endcan
+        </div>
+
+        @can('generar_pdf_pasivos_dos')
         <div class="" id="tabla-imprimir">
             <form action="{{ url('pasivodos/pdf') }}" method="GET">
                 @csrf
@@ -135,88 +137,125 @@
                             <th>CODIGO</th>
                             <th>NOMBRE COMPLETO</th>
                             <th>OBSERVACIONES</th>
+                            @can('eliminar_seleccion_pasivos_dos')
                             <th>Acciones</th>
+                            @endcan
                         </tr>
                     </thead >
                     <tbody id="tablaBody">
-                        @if ($selecciones)
+                        @if ($selecciones->count() > 0)
                             @foreach ($selecciones as $seleccion)
                                 <tr>
                                     <td><input type="hidden" name="idreporte[]" value="{{$seleccion->pasivodos->id}}">{{ $seleccion->pasivodos->letra ?? '' }} {{ $seleccion->pasivodos->codigo ?? '' }}</td>
                                     <td>{{ $seleccion->pasivodos->nombrecompleto ?? ''}}</td>
                                     <td>{{ $seleccion->pasivodos->observacion ?? ''}}</td>
+                                    @can('eliminar_seleccion_pasivos_dos')
                                     <td>
                                         <button type="button" class="btn btn-danger btn-eliminar" data-id="{{ $seleccion->id }}">X</button>
                                     </td>
-
+                                    @endcan
                                 </tr>
                             @endforeach
                         @endif
                     </tbody>
                 </table>
-                    <button type="submit" class="btn btn-primary">Generar PDF</button>
-                </form>
+
+                @if ($selecciones->count() > 0)
+                <div class="d-flex gap-2 mt-3">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-file-pdf me-2"></i>Generar PDF
+                    </button>
+
+                    @can('eliminar_seleccion_pasivos_dos')
+                    <button type="button" class="btn btn-danger" id="btnEliminarTodo">
+                        <i class="fas fa-trash me-2"></i>Eliminar Todo
+                    </button>
+                    @endcan
+                </div>
+                @endif
+            </form>
         </div>
+        @endcan
+
         <div class="table-responsive">
             <table id="example" class="table table-striped table-bordered" style="width:100%">
                 <thead>
                     <tr>
                         <th>CODIGO</th>
                         <th style="min-width: 400px;">NOMBRE COMPLETO</th>
-                        <th class="obser-tabla" >OBSERBACIONES</th>
+                        <th class="obser-tabla">OBSERVACIONES</th>
+                        @can('editar_pasivos_dos')
                         <th class="obser-tabla">EDITAR</th>
-                        <!--<th class="obser-tabla">ELIMINAR</th>-->
+                        @endcan
+                        @can('eliminar_pasivos_dos')
+                        <th class="obser-tabla">ELIMINAR</th>
+                        @endcan
+                        @can('seleccionar_pasivos_dos')
                         <th class="obser-tabla">SOLICITAR</th>
+                        @endcan
                     </tr>
-                </thead>
                 </thead>
                 <tbody id="table-body">
                     @foreach ($resultados as $row)
                         <tr>
-                            <form method="POST" action="{{ route('pasivodos', $row->id) }}">
+                            @can('editar_pasivos_dos')
+                            <form method="POST" action="{{ route('pasivodos.actualizar', $row->id) }}">
                                 @csrf
                                 @method('PUT')
+                            @endcan
                                 <td class="pasivocod">{{ $row->letra }} {{ $row->codigo }}</td>
                                 <td style="background-color: {{ empty($row->nombrecompleto) ? '#e11d36' : 'transparent' }}">
+                                    @can('editar_pasivos_dos')
                                     <input type="text"
                                         class="inpu inpu-pasivomod w-100"
                                         style="all: unset;"
                                         name="nombrecompleto"
                                         value="{{ $row->nombrecompleto }}">
+                                    @else
+                                    {{ $row->nombrecompleto }}
+                                    @endcan
                                 </td>
 
-                                <td ><input type="text" class="inpu inpu-pasivomod" style="all: unset;" name="observacion" value="{{ $row->observacion }}"></td>
+                                <td>
+                                    @can('editar_pasivos_dos')
+                                    <input type="text" class="inpu inpu-pasivomod" style="all: unset;" name="observacion" value="{{ $row->observacion }}">
+                                    @else
+                                    {{ $row->observacion }}
+                                    @endcan
+                                </td>
+
+                                @can('editar_pasivos_dos')
                                 <td><button type="submit" name="editarp" class="btn btn-warning">Actualizar</button></td>
-                            </form>
-
-                            <!--<td>
-                                <form action="" method="GET">
-                                    @csrf
-                                    <input type="hidden" name="id" value="{{ $row->id }}">
-                                    <button type="submit" class="btn btn-primary">Reservar</button>
                                 </form>
-                            </td>-->
+                                @endcan
 
-                            <td>
-                                <form action="{{ route('pasivodos.eliminar', $row->id) }}" method="POST" onsubmit="return confirm('¿Estás seguro de que deseas eliminar este registro?');">
-                                    @csrf
-                                    <button type="submit" onclick="eliminarcof()" class="btn btn-danger" name="elminarp">Eliminar</button>
-                                </form>
-                            </td>
+                                @can('eliminar_pasivos_dos')
+                                <td>
+                                    <form action="{{ route('pasivodos.eliminar', $row->id) }}" method="POST" onsubmit="return confirm('¿Estás seguro de que deseas eliminar este registro?');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" onclick="eliminarcof()" class="btn btn-danger" name="elminarp">Eliminar</button>
+                                    </form>
+                                </td>
+                                @endcan
 
-                            <td>
-                                <form class="seleccionar-pasivod">
-                                    @csrf
-                                    <input type="hidden" name="idselecc" value="{{ $row->id }}">
-                                    <button type="submit" class="btn btn-primary" name="selccionarp">Seleccionar</button>
-                                </form>
-                            </td>
+                                @can('seleccionar_pasivos_dos')
+                                <td>
+                                    <form class="seleccionar-pasivod">
+                                        @csrf
+                                        <input type="hidden" name="idselecc" value="{{ $row->id }}">
+                                        <button type="submit" class="btn btn-primary" name="selccionarp">Seleccionar</button>
+                                    </form>
+                                </td>
+                                @endcan
                         </tr>
                     @endforeach
                 </tbody>
             </table>
+            <div class="d-flex justify-content-center mt-4">
+                {{ $resultados->withQueryString()->links() }}
+            </div>
         </div>
-
     </div>
 </div>
 @if (session('success'))
@@ -248,7 +287,7 @@
         box-shadow: 0 0 10px rgba(0,0,0,0.2);
 
     }
-    
+
 </style>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
@@ -429,7 +468,70 @@ $(document).on('submit', '.form-actualizar', function(e) {
         });
     });
 
+// Eliminar todas las selecciones
+$(document).ready(function () {
+    $('#btnEliminarTodo').on('click', function () {
+        Swal.fire({
+            title: '¿Estás seguro?',
+            text: "¡Esto eliminará TODOS tus registros seleccionados!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Sí, eliminar todo',
+            cancelButtonText: 'Cancelar',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: "{{ route('seleccion.eliminar.todo') }}",
+                    type: 'DELETE',
+                    data: {
+                        _token: '{{ csrf_token() }}'
+                    },
+                    success: function (response) {
+                        if (response.success) {
+                            // Limpiar la tabla
+                            $("#tablaBody").html('<tr><td colspan="4" class="text-center">No tienes registros seleccionados</td></tr>');
 
+                            // Ocultar botones
+                            $('.d-flex.gap-2.mt-3').hide();
+
+                            Swal.fire({
+                                toast: true,
+                                position: 'top-end',
+                                icon: 'success',
+                                title: 'Todos tus registros fueron eliminados',
+                                showConfirmButton: false,
+                                timer: 3000,
+                                background: '#28a745',
+                                color: '#fff',
+                                customClass: { popup: 'custom-toast' }
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'No se pudieron eliminar los registros',
+                                text: response.message || 'Intenta de nuevo.',
+                                background: '#dc3545',
+                                color: '#fff',
+                            });
+                        }
+                    },
+                    error: function () {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error en el servidor',
+                            text: 'No se pudo procesar la eliminación.',
+                            background: '#dc3545',
+                            color: '#fff',
+                        });
+                    }
+                });
+            }
+        });
+    });
+});
 
 
 

@@ -6,7 +6,7 @@
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h3 fw-bold text-dark">Gestión de Roles</h1>
-        @can('asignar roles a usuarios')
+        @can('crear_roles')
             <a href="{{ route('roles.create') }}" class="btn btn-primary">
                 <i class="fas fa-plus me-2"></i> Nuevo Rol
             </a>
@@ -48,13 +48,19 @@
                             </td>
                             <td class="text-center">
                                 <div class="d-flex justify-content-center gap-2">
-                                    @can('asignar roles a usuarios')
+                                    @can('editar_roles')
                                         <a href="{{ route('roles.edit', $role) }}" class="btn btn-sm btn-warning" title="Editar Rol">
                                             <i class="fas fa-edit"></i>
                                         </a>
+                                    @endcan
+
+                                    @can('gestionar_permisos_roles')
                                         <a href="{{ route('roles.permissions.edit', $role) }}" class="btn btn-sm btn-success" title="Gestionar Permisos">
                                             <i class="fas fa-key"></i>
                                         </a>
+                                    @endcan
+
+                                    @can('eliminar_roles')
                                         <form action="{{ route('roles.destroy', $role) }}" method="POST" onsubmit="return confirm('¿Estás seguro de eliminar este rol?')">
                                             @csrf
                                             @method('DELETE')
@@ -62,9 +68,11 @@
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </form>
-                                    @else
-                                        <span class="text-muted">Sin acceso</span>
                                     @endcan
+
+                                    @cannot(['editar_roles', 'gestionar_permisos_roles', 'eliminar_roles'])
+                                        <span class="text-muted">Sin acceso</span>
+                                    @endcannot
                                 </div>
                             </td>
                         </tr>

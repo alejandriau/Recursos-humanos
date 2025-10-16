@@ -11,6 +11,11 @@
         <form action="{{ route('djbrentas.store') }}" method="POST" enctype="multipart/form-data">
             @csrf
 
+            <!-- Campo oculto para identificar el origen -->
+            @if(isset($from_show) && $from_show)
+                <input type="hidden" name="from_show" value="1">
+            @endif
+
             <div class="row">
                 <div class="col-md-6">
                     <div class="mb-3">
@@ -27,14 +32,20 @@
                     <div class="mb-3">
                         <label for="idPersona" class="form-label">Persona *</label>
                         <select class="form-select @error('idPersona') is-invalid @enderror"
-                                id="idPersona" name="idPersona" required>
+                                id="idPersona" name="idPersona" required
+                                {{ isset($persona_id) ? 'disabled' : '' }}>
                             <option value="">Seleccionar Persona</option>
                             @foreach($personas as $persona)
-                                <option value="{{ $persona->id }}" {{ old('idPersona') == $persona->id ? 'selected' : '' }}>
+                                <option value="{{ $persona->id }}"
+                                    {{ (old('idPersona') == $persona->id || (isset($persona_id) && $persona_id == $persona->id)) ? 'selected' : '' }}>
                                     {{ $persona->nombre }}
                                 </option>
                             @endforeach
                         </select>
+                        <!-- Campo oculto para mantener el valor si el select está deshabilitado -->
+                        @if(isset($persona_id))
+                            <input type="hidden" name="idPersona" value="{{ $persona_id }}">
+                        @endif
                         @error('idPersona')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -66,9 +77,15 @@
                 <button type="submit" class="btn btn-primary">
                     <i class="fas fa-save"></i> Guardar
                 </button>
-                <a href="{{ route('djbrentas.index') }}" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left"></i> Cancelar
-                </a>
+                @if(isset($from_show) && $from_show)
+                    <a href="{{ route('personas.show', $persona_id) }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Cancelar
+                    </a>
+                @else
+                    <a href="{{ route('djbrentas.index') }}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Cancelar
+                    </a>
+                @endif
             </div>
         </form>
     </div>

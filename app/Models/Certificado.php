@@ -21,6 +21,11 @@ class Certificado extends Model
         'fechaRegistro',
         'fechaActualizacion'
     ];
+    protected $casts = [
+        'fecha' => 'date',
+        'fechaRegistro' => 'datetime',
+        'fechaActualizacion' => 'datetime',
+    ];
 
     // Relación con persona
     public function persona()

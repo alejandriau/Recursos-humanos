@@ -35,6 +35,12 @@ class Profesion extends Model
             'fechaRegistro',
             'fechaActualizacion',
         ];
+        protected $casts = [
+            'fechaDiploma' => 'date',
+            'fechaProvision' => 'date',
+            'fechaRegistro' => 'datetime',
+            'fechaActualizacion' => 'datetime',
+        ];
 
         // Opcional: Si quieres definir la relación con el modelo Persona
         public function persona()

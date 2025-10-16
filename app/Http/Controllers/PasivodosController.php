@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Pasivodos;
 use App\Models\Seleccion;
+use Illuminate\Support\Facades\Auth;
 
 
 
@@ -16,14 +17,20 @@ class PasivodosController extends Controller
 {
     public function index()
     {
-        $selecciones = Seleccion::with('pasivodos')->get();
+        // Solo selecciones del usuario autenticado
+        $selecciones = Seleccion::with('pasivodos')
+            ->where('user_id', Auth::id())
+            ->get();
+
         $letter = "A";
         $resultados =  Pasivodos::where('letra', $letter)
-        ->orderBy('codigo', 'ASC')
-        ->get();
-        
+            ->orderBy('codigo', 'ASC')
+            ->paginate(100);
+
         return view('admin.pasivos.pasivosdos.index', compact('resultados','selecciones'));
     }
+
+
 
     public function show($id)
     {
@@ -84,81 +91,122 @@ class PasivodosController extends Controller
     public function letra(Request $request)
     {
         $letter = $request->input('letra');
-        $selecciones = Seleccion::with('pasivodos')->get();
 
-        $resultados =  Pasivodos::where('letra', $letter)
-        ->orderBy('codigo', 'ASC')
-        ->get();
+        // Solo selecciones del usuario autenticado
+        $selecciones = Seleccion::with('pasivodos')
+            ->where('user_id', Auth::id())
+            ->get();
 
-        return view('admin.pasivos.pasivosdos.index', compact('resultados','selecciones'));
+        $resultados = Pasivodos::where('letra', $letter)
+            ->orderBy('codigo', 'ASC')
+            ->paginate(100);
+
+        return view('admin.pasivos.pasivosdos.index', compact('resultados','selecciones', 'letter'));
     }
+
     public function buscar(Request $request)
     {
         $request->validate([
             'query' => 'required|string'
         ]);
+
         $search = $request->input('query');
-        $selecciones = Seleccion::with('pasivodos')->get();
+        $letter = $request->get('letra', ''); // Mantener la letra si existe
 
-        $resultados = Pasivodos::where('nombrecompleto', 'like', '%' . $search . '%')->get();
+        // Solo selecciones del usuario autenticado
+        $selecciones = Seleccion::with('pasivodos')
+            ->where('user_id', Auth::id())
+            ->get();
 
-        return view('admin.pasivos.pasivosdos.index', compact('resultados','selecciones'));
+        // Si hay búsqueda, buscar por nombre; si no, usar la letra
+        if ($search) {
+            $resultados = Pasivodos::where('nombrecompleto', 'like', '%' . $search . '%')
+                ->paginate(100);
+        } else {
+            $resultados = Pasivodos::where('letra', $letter)
+                ->orderBy('codigo', 'ASC')
+                ->paginate(100);
+        }
+
+        return view('admin.pasivos.pasivosdos.index', compact('resultados','selecciones', 'letter', 'search'));
     }
 
+public function traer(Request $request)
+{
+    $id = $request->input('idselecc');
 
-    public function traer(Request $request)
-    {
-        $id = $request->input('idselecc');
-
-        // Validar primero el ID
-        if (!is_numeric($id) || $id <= 0) {
-            return response()->json([
-                'success' => false,
-                'message' => 'ID de persona inválido.'
-            ]);
-        }
-
-        // Validar existencia del pasivo
-        $pasivo = Pasivodos::find($id);
-        if (!$pasivo) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No se encontraron resultados.'
-            ]);
-        }
-
-        // Validar y guardar en Seleccion
-        $request->validate([
-            'registro' => 'nullable|string|max:45',
-        ]);
-
-        $seleccion = Seleccion::create([
-            'idPasivodos' => $id,
-            'registro' => $request->registro
-        ]);
-
+    // Validar primero el ID
+    if (!is_numeric($id) || $id <= 0) {
         return response()->json([
-            'success' => true,
-            'data' => [[
-                'id' => $pasivo->id,
-                'codigo' => e($pasivo->codigo . $pasivo->letra),
-                'nombrecompleto' => e($pasivo->nombrecompleto),
-                'observacion' => e($pasivo->observacion),
-                'idSeleccion' => $seleccion->id
-            ]]
+            'success' => false,
+            'message' => 'ID de persona inválido.'
         ]);
     }
 
-    public function reportepasivos(Request $request)
-    {
+    // Validar existencia del pasivo
+    $pasivo = Pasivodos::find($id);
+    if (!$pasivo) {
+        return response()->json([
+            'success' => false,
+            'message' => 'No se encontraron resultados.'
+        ]);
+    }
 
+    // Verificar si el usuario ya tiene este pasivo seleccionado
+    $seleccionExistente = Seleccion::where('idPasivodos', $id)
+        ->where('user_id', Auth::id())
+        ->first();
+
+    if ($seleccionExistente) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Ya has seleccionado este registro anteriormente.'
+        ]);
+    }
+
+    // Validar y guardar en Seleccion
+    $request->validate([
+        'registro' => 'nullable|string|max:45',
+    ]);
+
+    // Crear la nueva selección asociada al usuario
+    $seleccion = Seleccion::create([
+        'idPasivodos' => $id,
+        'registro' => $request->registro,
+        'user_id' => Auth::id() // Asociar al usuario autenticado
+    ]);
+
+    return response()->json([
+        'success' => true,
+        'data' => [[
+            'id' => $pasivo->id,
+            'codigo' => e($pasivo->letra . ' ' . $pasivo->codigo), // Formato corregido
+            'nombrecompleto' => e($pasivo->nombrecompleto),
+            'observacion' => e($pasivo->observacion),
+            'idSeleccion' => $seleccion->id
+        ]]
+    ]);
+}
+
+public function reportepasivos(Request $request)
+    {
         $ids = $request->input('idreporte');
 
         if (!is_array($ids) || empty($ids)) {
             return response()->json(['error' => 'No se enviaron IDs válidos.'], 400);
         }
 
-        $datos = Pasivodos::whereIn('id', $ids)->get();
+        // Opcional: Verificar que los IDs pertenecen al usuario actual
+        $idsPermitidos = Seleccion::where('user_id', Auth::id())
+            ->whereIn('idPasivodos', $ids)
+            ->pluck('idPasivodos')
+            ->toArray();
+
+        if (empty($idsPermitidos)) {
+            return response()->json(['error' => 'No tienes permisos para generar este reporte.'], 403);
+        }
+
+        $datos = Pasivodos::whereIn('id', $idsPermitidos)->get();
 
         $letra = $datos->first()?->letra ?? 'N/A';
 
@@ -183,7 +231,6 @@ class PasivodosController extends Controller
         return response($pdf->Output('S'), 200)
             ->header('Content-Type', 'application/pdf')
             ->header('Content-Disposition', 'inline; filename="reporte_pasivos.pdf"');
-
     }
     //ultimo registro o modificado
     public function ultimo(Request $request)

@@ -20,6 +20,11 @@ class Cajacordes extends Model
         'fechaRegistro',
         'fechaActualizacion',
     ];
+    protected $casts = [
+        'fecha' => 'date',
+        'fechaRegistro' => 'date',
+        'fechaActualizacion' => 'date',
+    ];
 
     // Relación con persona
     public function persona()

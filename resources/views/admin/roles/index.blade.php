@@ -40,7 +40,7 @@
                         <a href="{{ route('admin.roles.show', $role->id) }}" class="text-blue-600 hover:text-blue-900 mr-3">Ver</a>
                         @endcan
                         @can('edit roles')
-                        <a href="{{ route('admin.roles.edit', $role->id) }}" class="text-green-600 hover:text-green-900 mr-3">Editar</a>
+                        <a href="{{ route('role.edit', $role->id) }}" class="text-green-600 hover:text-green-900 mr-3">Editar</a>
                         @endcan
                         @can('delete roles')
                         <form action="{{ route('admin.roles.destroy', $role->id) }}" method="POST" class="inline">

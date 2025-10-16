@@ -5,21 +5,28 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Persona;
 use App\Models\Historial;
-use App\Models\Puesto;
+use App\Models\Puesto; // FALTABA ESTA IMPORTACIÓN
+use App\Models\UnidadOrganizacional;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class HistorialController extends Controller
 {
     // Mostrar formulario de creación
-    public function create(Request $request, $id)
-    {
-        $niveles = $request->input('niveles');
-        $personas = Persona::where('estado', 1)->get();
-        $puesto = Puesto::findOrFail($id);
 
-        return view('admin.historial.create', compact('personas', 'puesto', 'niveles'));
-    }
+    public function create(Request $request, $id)
+{
+    $niveles = $request->input('niveles');
+    $personas = Persona::where('estado', 1)->get();
+
+    // Verificar que el puesto existe y está activo
+    $puesto = Puesto::where('id', $id)
+                    ->where('estado', 1)
+                    ->with('unidadOrganizacional.padre.padre.padre')
+                    ->firstOrFail();
+
+    return view('admin.historial.create', compact('personas', 'puesto', 'niveles'));
+}
 
     // Búsqueda de personas para select2
     public function buscarPersonas(Request $request)
@@ -40,78 +47,96 @@ class HistorialController extends Controller
     }
 
     // Guardar nuevo historial
-    public function store(Request $request)
-    {
-        $request->validate([
-            'persona_id' => 'required|exists:persona,id',
-            'puesto_id' => 'required|exists:puesto,id',
-            'fecha_inicio' => 'required|date',
-            'fecha_fin' => 'nullable|date|after_or_equal:fecha_inicio',
-            'tipo_movimiento' => 'required|in:designacion_inicial,movilidad,reasignacion,ascenso,comision,interinato,encargo_funciones,recontratacion',
-            'tipo_contrato' => 'required|in:permanente,contrato_administrativo,contrato_plazo_fijo,contrato_obra,honorarios',
-            'numero_memo' => 'nullable|string|max:100',
-            'fecha_memo' => 'nullable|date',
-            'archivo_memo' => 'nullable|file|mimes:pdf|max:2048',
-            'salario' => 'nullable|numeric|min:0',
-            'porcentaje_dedicacion' => 'nullable|integer|min:1|max:100',
-            'fecha_vencimiento' => 'nullable|date|after:fecha_inicio',
-            'motivo' => 'nullable|string|max:500',
-            'observaciones' => 'nullable|string|max:1000'
-        ]);
+public function store(Request $request)
+{
+    $request->validate([
+        'persona_id' => 'required|exists:persona,id', // Cambiado de 'persona' a 'personas'
+        'puesto_id' => 'required|exists:puestos,id',   // Cambiado de 'puesto' a 'puestos'
+        'fecha_inicio' => 'required|date',
+        'fecha_fin' => 'nullable|date|after_or_equal:fecha_inicio',
+        'tipo_movimiento' => 'required|in:designacion_inicial,movilidad,reasignacion,ascenso,comision,interinato,encargo_funciones,recontratacion',
+        'tipo_contrato' => 'required|in:permanente,contrato_administrativo,contrato_plazo_fijo,contrato_obra,honorarios',
+        'numero_memo' => 'nullable|string|max:100',
+        'fecha_memo' => 'nullable|date',
+        'archivo_memo' => 'nullable|file|mimes:pdf|max:2048',
+        'salario' => 'nullable|numeric|min:0',
+        'porcentaje_dedicacion' => 'nullable|integer|min:1|max:100',
+        'fecha_vencimiento' => 'nullable|date|after:fecha_inicio',
+        'motivo' => 'nullable|string|max:500',
+        'observaciones' => 'nullable|string|max:1000'
+    ]);
 
-        DB::beginTransaction();
+    DB::beginTransaction();
 
-        try {
-            $data = $request->except('archivo_memo');
+    try {
+        $data = $request->except('archivo_memo');
 
-            // Manejar archivo PDF
-            if ($request->hasFile('archivo_memo')) {
-                $archivo = $request->file('archivo_memo');
-                $nombreArchivo = 'memo_' . time() . '_' . $request->persona_id . '.' . $archivo->getClientOriginalExtension();
-                $ruta = $archivo->storeAs('memos', $nombreArchivo, 'public');
-                $data['archivo_memo'] = $ruta;
-            }
+        // Validación adicional para asegurar que el puesto y persona existen y están activos
+        $puesto = Puesto::where('id', $request->puesto_id)
+                       ->where('estado', 1)
+                       ->first();
 
-            // Si es movilidad o ascenso, concluir el registro anterior
-            if (in_array($request->tipo_movimiento, ['movilidad', 'ascenso', 'reasignacion'])) {
-                $historialAnterior = Historial::where('persona_id', $request->persona_id)
-                    ->where('estado', 'activo')
-                    ->first();
-
-                if ($historialAnterior) {
-                    $historialAnterior->marcarComoConcluido();
-                    $data['historial_anterior_id'] = $historialAnterior->id;
-                    $data['puesto_anterior_id'] = $historialAnterior->puesto_id;
-                }
-            }
-
-            // Si es comisión o interinato, verificar puesto original
-            if (in_array($request->tipo_movimiento, ['comision', 'interinato', 'encargo_funciones'])) {
-                $puestoPrincipal = Historial::where('persona_id', $request->persona_id)
-                    ->where('estado', 'activo')
-                    ->where('conserva_puesto_original', false)
-                    ->first();
-
-                if ($puestoPrincipal) {
-                    $data['conserva_puesto_original'] = true;
-                    $data['puesto_original_id'] = $puestoPrincipal->puesto_id;
-                }
-            }
-
-            Historial::create($data);
-
-            DB::commit();
-
-            return redirect()->route('puesto')
-                ->with('success', 'Designación registrada correctamente.');
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return redirect()->back()
-                ->with('error', 'Error al registrar la designación: ' . $e->getMessage())
-                ->withInput();
+        if (!$puesto) {
+            throw new \Exception('El puesto seleccionado no existe o no está activo.');
         }
+
+        $persona = Persona::where('id', $request->persona_id)
+                         ->where('estado', 1)
+                         ->first();
+
+        if (!$persona) {
+            throw new \Exception('La persona seleccionada no existe o no está activa.');
+        }
+
+        // Manejar archivo PDF
+        if ($request->hasFile('archivo_memo')) {
+            $archivo = $request->file('archivo_memo');
+            $nombreArchivo = 'memo_' . time() . '_' . $request->persona_id . '.' . $archivo->getClientOriginalExtension();
+            $ruta = $archivo->storeAs('memos', $nombreArchivo, 'public');
+            $data['archivo_memo'] = $ruta;
+        }
+
+        // Si es movilidad o ascenso, concluir el registro anterior
+        if (in_array($request->tipo_movimiento, ['movilidad', 'ascenso', 'reasignacion'])) {
+            $historialAnterior = Historial::where('persona_id', $request->persona_id)
+                ->where('estado', 'activo')
+                ->first();
+
+            if ($historialAnterior) {
+                $historialAnterior->marcarComoConcluido();
+                $data['historial_anterior_id'] = $historialAnterior->id;
+                $data['puesto_anterior_id'] = $historialAnterior->puesto_id;
+            }
+        }
+
+        // Si es comisión o interinato, verificar puesto original
+        if (in_array($request->tipo_movimiento, ['comision', 'interinato', 'encargo_funciones'])) {
+            $puestoPrincipal = Historial::where('persona_id', $request->persona_id)
+                ->where('estado', 'activo')
+                ->where('conserva_puesto_original', false)
+                ->first();
+
+            if ($puestoPrincipal) {
+                $data['conserva_puesto_original'] = true;
+                $data['puesto_original_id'] = $puestoPrincipal->puesto_id;
+            }
+        }
+
+        Historial::create($data);
+
+        DB::commit();
+
+        return redirect()->route('puesto')
+            ->with('success', 'Designación registrada correctamente.');
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return redirect()->back()
+            ->with('error', 'Error al registrar la designación: ' . $e->getMessage())
+            ->withInput();
     }
+}
+
     public function show($id)
     {
         $historial = Historial::with(['puesto', 'persona', 'puestoOriginal', 'historialAnterior'])
@@ -120,28 +145,28 @@ class HistorialController extends Controller
         return view('admin.historial.show', compact('historial'));
     }
 
-public function edit($id)
-{
-    $historial = Historial::with(['puesto', 'persona'])->find($id);
+    public function edit($id)
+    {
+        $historial = Historial::with(['puesto', 'persona'])->find($id);
 
-    if (!$historial) {
-        return redirect()->route('historial')
-            ->with('error', 'Registro no encontrado');
+        if (!$historial) {
+            return redirect()->route('historial')
+                ->with('error', 'Registro no encontrado');
+        }
+
+        // Verificar que las relaciones existan
+        if (!$historial->puesto) {
+            return redirect()->route('historial')
+                ->with('error', 'El puesto asociado no existe');
+        }
+
+        if (!$historial->persona) {
+            return redirect()->route('historial')
+                ->with('error', 'La persona asociada no existe');
+        }
+
+        return view('admin.historial.edit', compact('historial'));
     }
-
-    // Verificar que las relaciones existan
-    if (!$historial->puesto) {
-        return redirect()->route('historial')
-            ->with('error', 'El puesto asociado no existe');
-    }
-
-    if (!$historial->persona) {
-        return redirect()->route('historial')
-            ->with('error', 'La persona asociada no existe');
-    }
-
-    return view('admin.historial.edit', compact('historial'));
-}
 
     // Desactivar puesto
     public function desactivar($id)
@@ -165,7 +190,7 @@ public function edit($id)
             ->where(function ($query) use ($search, $tipoMovimiento, $estado, $tipoContrato) {
                 if ($search) {
                     $query->where('item', 'like', "%$search%")
-                          ->orWhere('nivelgerarquico', 'like', "%$search%")
+                          ->orWhere('nivelJerarquico', 'like', "%$search%")
                           ->orWhere('denominacion', 'like', "%$search%")
                           ->orWhereHas('historial', function ($historialQuery) use ($search, $tipoMovimiento, $estado, $tipoContrato) {
                               $historialQuery->whereNull('fecha_fin')
@@ -191,16 +216,7 @@ public function edit($id)
                 }
             })
             ->with([
-                'area',
-                'unidad',
-                'direccion',
-                'secretaria',
-                'area.unidad',
-                'area.direccion',
-                'area.secretaria',
-                'unidad.direccion',
-                'unidad.secretaria',
-                'direccion.secretaria',
+                'unidadOrganizacional.padre.padre.padre', // Para cargar la jerarquía completa
                 'historial' => function ($query) use ($tipoMovimiento, $estado, $tipoContrato) {
                     $query->whereNull('fecha_fin')
                           ->when($tipoMovimiento, function ($q) use ($tipoMovimiento) {
@@ -243,22 +259,11 @@ public function edit($id)
             ->when($search, function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('item', 'like', "%$search%")
-                      ->orWhere('nivelgerarquico', 'like', "%$search%")
+                      ->orWhere('nivelJerarquico', 'like', "%$search%")
                       ->orWhere('denominacion', 'like', "%$search%");
                 });
             })
-            ->with([
-                'area',
-                'unidad',
-                'direccion',
-                'secretaria',
-                'area.unidad',
-                'area.direccion',
-                'area.secretaria',
-                'unidad.direccion',
-                'unidad.secretaria',
-                'direccion.secretaria',
-            ])
+            ->with(['unidadOrganizacional.padre.padre.padre'])
             ->get();
 
         return view('admin.pasivos.bajas', compact('puestos', 'search'));
@@ -346,7 +351,7 @@ public function edit($id)
         return view('admin.historial.estadisticas', compact('stats'));
     }
 
-        /**
+    /**
      * Update the specified resource in storage.
      */
     public function update(Request $request, $id)

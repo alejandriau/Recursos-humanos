@@ -76,8 +76,17 @@ class RoleController extends Controller
             'permissions' => 'nullable|array',
         ]);
 
-        $role->syncPermissions($request->permissions);
+        // Convertir IDs a nombres de permisos
+        $permissions = Permission::whereIn('id', $request->permissions ?? [])
+            ->pluck('name')
+            ->toArray();
 
-        return redirect()->route('roles.index')->with('success', 'Permisos del rol actualizados exitosamente.');
+        // Sincronizar permisos del rol
+        $role->syncPermissions($permissions);
+
+        return redirect()->route('roles.index')
+            ->with('success', 'Permisos del rol actualizados exitosamente.');
     }
 }
+
+
