@@ -21,6 +21,13 @@
             font-size: 0.75rem;
             line-height: 1.2;
         }
+        /* Estilos para prevenir parpadeo del modal */
+        .modal {
+            z-index: 1060 !important;
+        }
+        .dropdown-menu {
+            z-index: 1000 !important;
+        }
     </style>
 @endsection
 
@@ -150,9 +157,9 @@
                 <a href="{{ route('reportes.excel') }}" class="btn btn-outline-success">
                     <i class="fas fa-file-excel me-2"></i>Descargar Excel
                 </a>
-                <a href="{{ route('historial.estadisticas') }}" class="btn btn-outline-info">
+                <!--<a href="{{ route('historial.estadisticas') }}" class="btn btn-outline-info">
                     <i class="fas fa-chart-bar me-2"></i>Estadísticas
-                </a>
+                </a>-->
             </div>
         </div>
     </div>
@@ -244,7 +251,7 @@
                                 <td>
                                     <div class="dropdown">
                                         <button class="btn btn-sm btn-outline-secondary dropdown-toggle"
-                                                type="button" data-bs-toggle="dropdown">
+                                                type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                             <i class="fas fa-cog"></i>
                                         </button>
                                         <ul class="dropdown-menu acciones-dropdown">
@@ -266,55 +273,17 @@
                                                           method="POST" class="d-inline">
                                                         @csrf
                                                         @method('PUT')
-                                                        <button type="submit" class="dropdown-item"
+                                                        <button type="submit" class="dropdown-item border-0 bg-transparent w-100 text-start"
                                                                 onclick="return confirm('¿Está seguro de concluir esta designación?')">
                                                             <i class="fas fa-times-circle me-2"></i>Concluir Designación
                                                         </button>
                                                     </form>
                                                 </li>
                                                 <li>
-                                                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#bajaModal{{ $puesto->historial_actual->id }}">BAJA</button>
-                                                    <div class="modal fade" id="bajaModal{{ $puesto->historial_actual->id }}" tabindex="-1" aria-hidden="true">
-                                                        <div class="modal-dialog modal-dialog-centered">
-                                                            <div class="modal-content"> <!-- Asegúrate de tener esta clase -->
-                                                                <form method="POST" action="{{ route('altasbajas.store') }}" enctype="multipart/form-data">
-                                                                    @csrf
-                                                                    <div class="modal-header">
-                                                                        <h5 class="modal-title">Dar de baja <p>{{ $puesto->historial_actual->apellidoPat." ". $puesto->historial_actual->apellidoMat ." ". $puesto->historial_actual->nombre }}</p></h5>
-
-                                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-                                                                    </div>
-                                                                    <div class="modal-body">
-                                                                        <input type="hidden" name="idPersona" value="{{ $puesto->historial_actual->id }}">
-                                                                        <input type="hidden" name="apellidopaterno" value="{{ $puesto->historial_actual->apellidoPat }}">
-                                                                        <input type="hidden" name="apellidomaterno" value="{{ $puesto->historial_actual->apellidoMat }}">
-                                                                        <input type="hidden" name="nombre" value="{{ $puesto->historial_actual->nombre }}">
-
-                                                                        <div class="mb-3">
-                                                                            <label class="form-label">Fecha de retiro</label>
-                                                                            <input type="date" name="fechafin" class="form-control" required>
-                                                                        </div>
-                                                                        <div class="mb-3">
-                                                                            <label class="form-label">Motivo</label>
-                                                                            <input type="text" name="motivo" class="form-control" required>
-                                                                        </div>
-                                                                        <div class="mb-3">
-                                                                            <label class="form-label">Observaciones</label>
-                                                                            <textarea name="obser" class="form-control"></textarea>
-                                                                        </div>
-                                                                        <div class="mb-3">
-                                                                            <label class="form-label">PDF (Renuncia)</label>
-                                                                            <input type="file" name="pdffile" class="form-control">
-                                                                        </div>
-                                                                    </div>
-                                                                    <div class="modal-footer">
-                                                                        <button type="submit" class="btn btn-danger">Guardar</button>
-                                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                                                                    </div>
-                                                                </form>
-                                                            </div>
-                                                        </div>
-                                                    </div>
+                                                    <button class="dropdown-item" type="button"
+                                                            onclick="abrirModalBaja({{ $puesto->historial_actual->id }}, '{{ $puesto->persona->apellidoPat }}', '{{ $puesto->persona->apellidoMat }}', '{{ $puesto->persona->nombre }}')">
+                                                        <i class="fas fa-user-times me-2"></i>Dar de Baja
+                                                    </button>
                                                 </li>
                                                 @endif
                                             @else
@@ -354,6 +323,49 @@
     </div>
 </div>
 
+<!-- MODAL GLOBAL FUERA DEL BUCLE Y FUERA DE LA TABLA -->
+<div class="modal fade" id="bajaModalGlobal" tabindex="-1" aria-labelledby="bajaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="POST" action="{{ route('altasbajas.store') }}" enctype="multipart/form-data" id="bajaFormGlobal">
+                @csrf
+                <div class="modal-header">
+                    <h5 class="modal-title" id="bajaModalLabel">Dar de baja a: <span id="nombrePersona"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="idPersona" id="modalIdPersona">
+                    <input type="hidden" name="apellidopaterno" id="modalApellidoPaterno">
+                    <input type="hidden" name="apellidomaterno" id="modalApellidoMaterno">
+                    <input type="hidden" name="nombre" id="modalNombre">
+                    <input type="hidden" name="idHistorial" id="modalHistorial">
+
+                    <div class="mb-3">
+                        <label class="form-label">Fecha de retiro *</label>
+                        <input type="date" name="fechafin" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Motivo *</label>
+                        <input type="text" name="motivo" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Observaciones</label>
+                        <textarea name="obser" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">PDF (Renuncia)</label>
+                        <input type="file" name="pdffile" class="form-control" accept=".pdf">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Guardar Baja</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
 function descargarMemo(historialId) {
     window.open(`/historial/${historialId}/descargar-memo`, '_blank');
@@ -366,12 +378,42 @@ $(document).ready(function() {
         allowClear: true
     });
 });
-</script>
 
-<!-- Script para manejar la jerarquía de unidades -->
-<script>
+function abrirModalBaja(historialId, apellidoPat, apellidoMat, nombre) {
+    // Cerrar dropdown primero
+    var dropdown = document.querySelector('.dropdown-menu.show');
+    if (dropdown) {
+        var bsDropdown = bootstrap.Dropdown.getInstance(dropdown.closest('.dropdown').querySelector('.dropdown-toggle'));
+        if (bsDropdown) {
+            bsDropdown.hide();
+        }
+    }
+
+    // Configurar los datos en el modal
+    document.getElementById('modalIdPersona').value = historialId;
+    document.getElementById('modalApellidoPaterno').value = apellidoPat;
+    document.getElementById('modalApellidoMaterno').value = apellidoMat;
+    document.getElementById('modalNombre').value = nombre;
+    document.getElementById('modalHistorial').value = historialId;
+    document.getElementById('nombrePersona').textContent = apellidoPat + ' ' + apellidoMat + ' ' + nombre;
+
+    // Mostrar el modal
+    var modal = new bootstrap.Modal(document.getElementById('bajaModalGlobal'));
+    modal.show();
+}
+
+// Limpiar el modal cuando se cierre
+document.getElementById('bajaModalGlobal').addEventListener('hidden.bs.modal', function () {
+    // Resetear el formulario
+    document.getElementById('bajaFormGlobal').reset();
+    document.getElementById('modalIdPersona').value = '';
+    document.getElementById('modalApellidoPaterno').value = '';
+    document.getElementById('modalApellidoMaterno').value = '';
+    document.getElementById('modalNombre').value = '';
+    document.getElementById('nombrePersona').textContent = '';
+});
+
 document.addEventListener('DOMContentLoaded', function() {
-    // Puedes agregar aquí funcionalidades adicionales si es necesario
     console.log('Vista de designaciones cargada correctamente');
 });
 </script>

@@ -65,7 +65,7 @@ class Puesto extends Model
 
         return array_reverse($ubicacion);
     }
-        public function obtenerJefeInmediato()
+    public function obtenerJefeInmediato()
     {
         // Buscar jefatura en la misma unidad
         $jefeUnidad = $this->unidadOrganizacional->jefe()->first();
@@ -120,4 +120,13 @@ class Puesto extends Model
         $historialActivo = $this->historial()->where('estado', 'activo')->whereNull('fecha_fin')->first();
         return $historialActivo ? $historialActivo->persona : null;
     }
+
+
+    //reportes finales ===================================================
+
+    public function personas(): HasMany
+    {
+        return $this->hasMany(Persona::class, 'idPuesto');
+    }
+
 }

@@ -321,44 +321,72 @@ public function historial($id)
     }
 
 
-        public function generarExpediente($id)
-    {
-        $persona = Persona::with([
-            'profesion',
-            'historial' => function($q) {
-                $q->with([
-                    'puesto.unidadOrganizacional.padre.padre.padre.padre'
-                ])->orderBy('fecha_inicio', 'desc');
-            },
-            'historial.puesto' => function($q) {
-                $q->with(['unidadOrganizacional']);
+  public function generarExpediente($id)
+{
+    $persona = Persona::with([
+        'profesion',
+        'historial' => function($q) {
+            $q->with([
+                'puesto.unidadOrganizacional.padre.padre.padre.padre'
+            ])->orderBy('fecha_inicio', 'desc');
+        },
+        'historial.puesto' => function($q) {
+            $q->with(['unidadOrganizacional']);
+        }
+    ])->findOrFail($id);
+
+    $historialActual = $persona->historial->whereNull('fecha_fin')->first();
+
+    // Obtener foto en Base64 si existe
+    $fotoBase64 = null;
+    if ($persona->foto) {
+        try {
+            // Si la foto está almacenada en storage
+            if (Storage::disk('public')->exists($persona->foto)) {
+                $fotoContenido = Storage::disk('public')->get($persona->foto);
+                $fotoBase64 = base64_encode($fotoContenido);
             }
-        ])->findOrFail($id);
-
-        $historialActual = $persona->historial->whereNull('fecha_fin')->first();
-
-        $datos = [
-            'persona' => $persona,
-            'historialActual' => $historialActual,
-            'fechaGeneracion' => now()->format('d/m/Y H:i'),
-            'antiguedad' => $this->calcularAntiguedad($persona->fechaIngreso),
-            'edad' => $this->calcularEdad($persona->fechaNacimiento)
-        ];
-
-        $pdf = Pdf::loadView('admin.personas.expediente-pdf', $datos);
-
-        // Configurar el papel y orientación
-        $pdf->setPaper('A4', 'portrait');
-        $pdf->setOption('margin-top', 15);
-        $pdf->setOption('margin-right', 15);
-        $pdf->setOption('margin-bottom', 15);
-        $pdf->setOption('margin-left', 15);
-
-        $nombreArchivo = "EXPEDIENTE_{$persona->ci}_{$persona->apellidoPat}_{$persona->nombre}.pdf";
-
-        return $pdf->download($nombreArchivo);
+            // Si es una ruta completa o URL
+            else {
+                $rutaCompleta = public_path($persona->foto);
+                if (file_exists($rutaCompleta)) {
+                    $fotoContenido = file_get_contents($rutaCompleta);
+                    $fotoBase64 = base64_encode($fotoContenido);
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::error('Error al cargar foto para PDF: ' . $e->getMessage());
+            $fotoBase64 = null;
+        }
     }
 
+    $datos = [
+        'persona' => $persona,
+        'historialActual' => $historialActual,
+        'fechaGeneracion' => now()->format('d/m/Y H:i'),
+        'antiguedad' => $this->calcularAntiguedad($persona->fechaIngreso),
+        'edad' => $this->calcularEdad($persona->fechaNacimiento),
+        'fotoBase64' => $fotoBase64 // Agregar la foto en Base64
+    ];
+
+    $pdf = Pdf::loadView('admin.personas.expediente-pdf', $datos);
+
+    // Configurar el papel y orientación
+    $pdf->setPaper('A4', 'portrait');
+    $pdf->setOption('margin-top', 15);
+    $pdf->setOption('margin-right', 15);
+    $pdf->setOption('margin-bottom', 15);
+    $pdf->setOption('margin-left', 15);
+
+    // Configuraciones adicionales para mejor compatibilidad con imágenes
+    $pdf->setOption('isHtml5ParserEnabled', true);
+    $pdf->setOption('isRemoteEnabled', true);
+    $pdf->setOption('dpi', 150);
+
+    $nombreArchivo = "EXPEDIENTE_{$persona->ci}_{$persona->apellidoPat}_{$persona->nombre}.pdf";
+
+    return $pdf->download($nombreArchivo);
+}
     /**
      * Vista previa del expediente en el navegador
      */

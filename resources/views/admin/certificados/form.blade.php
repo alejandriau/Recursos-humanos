@@ -57,7 +57,7 @@
         <select id="idPersona" name="idPersona" class="form-select shadow-sm rounded-3 @error('idPersona') is-invalid @enderror" required>
             <option value="">-- Seleccione --</option>
             @foreach($personas as $persona)
-                <option value="{{ $persona->id }}" 
+                <option value="{{ $persona->id }}"
                     {{ old('idPersona', $idPersona ?? '') == $persona->id ? 'selected' : '' }}>
                     {{ $persona->nombre }} {{ $persona->apellidoPat }} {{ $persona->apellidoMat }}
                 </option>
@@ -70,7 +70,7 @@
 @else
     <div class="mb-3">
         <label class="form-label fw-semibold">Persona</label>
-        <input type="text" class="form-control shadow-sm rounded-3 bg-light" readonly 
+        <input type="text" class="form-control shadow-sm rounded-3 bg-light" readonly
                value="{{ $certificado->persona->nombre }} {{ $certificado->persona->apellidoPat }} {{ $certificado->persona->apellidoMat }}">
         <input type="hidden" name="idPersona" value="{{ $certificado->persona->id }}">
     </div>

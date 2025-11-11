@@ -23,9 +23,12 @@ return new class extends Migration
             $table->integer('telefono')->nullable();
             $table->longText('observaciones')->nullable();
             $table->tinyInteger('estado')->default(1);
-            $table->string('foto', 100)->nullable();
-            $table->string('tipo', 100)->nullable();
-            $table->integer('idPuesto')->nullable()->index('fk_idpuesto_idx');
+            $table->string('foto', 200)->nullable();
+            $table->foreignId('user_id')
+                  ->nullable()
+                  ->constrained('users')
+                  ->onDelete('cascade');
+            $table->string('archivo', 500)->nullable();
             $table->timestamp('fechaRegistro')->useCurrent();
             $table->timestamp('fechaActualizacion')->useCurrentOnUpdate()->nullable()->useCurrent();
         });

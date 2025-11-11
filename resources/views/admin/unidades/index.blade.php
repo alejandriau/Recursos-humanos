@@ -178,6 +178,9 @@
                 <h3 class="text-lg font-medium text-gray-900">Lista de Unidades</h3>
                 <div class="text-sm text-gray-500">
                     Mostrando {{ $unidades->firstItem() ?? 0 }}-{{ $unidades->lastItem() ?? 0 }} de {{ $unidades->total() }}
+                    <a href="{{ route('unidades.arbol') }}" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                    | Organigrama →
+                </a>
                 </div>
             </div>
         </div>

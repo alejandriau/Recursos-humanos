@@ -14,9 +14,9 @@
             Schema::create('puestos', function (Blueprint $table) {
                 $table->id();
                 $table->string('denominacion', 800);
-                $table->enum('nivelJerarquico', ['GOBERNADOR (A)', 'SECRETARIA (O) DEPARTAMENTAL', 'ASESORA (OR) / DIRECTORA (OR) / DIR. SERV. DPTAL.',  'JEFA (E) DE UNIDAD', 'PROFESIONAL I', 'PROFESIONAL II', 'ADMINISTRATIVO I', 'ADMINISTRATIVO II', 'APOYO ADMINISTRATIVO I', 'APOYO ADMINISTRATIVO II', 'ASISTENTE'])->nullable();
+                $table->enum('nivelJerarquico', ['GOBERNADOR (A)', 'SECRETARIA (O) DEPARTAMENTAL', 'DIRECTORA (OR)/DIR. SERV. DPTAL./VOCERA (O) GUB.', 'ASESORA (OR) / DIRECTORA (OR) / DIR. SERV. DPTAL.',  'JEFA (E) DE UNIDAD', 'PROFESIONAL I', 'PROFESIONAL II', 'ADMINISTRATIVO I', 'ADMINISTRATIVO II', 'APOYO ADMINISTRATIVO I', 'APOYO ADMINISTRATIVO II', 'ASISTENTE'])->nullable();
                 $table->bigInteger('nivel')->nullable();
-                $table->string('item', 45)->nullable()->unique();
+                $table->string('item', 45)->nullable();
                 $table->string('manual', 500)->nullable();
                 $table->text('perfil')->nullable();
                 $table->text('experencia')->nullable();

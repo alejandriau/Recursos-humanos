@@ -7,21 +7,25 @@
 
 @section('contenido')
 <div class="container-fluid pt-4 px-4">
-    <div class="row g-4">
-        <div class="col-sm-12">
-            <a href="{{ route('personas.create') }}">
-                <button type="submit" class="btn btn-success">Registrar persona</button>
-            </a>
-        </div>
-    </div>
 
     <div class="bg-light rounded p-4">
-        <h1 class="mb-4">Lista de Personas</h1>
 
+        <div class="row align-items-center g-4">
+            <div class="col-md-8">
+                <h1 class="display-5 fw-bold mb-0 text-dark">Lista de Personas</h1>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <a href="{{ route('personas.create') }}" class="text-decoration-none">
+                    <button type="button" class="btn btn-success btn-lg shadow-sm rounded-3">
+                        <i class="fas fa-user-plus me-2"></i> Registrar persona
+                    </button>
+                </a>
+            </div>
+        </div>
         <!-- Filtros Avanzados -->
         <div class="card mb-4">
             <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">Filtros de Búsqueda</h5>
+                <h5 class="mb-0 text-white">Filtros de Búsqueda</h5>
             </div>
             <div class="card-body">
                 <div class="row g-3">
@@ -34,7 +38,7 @@
                         </select>
                     </div>
 
-                    <div class="col-md-3">
+                    <!--<div class="col-md-3">
                         <label class="form-label">Unidad Organizacional:</label>
                         <select name="unidad_id" id="unidad-select" class="form-select">
                             <option value="">Todas las unidades</option>
@@ -42,7 +46,7 @@
                                 <option value="{{ $unidad->id }}">{{ $unidad->nombre }}</option>
                             @endforeach
                         </select>
-                    </div>
+                    </div>-->
 
                     <div class="col-md-3">
                         <label class="form-label">Fecha Ingreso Desde:</label>
@@ -88,14 +92,11 @@
         <div class="row mb-3">
             <div class="col-md-12">
                 <div class="btn-group" role="group">
-                    <a href="{{ route('reportes.personal') }}" class="btn btn-outline-danger">
+                    <button type="button" id="btn-exportar-pdf" class="btn btn-outline-danger">
                         <i class="fa fa-file-pdf"></i> Exportar PDF
-                    </a>
-                    <a href="{{ route('reportes.excel') }}" class="btn btn-outline-success">
+                    </button>
+                    <button type="button" id="btn-exportar-excel" class="btn btn-outline-success">
                         <i class="fa fa-file-excel"></i> Exportar Excel
-                    </a>
-                    <button type="button" id="btn-exportar-filtrado" class="btn btn-outline-info">
-                        <i class="fa fa-download"></i> Exportar Filtrado Actual
                     </button>
                 </div>
             </div>
@@ -142,13 +143,18 @@
     .dropdown-menu {
         min-width: 200px;
     }
+    .pagination {
+        margin-bottom: 0;
+    }
 </style>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
 $(document).ready(function () {
+    let searchTimeout;
+
     // Función para aplicar filtros
-    function aplicarFiltros() {
+    function aplicarFiltros(page = 1) {
         const filtros = {
             search: $('#search').val(),
             tipo: $('#tipo-select').val(),
@@ -156,8 +162,12 @@ $(document).ready(function () {
             fecha_fin: $('#fecha-fin').val(),
             unidad_id: $('#unidad-select').val(),
             nivel_jerarquico: $('#nivel-jerarquico').val(),
-            estado: $('#estado-select').val()
+            estado: $('#estado-select').val(),
+            page: page
         };
+
+        // Mostrar loading
+        mostrarLoading();
 
         $.ajax({
             url: "{{ route('reportes.filtros-avanzados') }}",
@@ -169,26 +179,77 @@ $(document).ready(function () {
             success: function (response) {
                 if (response.success) {
                     $('#tabla-container').html(response.html);
+                    scrollToTable();
+                } else {
+                    mostrarError('Error al aplicar los filtros');
                 }
             },
             error: function (xhr, status, error) {
                 console.error('Error:', error);
-                alert('Ocurrió un error al aplicar los filtros.');
+                mostrarError('Ocurrió un error al aplicar los filtros.');
             }
         });
     }
 
-    // Eventos para filtros
-    $('#btn-aplicar-filtros').on('click', aplicarFiltros);
+    // Función para mostrar loading
+    function mostrarLoading() {
+        $('#tabla-container').html(`
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
+                    <span class="visually-hidden">Cargando...</span>
+                </div>
+                <p class="text-muted">Buscando registros...</p>
+            </div>
+        `);
+    }
 
-    $('#search').on('input', function() {
-        clearTimeout(this.delay);
-        this.delay = setTimeout(aplicarFiltros, 500);
+    // Función para mostrar errores
+    function mostrarError(mensaje) {
+        $('#tabla-container').html(`
+            <div class="alert alert-danger alert-dismissible fade show mx-3" role="alert">
+                <i class="fa fa-exclamation-triangle me-2"></i>
+                ${mensaje}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `);
+    }
+
+    // Scroll a la tabla
+    function scrollToTable() {
+        $('html, body').animate({
+            scrollTop: $('#tabla-container').offset().top - 100
+        }, 400);
+    }
+
+    // Eventos para filtros (siempre reinician a página 1)
+    $('#btn-aplicar-filtros').on('click', function() {
+        aplicarFiltros(1);
     });
 
-    $('#tipo-select, #unidad-select, #estado-select').on('change', aplicarFiltros);
+    // Búsqueda con debounce
+    $('#search').on('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(function() {
+            aplicarFiltros(1);
+        }, 600);
+    });
 
-    $('#fecha-inicio, #fecha-fin, #nivel-jerarquico').on('change', aplicarFiltros);
+    // Enter en búsqueda
+    $('#search').on('keypress', function(e) {
+        if (e.which === 13) {
+            clearTimeout(searchTimeout);
+            aplicarFiltros(1);
+        }
+    });
+
+    // Filtros que reinician a página 1
+    $('#tipo-select, #unidad-select, #estado-select').on('change', function() {
+        aplicarFiltros(1);
+    });
+
+    $('#fecha-inicio, #fecha-fin, #nivel-jerarquico').on('change', function() {
+        aplicarFiltros(1);
+    });
 
     // Limpiar filtros
     $('#btn-limpiar-filtros').on('click', function() {
@@ -199,21 +260,53 @@ $(document).ready(function () {
         $('#fecha-fin').val('');
         $('#nivel-jerarquico').val('');
         $('#estado-select').val('1');
-        aplicarFiltros();
+        aplicarFiltros(1);
     });
 
-    // Exportar datos filtrados
-    $('#btn-exportar-filtrado').on('click', function() {
+    // Manejar clic en paginación (funciona para ambas situaciones)
+    $(document).on('click', '.pagination a', function(e) {
+        e.preventDefault();
+        const href = $(this).attr('href');
+        const page = getPageFromHref(href);
+        aplicarFiltros(page);
+    });
+
+    // Función para extraer página del href
+    function getPageFromHref(href) {
+        if (!href) return 1;
+
+        const url = new URL(href, window.location.origin);
+        return url.searchParams.get('page') || 1;
+    }
+
+    // Exportar datos (opcional)
+    $('#btn-exportar-pdf, #btn-exportar-excel').on('click', function() {
+        const tipo = $(this).attr('id') === 'btn-exportar-pdf' ? 'pdf' : 'excel';
+        exportarDatos(tipo);
+    });
+
+    function exportarDatos(tipo) {
         const filtros = {
+            search: $('#search').val(),
             tipo: $('#tipo-select').val(),
             fecha_inicio: $('#fecha-inicio').val(),
             fecha_fin: $('#fecha-fin').val(),
-            unidad_id: $('#unidad-select').val()
+            unidad_id: $('#unidad-select').val(),
+            nivel_jerarquico: $('#nivel-jerarquico').val(),
+            estado: $('#estado-select').val(),
+            export_type: tipo
         };
 
+        // Limpiar filtros vacíos
+        Object.keys(filtros).forEach(key => {
+            if (!filtros[key]) delete filtros[key];
+        });
+
         const queryString = new URLSearchParams(filtros).toString();
-        window.open("{{ route('reportes.personal') }}?" + queryString, '_blank');
-    });
+        const url = "{{ route('reportes.personal') }}?" + queryString;
+        window.open(url, '_blank');
+    }
 });
 </script>
+
 @endsection

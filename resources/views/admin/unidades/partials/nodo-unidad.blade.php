@@ -25,12 +25,27 @@
         4 => 'max-w-xs text-sm'
     ];
     $tamano = $tamanos[min($nivel, 4)] ?? 'max-w-xs text-sm';
+
+    // Verificar si esta unidad es la seleccionada (cuando se muestra sola sin hijos)
+    $esUnidadSeleccionada = isset($unidadSeleccionada) &&
+                           $unidadSeleccionada &&
+                           $unidadSeleccionada->id === $unidad->id &&
+                           $unidadSeleccionada->hijos->count() === 0;
+    $claseDestacada = $esUnidadSeleccionada ? 'unidad-seleccionada' : '';
 @endphp
 
 <div class="conexion mb-4">
-    <div class="nodo-unidad {{ $tamano }} bg-white border border-gray-200 rounded-lg shadow-sm p-3 mx-auto">
+    <div class="nodo-unidad {{ $tamano }} {{ $claseDestacada }} bg-white border border-gray-200 rounded-lg shadow-sm p-3 mx-auto">
         <!-- Header de la Unidad -->
         <div class="text-center mb-3">
+            @if($esUnidadSeleccionada)
+            <div class="mb-2">
+                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    <i class="fas fa-star mr-1"></i>Unidad Seleccionada
+                </span>
+            </div>
+            @endif
+
             <h4 class="text-sm font-semibold text-gray-900 mb-1 leading-tight">
                 <a href="{{ route('unidades.show', $unidad) }}" class="hover:text-blue-600 inline-block">
                     {{ $unidad->denominacion }}
@@ -125,7 +140,11 @@
         <div class="grid grid-cols-1 md:grid-cols-{{ min($unidad->hijos->count(), 4) }} gap-4 justify-center mt-2">
             @foreach($unidad->hijos as $hijo)
                 <div class="flex justify-center">
-                    @include('admin.unidades.partials.nodo-unidad', ['unidad' => $hijo, 'nivel' => $nivel + 1])
+                    @include('admin.unidades.partials.nodo-unidad', [
+                        'unidad' => $hijo,
+                        'nivel' => $nivel + 1,
+                        'unidadSeleccionada' => $unidadSeleccionada
+                    ])
                 </div>
             @endforeach
         </div>

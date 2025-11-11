@@ -222,8 +222,16 @@
         <div class="section-title">I. INFORMACIÓN PERSONAL BÁSICA</div>
 
         <div style="display: flex; gap: 20px; margin-bottom: 15px;">
-            <div class="photo-placeholder">
-                FOTO<br>DEL<br>COLABORADOR
+            <div class="text-center">
+                @if ($persona->foto && $fotoBase64)
+                    <img src="data:image/jpeg;base64,{{ $fotoBase64 }}"
+                        alt="Foto de {{ $persona->nombre }}"
+                        style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover;">
+                @else
+                    <div style="width: 120px; height: 120px; border-radius: 50%; background: linear-gradient(135deg, #007bff, #6610f2); color: white; display: flex; align-items: center; justify-content: center; font-size: 32px; font-weight: bold;">
+                        {{ strtoupper(substr($persona->nombre, 0, 1)) }}{{ strtoupper(substr($persona->apellidoPat ?? '', 0, 1)) }}
+                    </div>
+                @endif
             </div>
 
             <div style="flex: 1;">
@@ -277,6 +285,7 @@
         </div>
     </div>
 
+    <!-- Resto del contenido permanece igual -->
     <!-- Información Profesional -->
     <div class="section">
         <div class="section-title">II. INFORMACIÓN PROFESIONAL</div>
@@ -569,20 +578,5 @@
         Expediente Laboral - {{ $persona->nombre }} {{ $persona->apellidoPat }} -
         CI: {{ $persona->ci }} - Página <span class="pageNumber"></span> de <span class="totalPages"></span>
     </div>
-
-    <script type="text/javascript">
-        // Script para numeración de páginas (compatible con DomPDF)
-        var vars = {};
-        var x = document.location.search.substring(1).split('&');
-        for (var i in x) {
-            var z = x[i].split('=',2);
-            vars[z[0]] = unescape(z[1]);
-        }
-        var x = ['frompage','topage','page','webpage','section','subsection','subsubsection'];
-        for (var i in x) {
-            var y = document.getElementsByClassName(x[i]);
-            for (var j=0; j<y.length; ++j) y[j].textContent = vars[x[i]];
-        }
-    </script>
 </body>
 </html>

@@ -68,4 +68,9 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function persona()
+    {
+        return $this->hasOne(Persona::class, 'user_id');
+    }
 }

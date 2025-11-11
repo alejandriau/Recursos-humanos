@@ -15,8 +15,8 @@ return new class extends Migration
         Schema::create('historials', function (Blueprint $table) {
             // Campos originales modificados
             $table->id();
-            $table->unsignedBigInteger('persona_id');
-            $table->bigInteger('puesto_id');
+            $table->integer('persona_id');
+            $table->unsignedBigInteger('puesto_id');
             $table->date('fecha_inicio');
             $table->date('fecha_fin')->nullable();
 
@@ -73,7 +73,7 @@ return new class extends Migration
             $table->softDeletes();
 
             // Relaciones
-            $table->foreign('persona_id')->references('id')->on('personas')->onDelete('cascade');
+            $table->foreign('persona_id')->references('id')->on('persona')->onDelete('cascade');
             $table->foreign('puesto_id')->references('id')->on('puestos')->onDelete('cascade');
             $table->foreign('historial_anterior_id')->references('id')->on('historials')->onDelete('set null');
             $table->foreign('puesto_anterior_id')->references('id')->on('puestos')->onDelete('set null');

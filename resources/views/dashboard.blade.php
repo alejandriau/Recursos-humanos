@@ -32,11 +32,9 @@
 
     <!-- Customized Bootstrap Stylesheet -->
     <link href="<?php echo asset('dashmin'); ?>/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/waypoints/4.0.1/jquery.waypoints.min.js"></script>
 
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/waypoints/4.0.1/jquery.waypoints.min.js"></script>
 
 
@@ -44,6 +42,10 @@
     <link href="<?php echo asset('dashmin'); ?>/css/style.css" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @vite('resources/js/app.js')
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/waypoints/4.0.1/jquery.waypoints.min.js"></script>
+
 
 
 </head>
@@ -64,7 +66,7 @@
         <!-- Sidebar Start -->
         <div class="sidebar pe-4 pb-3">
             <nav class="navbar navbar-light">
-                <a href="index.html" class="navbar-brand mx-4 mb-3 d-flex align-items-center">
+                <a href="{{route('dashboard')}}" class="navbar-brand mx-4 mb-3 d-flex align-items-center">
                     <img class="img-fluid me-2" width="30" src="<?php echo asset('dashmin'); ?>/img/logo-gob.png" alt="">
                     <h3 class="text-white mb-0">UGRH</h3>
                 </a>
@@ -141,15 +143,11 @@
                     @endcan-->
 
 
-                    @can('ver altas bajas')
-                    <a href="{{ asset('/altasbajas') }}" class="nav-item nav-link"><i class="fas fa-user-plus me-2"></i><span>Altas y bajas</span></a>
-                    @endcan
-
                     @can('ver bajas')
                     <a href="{{ asset('/altasbajas/index') }}" class="nav-item nav-link"><i class="fas fa-user-minus me-2"></i><span>Bajas</span></a>
                     @endcan
 
-                    @can('ver configuracion')
+                    <!--@can('ver configuracion')
                     <div class="nav-item dropdown">
                         <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown"><i class="fa fa-cog me-2"></i><span>Configuración</span></a>
                         <div class="dropdown-menu bg-transparent border-0">
@@ -161,15 +159,66 @@
                                 <button type="submit" class="dropdown-item"><i class="fas fa-sign-out-alt me-2"></i>Cerrar sesión</button>
                             </form>
                         </div>
-                    </div>
+                    </div>-->
                     @endcan
-
+                    @can('ver configuracion')
                     <li class="nav-item">
                         <a class="nav-link" href="{{ route('audit-logs.index') }}">
                             <i class="fas fa-eye"></i>
                             <span>Auditoría</span>
                         </a>
                     </li>
+                    @endcan
+                    @can('ver configuracion')
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ route('reportes.dashboard') }}">
+                            <i class="fas fa-eye"></i>
+                            <span>Reportes</span>
+                        </a>
+                    </li>
+                    @endcan
+                    @role('admin')
+                        <a href="{{ route('admin.vacaciones.index') }}" class="nav-link">
+                            <i class="fas fa-umbrella-beach me-2"></i>Vacaciones
+                        </a>
+                        <a href="{{ route('admin.asistencias.index') }}" class="nav-link">
+                            <i class="fas fa-clock me-2"></i>Asistencias
+                        </a>
+                    @endrole
+@role('empleado')
+<!-- Menu Específico para Empleados -->
+<li class="nav-item">
+    <a class="nav-link" href="{{ route('empleado.dashboard') }}">
+        <i class="fas fa-tachometer-alt me-2"></i>
+        <span>Mi Dashboard</span>
+    </a>
+</li>
+<li class="nav-item">
+    <a class="nav-link" href="{{ route('empleado.asistencias.index') }}">
+        <i class="fas fa-clock me-2"></i>
+        <span>Mis Asistencias</span>
+    </a>
+</li>
+<li class="nav-item">
+    <a class="nav-link" href="{{ route('empleado.vacaciones.index') }}">
+        <i class="fas fa-umbrella-beach me-2"></i>
+        <span>Mis Vacaciones</span>
+    </a>
+</li>
+<!--<li class="nav-item">
+    <a class="nav-link" href="{{ route('empleado.historial') }}">
+        <i class="fas fa-briefcase me-2"></i>
+        <span>Mi Historial</span>
+    </a>
+</li>-->
+<li class="nav-item">
+    <a class="nav-link" href="{{ route('empleado.perfil') }}">
+        <i class="fas fa-user me-2"></i>
+        <span>Mi Perfil</span>
+    </a>
+</li>
+@endrole
+
 
 
                 </div>

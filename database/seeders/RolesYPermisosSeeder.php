@@ -38,13 +38,20 @@ class RolesYPermisosSeeder extends Seeder
         // Crear roles
         $admin = Role::firstOrCreate(['name' => 'admin']);
         $jefeUnidad = Role::firstOrCreate(['name' => 'jefe_unidad']);
+        $coordinador = Role::firstOrCreate(['name' => 'coordinador']);
         $tecnico = Role::firstOrCreate(['name' => 'tecnico']);
         $archivos = Role::firstOrCreate(['name' => 'archivo']);
+        $empleado = Role::firstOrCreate(['name' => 'empleado']);
 
         // Asignar permisos a roles
         $admin->syncPermissions(Permission::all());
 
         $jefeUnidad->syncPermissions([
+            'ver personal',
+            'ver reportes',
+            'ver certificados',
+        ]);
+        $coordinador->syncPermissions([
             'ver personal',
             'ver reportes',
             'ver certificados',

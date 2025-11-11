@@ -1,0 +1,67 @@
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "fontSize": "50px",
+    "fontFamily": "Segoe UI, Helvetica, Arial, sans-serif",
+    "primaryColor": "#4F46E5",
+    "secondaryColor": "#10B981",
+    "tertiaryColor": "#F59E0B",
+    "textColor": "#111827",
+    "taskTextLightColor": "#FFFFFF",
+    "lineColor": "#4B5563",
+    "criticalColor": "#EF4444"
+  }
+}}%%
+
+gantt
+    title **🗓️ Cronograma Proyecto RRHH 2025**
+    dateFormat  YYYY-MM-DD
+    axisFormat  %b
+    excludes weekends
+    todayMarker off
+
+    %% === FASE 1: PLANIFICACIÓN ===
+    section **🧭 Fase 1: Planificación (Marzo)**
+    **Kick-off y Alcance**               :done, 2025-03-01, 7d
+    **Requerimientos**                   :done, after Kick-off y Alcance, 14d
+    **Diseño de Arquitectura**           :done, after Requerimientos, 7d
+
+    %% === FASE 2: MÓDULO BASE ===
+    section **⚙️ Fase 2: Módulo Base (Abril)**
+    **Backend Base**                     :active, 2025-04-01, 10d
+    **Frontend Base**                    :after Backend Base, 10d
+    **Gestión de Usuarios**              :after Frontend Base, 10d
+
+    %% === FASE 3: NÚCLEO RRHH ===
+    section **👥 Fase 3: Núcleo RRHH (Mayo)**
+    **Inventario de Personal**           :2025-05-01, 15d
+    **Gestión de Perfiles**              :after Inventario de Personal, 15d
+    **Integración General**              :after Gestión de Perfiles, 7d
+
+    %% === FASE 4: CONTROL ===
+    section **⏱️ Fase 4: Control (Junio - Julio)**
+    **Control de Asistencia**            :2025-06-01, 15d
+    **Solicitudes y Aprobaciones**       :after Control de Asistencia, 10d
+
+    %% === FASE 5: DOCUMENTAL ===
+    section **📂 Fase 5: Documental (Julio - Agosto)**
+    **Gestión de Documentos**            :2025-07-01, 10d
+    **Visualizador PDF**                 :after Gestión de Documentos, 10d
+
+    %% === FASE 6: REPORTES ===
+    section **📊 Fase 6: Reportes (Agosto - Septiembre)**
+    **Generación de Reportes**           :2025-08-01, 10d
+    **Exportación a PDF/Excel**          :after Generación de Reportes, 10d
+    **Pruebas de Integración**           :after Exportación a PDF/Excel, 10d
+
+    %% === FASE 7: FINAL ===
+    section **🚀 Fase 7: Final (Septiembre - Octubre)**
+    **Pruebas de Usabilidad**            :2025-09-01, 10d
+    **Documentación del Sistema**        :after Pruebas de Usabilidad, 15d
+    **Despliegue en Producción**         :after Documentación del Sistema, 5d
+
+    %% === FASE 8: DEFENSA ===
+    section **🎓 Fase 8: Defensa (Octubre)**
+    **Preparación de Presentación**      :2025-10-01, 5d
+    **Ensayos de Defensa**               :after Preparación de Presentación, 5d
+    **Defensa Final**                    :milestone, after Ensayos de Defensa, 0d

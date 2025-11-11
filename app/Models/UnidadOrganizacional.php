@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Model;
 
 class UnidadOrganizacional extends Model
@@ -196,5 +197,24 @@ public function reactivar()
         return Puesto::whereIn('idUnidadOrganizacional', $unidadesIds)
                     ->where('esActivo', true)
                     ->sum('haber');
+    }
+
+    //para reportes finales ==============================
+        // Relaciones
+
+    public function puestosActivos(): HasMany
+    {
+        return $this->puestos()->activos();
+    }
+
+    // Scopes
+    public function scopeActivos($query)
+    {
+        return $query->where('esActivo', true);
+    }
+
+    public function scopeRaices($query)
+    {
+        return $query->whereNull('idPadre');
     }
 }

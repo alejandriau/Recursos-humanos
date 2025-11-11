@@ -183,9 +183,8 @@
                 <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
                     <div>
                         <h4 class="text-sm font-medium text-gray-900">{{ $unidad->denominacion }}</h4>
-                        <p class="text-xs text-gray-500">{{ $unidad->tipo }} • {{ $unidad->created_at->format('d/m/Y') }}</p>
                     </div>
-                    <a href="{{ route('admin.unidades.show', $unidad) }}" class="text-blue-600 hover:text-blue-800">
+                    <a href="{{ route('unidades.show', $unidad) }}" class="text-blue-600 hover:text-blue-800">
                         <i class="fas fa-chevron-right"></i>
                     </a>
                 </div>

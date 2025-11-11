@@ -6,11 +6,77 @@ use App\Models\UnidadOrganizacional;
 use App\Models\Puesto;
 use App\Models\Historial;
 use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
+use App\Models\Asistencia;
+use App\Models\Vacacion;
+use App\Models\Persona;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
+
 
 class DashboardController extends Controller
 {
+
     public function index()
     {
+        $user = auth()->user();
+
+        // Verificar si el usuario tiene el rol de empleado
+        if ($user->hasRole('empleado') || $user->role === 'empleado') {
+                $personaId = Auth::user()->persona->id;
+
+            // Obtener puesto actual
+            $puestoActual = Historial::with(['puesto.unidadOrganizacional'])
+                ->where('persona_id', $personaId)
+                ->where('estado', 'activo')
+                ->first()
+                ?->puesto;
+
+            // Estadísticas
+            $estadisticas = [
+                'asistencias_mes' => Asistencia::where('idPersona', $personaId)
+                    ->whereMonth('fecha', now()->month)
+                    ->whereYear('fecha', now()->year)
+                    ->where('estado', 'presente')
+                    ->count(),
+
+                'dias_vacaciones' => 30 - Vacacion::where('idPersona', $personaId)
+                    ->whereYear('fecha_inicio', now()->year)
+                    ->where('estado', 'aprobado')
+                    ->sum('dias_tomados'),
+
+                'horas_extras_mes' => Asistencia::where('idPersona', $personaId)
+                    ->whereMonth('fecha', now()->month)
+                    ->whereYear('fecha', now()->year)
+                    ->sum('horas_extras'),
+            ];
+
+            // Asistencias recientes
+            $asistenciasRecientes = Asistencia::where('idPersona', $personaId)
+                ->orderBy('fecha', 'desc')
+                ->limit(5)
+                ->get();
+
+            // Vacaciones recientes
+            $vacacionesRecientes = Vacacion::where('idPersona', $personaId)
+                ->orderBy('fecha_inicio', 'desc')
+                ->limit(3)
+                ->get();
+
+            // Vacaciones pendientes
+            $vacacionesPendientes = Vacacion::where('idPersona', $personaId)
+                ->where('estado', 'pendiente')
+                ->get();
+
+            return view('empleado.dashboard', compact(
+                'puestoActual',
+                'estadisticas',
+                'asistenciasRecientes',
+                'vacacionesRecientes',
+                'vacacionesPendientes'
+            ));
+        }
+
         try {
             $estadisticas = [
                 'total_unidades' => UnidadOrganizacional::where('esActivo', true)->count(),
@@ -48,7 +114,7 @@ class DashboardController extends Controller
                                 ->limit(5)
                                 ->get();
 
-            return view('admin.dashboard', compact('estadisticas', 'ultimasUnidades', 'ultimosPuestos'));
+            return view('admin.dashboards.index', compact('estadisticas', 'ultimasUnidades', 'ultimosPuestos'));
 
         } catch (\Exception $e) {
             // En caso de error, mostrar estadísticas básicas
@@ -71,4 +137,7 @@ class DashboardController extends Controller
                    ->with('warning', 'Algunos datos no pudieron ser cargados correctamente.');
         }
     }
+
+
+
 }

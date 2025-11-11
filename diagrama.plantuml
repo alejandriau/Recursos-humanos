@@ -1,0 +1,190 @@
+@startuml
+title Diagrama de Casos de Uso - Sistema de Gestión RRHH
+top to bottom direction
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+
+' === Actores Principales ===
+actor "Administrador" as Admin
+actor "Jefe de RRHH" as Jefe
+actor "Supervisor RRHH" as Supervisor
+actor "Técnico RRHH" as Tecnico
+actor "Coordinador" as Coordinador
+actor "Archivo" as Archivo
+actor "Empleado" as Empleado
+
+' === Nivel 0: Autenticación ===
+package "Nivel 0: Autenticación y Acceso" {
+  (Iniciar Sesión)
+  (Cerrar Sesión)
+  (Recuperar Contraseña)
+  (Cambiar Contraseña)
+}
+Admin --> (Iniciar Sesión)
+Jefe --> (Iniciar Sesión)
+Supervisor --> (Iniciar Sesión)
+Tecnico --> (Iniciar Sesión)
+Archivo --> (Iniciar Sesión)
+Empleado --> (Iniciar Sesión)
+
+' === Nivel 1: Módulo Administrativo ===
+package "Módulo Administrativo (Admin)" {
+  (Gestionar Usuarios)
+  (Gestionar Estructura Organizacional)
+  (Configurar Permisos)
+}
+Admin --> (Gestionar Usuarios)
+Admin --> (Gestionar Estructura Organizacional)
+Admin --> (Configurar Permisos)
+
+' === Módulo de Personal ===
+package "Módulo de Personal (Jefe + Técnico)" {
+  (Registrar Nuevo Personal)
+  (Administrar Perfiles)
+  (Consultar Inventario de Personal)
+}
+Tecnico --> (Registrar Nuevo Personal)
+Tecnico --> (Administrar Perfiles)
+Jefe --> (Consultar Inventario de Personal)
+
+' === Módulo Documental ===
+package "Módulo Documental (Archivo + Técnico)" {
+  (Cargar Documentos PDF)
+  (Gestionar Documentación)
+  (Validar Documentación)
+}
+Archivo --> (Cargar Documentos PDF)
+Archivo --> (Validar Documentación)
+Tecnico --> (Gestionar Documentación)
+
+' === Módulo de Procesos ===
+package "Módulo de Procesos (Coordinador + Técnico)" {
+  (Gestionar Movimientos de Personal)
+  (Administrar Permisos y Licencias)
+  (Gestionar Vacaciones)
+}
+Coordinador --> (Administrar Permisos y Licencias)
+Coordinador --> (Gestionar Vacaciones)
+Tecnico --> (Gestionar Movimientos de Personal)
+
+' === Módulo de Supervisión ===
+package "Módulo de Supervisión (Coordinador + Jefe)" {
+  (Gestionar Equipo)
+  (Aprobar Solicitudes)
+}
+Coordinador --> (Gestionar Equipo)
+Jefe --> (Aprobar Solicitudes)
+
+' === Módulo de Autoservicio ===
+package "Módulo de Autoservicio (Empleado)" {
+  (Consultar Información Personal)
+  (Gestionar Solicitudes)
+  (Actualizar Datos Personales)
+}
+Empleado --> (Consultar Información Personal)
+Empleado --> (Gestionar Solicitudes)
+Empleado --> (Actualizar Datos Personales)
+
+' === Módulo de Reportes ===
+package "Módulo de Reportes (Admin + Jefe)" {
+  (Reportes de Personal)
+  (Reportes Documentales)
+  (Reportes de Asistencia)
+  (Reportes Estadísticos)
+}
+Admin --> (Reportes de Personal)
+Admin --> (Reportes Estadísticos)
+Jefe --> (Reportes Documentales)
+Jefe --> (Reportes de Asistencia)
+
+@enduml
+
+
+---
+config:
+  theme: default
+  themeVariables:
+    primaryColor: '#EAF4FF'
+    secondaryColor: '#CFE3FF'
+    tertiaryColor: '#B4D2FF'
+    edgeLabelBackground: '#ffffff'
+    fontSize: 22px
+    primaryTextColor: '#003366'
+  look: neo
+  layout: dagre
+---
+flowchart LR
+ subgraph F["🖥️ Frontend Layer"]
+        FA(["💻 Web & Admin Apps"])
+        FB(["📱 Mobile Apps"])
+  end
+ subgraph A["🌐 API Gateway"]
+        AG1(["🔐 Auth Proxy"])
+        AG2(["⚙️ Load Balancer / Rate Limiter"])
+        AG3(["🧭 Routing & Logging"])
+  end
+ subgraph B["🧩 Backend Microservices"]
+        B1(["🔑 AuthService"])
+        B2(["👥 UserManagementService"])
+        B3(["👔 EmployeeService"])
+        B4(["🏢 DepartmentService"])
+        B5(["📂 DocumentService"])
+        B6(["🔍 OCRAnalysisService"])
+        B7(["⏱️ AttendanceService"])
+        B8(["🗓️ LeaveService"])
+        B9(["🏖️ VacationService"])
+        B10(["✅ ApprovalService"])
+        B11(["📊 ReportService"])
+        B12(["📢 NotificationService"])
+  end
+ subgraph D["💾 Data Layer"]
+        D1[("🗄️ Databases")]
+        D2[("🗂️ File Storage")]
+        D3[("⚡ Cache")]
+  end
+ subgraph I["🧱 Infraestructura"]
+        I1(["💾 FileStorageService"])
+        I2(["⚙️ CacheService"])
+        I3(["📨 MessageQueueService"])
+  end
+ subgraph S["🛡️ Seguridad y Configuración"]
+        S1(["🧾 AuditService"])
+        S2(["⚙️ ConfigService"])
+  end
+ subgraph M["📈 Monitoreo"]
+        M1(["📊 MonitoringStack"])
+        M2(["❤️ HealthCheckService"])
+  end
+ subgraph O["☸️ Orquestación"]
+        O2(["🔗 ServiceMesh"])
+  end
+ subgraph X["🌍 Servicios Externos"]
+        X1(["✉️ Email / SMS Services"])
+        X2(["🔤 OCR Services"])
+        X3(["☁️ File Storage Cloud"])
+        X4(["📡 Monitoring Tools"])
+  end
+    FA --> A
+    FB --> A
+    A --> B
+    B --> D
+    B1 --> D1
+    B2 --> D1
+    B3 --> D1
+    B5 --> D2
+    B6 --> B5
+    B12 --> X1
+    O1(["🐳 KubernetesCluster"])
+    title["🏢 **Sistema de Gestión RRHH - Diagrama de Componentes Resumido**"]
+    font-size:16px["font-size:16px"]
+     title:::titleStyle
+    classDef titleStyle fill:#B0D0FF,stroke:#3366cc,color:#003366,font-weight:bold
+    classDef F fill:#F9FBFF,stroke:#3366cc,stroke-width:1px,color:#002244
+    classDef A fill:#F9FBFF,stroke:#3366cc,stroke-width:1px,color:#002244
+    classDef B fill:#F9FBFF,stroke:#3366cc,stroke-width:1px,color:#002244
+    classDef D fill:#F9FBFF,stroke:#3366cc,stroke-width:1px,color:#002244
+    classDef I fill:#F9FBFF,stroke:#3366cc,stroke-width:1px,color:#002244
+    classDef S fill:#F9FBFF,stroke:#3366cc,stroke-width:1px,color:#002244
+    classDef M fill:#F9FBFF,stroke:#3366cc,stroke-width:1px,color:#002244
+    classDef O fill:#F9FBFF,stroke:#3366cc,stroke-width:1px,color:#002244
+    classDef X fill:#F9FBFF,stroke:#3366cc,stroke-width:1px,color:#002244

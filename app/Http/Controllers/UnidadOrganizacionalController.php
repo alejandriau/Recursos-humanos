@@ -224,20 +224,55 @@ class UnidadOrganizacionalController extends Controller
     /**
      * Obtener árbol organizacional completo
      */
-public function arbolOrganizacional()
+public function arbolOrganizacional(Request $request)
 {
     try {
-        $raices = UnidadOrganizacional::with([
-            'hijos.jefe.personaActual',
-            'hijos.hijos.jefe.personaActual',
-            'hijos.hijos.hijos.jefe.personaActual',
-            'jefe.personaActual'
-        ])->whereNull('idPadre')
-          ->where('esActivo', true)
-          ->orderBy('denominacion') // Ordenar solo por nombre
-          ->get();
+        $unidadSeleccionada = null;
+        $raices = collect();
+        $filtroUnidad = $request->get('unidad_id');
 
-        return view('admin.unidades.arbol', compact('raices'));
+        // Obtener todas las unidades para el dropdown
+        $todasUnidades = UnidadOrganizacional::where('esActivo', true)
+            ->orderBy('denominacion')
+            ->get();
+
+        if ($filtroUnidad) {
+            // Buscar la unidad específica seleccionada
+            $unidadSeleccionada = UnidadOrganizacional::with([
+                'hijos.jefe.personaActual',
+                'hijos.hijos.jefe.personaActual',
+                'hijos.hijos.hijos.jefe.personaActual',
+                'jefe.personaActual'
+            ])->find($filtroUnidad);
+
+            if ($unidadSeleccionada) {
+                // Si la unidad tiene hijos, mostrarlos como raíces
+                if ($unidadSeleccionada->hijos->count() > 0) {
+                    $raices = $unidadSeleccionada->hijos;
+                } else {
+                    // Si no tiene hijos, mostrar solo la unidad seleccionada
+                    $raices = collect([$unidadSeleccionada]);
+                }
+            }
+        } else {
+            // Mostrar todas las unidades raíz
+            $raices = UnidadOrganizacional::with([
+                'hijos.jefe.personaActual',
+                'hijos.hijos.jefe.personaActual',
+                'hijos.hijos.hijos.jefe.personaActual',
+                'jefe.personaActual'
+            ])->whereNull('idPadre')
+              ->where('esActivo', true)
+              ->orderBy('denominacion')
+              ->get();
+        }
+
+        return view('admin.unidades.arbol', compact(
+            'raices',
+            'todasUnidades',
+            'filtroUnidad',
+            'unidadSeleccionada'
+        ));
 
     } catch (\Exception $e) {
         return redirect()->route('unidades.index')

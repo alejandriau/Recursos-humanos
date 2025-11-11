@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Historial extends Model
 {
     use SoftDeletes;
+    protected $table = 'historials';
 
     protected $fillable = [
         'persona_id',
@@ -109,5 +110,29 @@ class Historial extends Model
     public function esActivo(): bool
     {
         return $this->estado === 'activo';
+    }
+    ///reportes finales ====================================================
+
+
+
+    public function puestoAnterior(): BelongsTo
+    {
+        return $this->belongsTo(Puesto::class, 'puesto_anterior_id');
+    }
+
+    public function puestoOriginal(): BelongsTo
+    {
+        return $this->belongsTo(Puesto::class, 'puesto_original_id');
+    }
+
+
+    // Scopes
+
+    public function scopeVigentes($query)
+    {
+        return $query->where(function($q) {
+            $q->whereNull('fecha_fin')
+              ->orWhere('fecha_fin', '>', now());
+        });
     }
 }

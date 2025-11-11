@@ -1,4 +1,3 @@
-<!-- resources/views/planillas/show.blade.php -->
 @extends('dashboard')
 
 @section('contenido')
@@ -102,6 +101,24 @@
         </div>
     </div>
 </div>
+
+<style>
+.search-word-highlight {
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+.search-word-highlight.current-match {
+    background-color: rgba(255, 87, 34, 0.8) !important;
+    box-shadow: 0 0 0 2px rgba(255, 87, 34, 0.5);
+    z-index: 5 !important;
+    transform: scale(1.02);
+}
+.text-layer {
+    font-family: inherit !important;
+}
+.hover-area:hover {
+    background-color: rgba(255, 4, 12, 0.433) !important;
+}
+</style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -370,8 +387,8 @@ function initializePDFViewer() {
         pageDiv.appendChild(textLayer);
 
         // Añadir capa de resaltado de búsqueda si hay texto de búsqueda
-        if (searchText) {
-            await addSearchHighlightLayer(pageDiv, page, viewport);
+        if (searchText && allMatches.length > 0) {
+            await addSearchHighlightLayer(pageDiv, pageNum, viewport);
         }
     }
 
@@ -380,8 +397,8 @@ function initializePDFViewer() {
         const textSpan = document.createElement('span');
         textSpan.className = 'text-span';
         textSpan.style.position = 'absolute';
-        textSpan.style.left = `${line.left}px`;
-        textSpan.style.top = `${line.top}px`;
+        textSpan.style.left = `${line.transform[4]}px`;
+        textSpan.style.top = `${line.transform[5]}px`;
         textSpan.style.width = `${line.width}px`;
         textSpan.style.height = `${line.height}px`;
         textSpan.style.whiteSpace = 'pre';
@@ -405,7 +422,7 @@ function initializePDFViewer() {
         hoverArea.className = 'hover-area';
         hoverArea.style.position = 'absolute';
         hoverArea.style.left = '0';
-        hoverArea.style.top = `${line.top - 2}px`;
+        hoverArea.style.top = `${line.transform[5] - 2}px`;
         hoverArea.style.width = '100%';
         hoverArea.style.height = `${line.height + 4}px`;
         hoverArea.style.pointerEvents = 'auto';
@@ -429,28 +446,33 @@ function initializePDFViewer() {
     // Función mejorada para agrupar elementos de texto en líneas
     function groupTextItemsIntoLines(textItems) {
         const lines = [];
-        const sortedItems = [...textItems].sort((a, b) => b.transform[5] - a.transform[5]);
+
+        // Primero ordenar por posición Y (de arriba a abajo)
+        const sortedItems = [...textItems].sort((a, b) => {
+            const aY = a.transform[5];
+            const bY = b.transform[5];
+            return bY - aY; // Orden descendente porque Y=0 es la parte superior
+        });
 
         let currentLine = null;
-        const LINE_THRESHOLD = 8;
+        const LINE_THRESHOLD = 5; // Reducido para mejor agrupación
 
         sortedItems.forEach(item => {
-            const itemTop = item.transform[5];
-            const itemLeft = item.transform[4];
+            const itemY = item.transform[5];
+            const itemX = item.transform[4];
             const itemWidth = item.width;
             const itemHeight = item.height;
             const fontSize = Math.sqrt(item.transform[0] * item.transform[0] + item.transform[1] * item.transform[1]);
 
-            if (!currentLine || Math.abs(itemTop - currentLine.top) > LINE_THRESHOLD) {
+            if (!currentLine || Math.abs(itemY - currentLine.transform[5]) > LINE_THRESHOLD) {
                 // Nueva línea
                 if (currentLine) {
                     lines.push(currentLine);
                 }
                 currentLine = {
-                    top: itemTop,
-                    left: itemLeft,
-                    height: itemHeight,
+                    transform: item.transform,
                     width: itemWidth,
+                    height: itemHeight,
                     fontSize: fontSize,
                     text: item.str,
                     items: [item]
@@ -458,7 +480,7 @@ function initializePDFViewer() {
             } else {
                 // Misma línea - agregar texto
                 currentLine.text += item.str;
-                currentLine.width = itemLeft + itemWidth - currentLine.left;
+                currentLine.width = itemX + itemWidth - currentLine.transform[4];
                 currentLine.items.push(item);
             }
         });
@@ -472,7 +494,7 @@ function initializePDFViewer() {
     }
 
     // Añadir capa de resaltado de búsqueda
-    async function addSearchHighlightLayer(pageDiv, page, viewport) {
+    async function addSearchHighlightLayer(pageDiv, pageNum, viewport) {
         let highlightLayer = pageDiv.querySelector('.highlight-layer');
         if (!highlightLayer) {
             highlightLayer = document.createElement('div');
@@ -486,19 +508,13 @@ function initializePDFViewer() {
             highlightLayer.style.zIndex = '3';
             pageDiv.appendChild(highlightLayer);
         }
+
+        // Aplicar resaltados específicos para esta página
+        const pageMatches = allMatches.filter(match => match.page === pageNum);
+        await applyHighlightsToPage(pageDiv, pageMatches, viewport);
     }
 
-    // Eliminar página
-    function removePage(pageNum) {
-        const pageDiv = document.getElementById(`pdf-page-${pageNum}`);
-        if (pageDiv) {
-            pageDiv.remove();
-            renderedPages.delete(pageNum);
-            delete textContentByPage[pageNum];
-        }
-    }
-
-    // Búsqueda optimizada
+    // Búsqueda optimizada - CORREGIDA
     async function searchInPDF() {
         if (!pdfDoc || isSearching) return;
 
@@ -525,21 +541,22 @@ function initializePDFViewer() {
                     const page = await pdfDoc.getPage(pageNum);
                     const textContent = await page.getTextContent();
 
+                    // Buscar en todos los elementos de texto
                     textContent.items.forEach((textItem, itemIndex) => {
-                        const text = textItem.str.toLowerCase();
-                        if (text.includes(searchTerm)) {
-                            let startIndex = 0;
-                            while ((startIndex = text.indexOf(searchTerm, startIndex)) !== -1) {
-                                allMatches.push({
-                                    page: pageNum,
-                                    textItem: textItem,
-                                    itemIndex: itemIndex,
-                                    matchIndex: startIndex,
-                                    matchLength: searchTerm.length,
-                                    globalIndex: matchCount++
-                                });
-                                startIndex += searchTerm.length;
-                            }
+                        const text = textItem.str;
+                        const lowerText = text.toLowerCase();
+                        let startIndex = 0;
+
+                        while ((startIndex = lowerText.indexOf(searchTerm, startIndex)) !== -1) {
+                            allMatches.push({
+                                page: pageNum,
+                                textItem: textItem,
+                                itemIndex: itemIndex,
+                                matchIndex: startIndex,
+                                matchLength: searchTerm.length,
+                                globalIndex: matchCount++
+                            });
+                            startIndex += searchTerm.length;
                         }
                     });
 
@@ -552,12 +569,13 @@ function initializePDFViewer() {
             }
 
             if (!searchController.signal.aborted) {
+                console.log(`Encontradas ${allMatches.length} coincidencias`);
                 updateMatchCounter();
                 updateNavigationControls();
 
                 if (allMatches.length > 0) {
-                    await highlightMatches();
-                    goToMatch(0);
+                    await highlightAllMatches();
+                    goToMatch(0); // Ir a la primera coincidencia
                 }
             }
 
@@ -572,8 +590,8 @@ function initializePDFViewer() {
         }
     }
 
-    // Resaltar coincidencias
-    async function highlightMatches() {
+    // Resaltar todas las coincidencias - CORREGIDA
+    async function highlightAllMatches() {
         const matchesByPage = {};
         allMatches.forEach(match => {
             if (!matchesByPage[match.page]) {
@@ -586,21 +604,26 @@ function initializePDFViewer() {
             if (searchController && searchController.signal.aborted) break;
 
             const pageNumInt = parseInt(pageNum);
+
+            // Asegurarse de que la página esté renderizada
             if (!renderedPages.has(pageNumInt)) {
                 await renderPage(pageNumInt);
             }
 
-            const pageDiv = document.getElementById(`pdf-page-${pageNum}`);
+            const pageDiv = document.getElementById(`pdf-page-${pageNumInt}`);
             if (pageDiv) {
-                await applyHighlightsToPage(pageDiv, matchesByPage[pageNum]);
+                const viewport = pageViewports[pageNumInt];
+                await applyHighlightsToPage(pageDiv, matchesByPage[pageNum], viewport);
             }
         }
     }
 
-    // Aplicar resaltados a una página
-    async function applyHighlightsToPage(pageDiv, pageMatches) {
+    // Aplicar resaltados a una página - CORREGIDA
+    async function applyHighlightsToPage(pageDiv, pageMatches, viewport) {
         const pageNum = parseInt(pageDiv.getAttribute('data-page-number'));
-        const viewport = pageViewports[pageNum];
+        if (!viewport) {
+            viewport = pageViewports[pageNum];
+        }
 
         let highlightLayer = pageDiv.querySelector('.highlight-layer');
         if (!highlightLayer) {
@@ -616,13 +639,18 @@ function initializePDFViewer() {
             pageDiv.appendChild(highlightLayer);
         }
 
-        highlightLayer.innerHTML = '';
+        // Limpiar solo los resaltados existentes
+        const existingHighlights = highlightLayer.querySelectorAll('.search-word-highlight');
+        existingHighlights.forEach(el => el.remove());
 
         pageMatches.forEach((match) => {
             const textItem = match.textItem;
+
+            // Calcular posición usando la transformada del texto
             const tx = pdfjsLib.Util.transform(viewport.transform, textItem.transform);
 
-            const charWidth = textItem.width / textItem.str.length;
+            // Calcular dimensiones del resaltado
+            const charWidth = textItem.width / Math.max(textItem.str.length, 1);
             const highlightLeft = tx[4] + (charWidth * match.matchIndex);
             const highlightWidth = charWidth * match.matchLength;
 
@@ -630,8 +658,8 @@ function initializePDFViewer() {
             wordHighlight.className = 'search-word-highlight';
             wordHighlight.style.position = 'absolute';
             wordHighlight.style.left = highlightLeft + 'px';
-            wordHighlight.style.top = tx[5] + 'px';
-            wordHighlight.style.width = highlightWidth + 'px';
+            wordHighlight.style.top = (tx[5] - textItem.height * 0.1) + 'px';
+            wordHighlight.style.width = Math.max(highlightWidth, 2) + 'px';
             wordHighlight.style.height = (textItem.height * 1.2) + 'px';
             wordHighlight.style.backgroundColor = 'rgba(255, 235, 59, 0.7)';
             wordHighlight.style.borderRadius = '2px';
@@ -650,29 +678,64 @@ function initializePDFViewer() {
                 highlightLayer.innerHTML = '';
             }
         });
+
+        // También limpiar el resaltado actual
+        const allHighlights = document.querySelectorAll('.search-word-highlight.current-match');
+        allHighlights.forEach(el => {
+            el.classList.remove('current-match');
+            el.style.backgroundColor = 'rgba(255, 235, 59, 0.7)';
+        });
     }
 
-    // Navegar a coincidencia
+    // Navegar a coincidencia - CORREGIDA (esta era la función principal con problemas)
     function goToMatch(index) {
-        if (index < 0 || index >= allMatches.length) return;
+        if (index < 0 || index >= allMatches.length) {
+            console.warn('Índice de coincidencia fuera de rango:', index);
+            return;
+        }
 
+        console.log(`Navegando a coincidencia ${index + 1} de ${allMatches.length}`);
+
+        // Limpiar resaltado anterior
+        clearCurrentHighlight();
+
+        // Actualizar índice actual
         currentMatchIndex = index;
         const match = allMatches[index];
 
-        clearCurrentHighlight();
-
+        // Resaltar la coincidencia actual
         const highlightElements = document.querySelectorAll(`[data-match-index="${index}"]`);
-        highlightElements.forEach(element => {
-            element.classList.add('current-match');
-            element.style.backgroundColor = 'rgba(255, 87, 34, 0.8)';
 
-            scrollToMatch(element);
-        });
+        if (highlightElements.length > 0) {
+            highlightElements.forEach(element => {
+                element.classList.add('current-match');
+                element.style.backgroundColor = 'rgba(255, 87, 34, 0.8)';
+            });
+
+            // Hacer scroll a la primera ocurrencia de esta coincidencia
+            scrollToMatch(highlightElements[0]);
+        } else {
+            console.warn('No se encontró elemento de resaltado para el índice:', index);
+            // Intentar renderizar la página si no está visible
+            ensurePageRendered(match.page).then(() => {
+                // Reintentar después de renderizar
+                setTimeout(() => goToMatch(index), 100);
+            });
+        }
 
         updateMatchCounter();
+        updateNavigationControls();
     }
 
-    // Scroll a coincidencia
+    // Asegurar que una página esté renderizada
+    async function ensurePageRendered(pageNum) {
+        if (!renderedPages.has(pageNum)) {
+            await renderPage(pageNum);
+        }
+        return true;
+    }
+
+    // Scroll a coincidencia - MEJORADA
     function scrollToMatch(highlightElement) {
         const pageDiv = highlightElement.closest('.pdf-page');
         if (pageDiv) {
@@ -680,36 +743,50 @@ function initializePDFViewer() {
             const highlightTop = parseInt(highlightElement.style.top);
             const totalOffset = pageTop + highlightTop;
 
-            // Scroll suave a la posición calculada con un pequeño margen
+            console.log('Haciendo scroll a posición:', totalOffset);
+
+            // Scroll suave a la posición calculada con margen adecuado
             pdfViewer.scrollTo({
-                top: totalOffset - 100,
+                top: Math.max(0, totalOffset - 150), // Margen aumentado para mejor visibilidad
                 behavior: 'smooth'
             });
+        } else {
+            console.warn('No se pudo encontrar el contenedor de página para el resaltado');
         }
     }
 
     function clearCurrentHighlight() {
-        const currentHighlights = document.querySelectorAll('.current-match');
+        const currentHighlights = document.querySelectorAll('.search-word-highlight.current-match');
         currentHighlights.forEach(el => {
             el.classList.remove('current-match');
             el.style.backgroundColor = 'rgba(255, 235, 59, 0.7)';
         });
     }
 
-    // Navegación
+    // Navegación - CORREGIDA
     function goToNextMatch() {
         if (allMatches.length === 0) return;
-        const nextIndex = (currentMatchIndex + 1) % allMatches.length;
+
+        let nextIndex = currentMatchIndex + 1;
+        if (nextIndex >= allMatches.length) {
+            nextIndex = 0; // Circular: volver al inicio
+        }
+
         goToMatch(nextIndex);
     }
 
     function goToPreviousMatch() {
         if (allMatches.length === 0) return;
-        const prevIndex = (currentMatchIndex - 1 + allMatches.length) % allMatches.length;
+
+        let prevIndex = currentMatchIndex - 1;
+        if (prevIndex < 0) {
+            prevIndex = allMatches.length - 1; // Circular: ir al final
+        }
+
         goToMatch(prevIndex);
     }
 
-    // Zoom
+    // Zoom (sin cambios)
     function zoomIn() {
         currentScale = Math.min(2.5, currentScale + 0.25);
         updateZoom();
@@ -727,6 +804,11 @@ function initializePDFViewer() {
             visiblePages.clear();
             textContentByPage = {};
             await initializeVirtualization();
+
+            // Re-aplicar búsqueda si existe
+            if (searchText) {
+                setTimeout(() => searchInPDF(), 500);
+            }
         }
     }
 
@@ -769,8 +851,6 @@ function initializePDFViewer() {
         const counter = document.getElementById('matchCounter');
         const info = document.getElementById('matchInfo');
 
-        counter.textContent = allMatches.length;
-
         if (allMatches.length > 0) {
             info.className = 'text-warning fw-bold';
             info.innerHTML = `<span id="matchCounter">${allMatches.length}</span> coincidencias (${currentMatchIndex + 1}/${allMatches.length})`;
@@ -787,11 +867,12 @@ function initializePDFViewer() {
         const prevMatchBtn = document.getElementById('prevMatch');
         const nextMatchBtn = document.getElementById('nextMatch');
 
-        prevMatchBtn.disabled = allMatches.length === 0;
-        nextMatchBtn.disabled = allMatches.length === 0;
+        const hasMatches = allMatches.length > 0;
+        prevMatchBtn.disabled = !hasMatches;
+        nextMatchBtn.disabled = !hasMatches;
     }
 
-    // Gestión de estados de UI
+    // Gestión de estados de UI (sin cambios)
     function showLoading() {
         loadingMessage.classList.remove('d-none');
         pdfContainer.classList.add('d-none');
@@ -888,169 +969,4 @@ function initializePDFViewer() {
     loadPDF();
 }
 </script>
-
-<style>
-/* Estilos optimizados para selección y hover */
-#pdfContainer {
-    position: relative;
-}
-
-.pdf-page {
-    background: white;
-    border-radius: 4px;
-    cursor: text;
-}
-
-.pdf-canvas {
-    display: block;
-}
-
-/* Capa de texto para selección */
-.text-layer {
-    z-index: 2;
-}
-
-.text-span {
-    color: transparent !important;
-    pointer-events: none;
-    user-select: text !important;
-    -webkit-user-select: text !important;
-    -moz-user-select: text !important;
-    -ms-user-select: text !important;
-    cursor: text;
-    line-height: 1.2;
-}
-
-/* Selección de texto visible y precisa */
-.text-layer::selection,
-.text-span::selection {
-    background: rgba(0, 123, 255, 0.4) !important;
-    color: transparent !important;
-}
-
-.text-layer::-moz-selection,
-.text-span::-moz-selection {
-    background: rgba(0, 123, 255, 0.4) !important;
-    color: transparent !important;
-}
-
-/* Capa de hover para resaltado suave */
-.hover-layer {
-    z-index: 1;
-}
-
-.hover-area {
-    background-color: transparent;
-    border-radius: 2px;
-    transition: background-color 0.15s ease;
-}
-
-.hover-area:hover {
-    background-color: rgba(245, 6, 6, 0.3) !important;
-}
-
-/* Capa de resaltado de búsqueda */
-.highlight-layer {
-    z-index: 3;
-}
-
-.search-word-highlight {
-    background-color: rgba(255, 235, 59, 0.7);
-    transition: all 0.3s ease;
-    border-radius: 2px;
-}
-
-.search-word-highlight.current-match {
-    background-color: rgba(255, 87, 34, 0.8) !important;
-    z-index: 4;
-    box-shadow: 0 0 0 2px rgba(255, 87, 34, 0.5);
-}
-
-#pagePlaceholders {
-    pointer-events: none;
-    visibility: hidden;
-}
-
-/* Mejorar la experiencia de selección */
-.text-layer {
-    -webkit-tap-highlight-color: transparent;
-}
-
-/* Permitir selección de texto sin interferencias */
-.pdf-page {
-    user-select: text;
-    -webkit-user-select: text;
-    -moz-user-select: text;
-    -ms-user-select: text;
-}
-
-/* Scroll personalizado */
-#pdfViewer::-webkit-scrollbar {
-    width: 10px;
-}
-
-#pdfViewer::-webkit-scrollbar-track {
-    background: #f1f1f1;
-}
-
-#pdfViewer::-webkit-scrollbar-thumb {
-    background: #888;
-    border-radius: 5px;
-}
-
-#pdfViewer::-webkit-scrollbar-thumb:hover {
-    background: #555;
-}
-
-/* Animaciones */
-.pdf-page {
-    animation: fadeIn 0.3s ease-in;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    #pdfViewer {
-        height: 500px;
-    }
-
-    .pdf-page {
-        max-width: 100%;
-        height: auto !important;
-    }
-
-    .pdf-canvas {
-        width: 100%;
-        height: auto;
-    }
-}
-
-/* Asegurar que el texto sea seleccionable en todos los navegadores */
-.text-span {
-    -webkit-user-select: text !important;
-    -moz-user-select: text !important;
-    -ms-user-select: text !important;
-    user-select: text !important;
-}
-
-/* Prevenir interferencias con la selección */
-.hover-area {
-    pointer-events: auto;
-}
-
-.text-span {
-    pointer-events: none;
-}
-
-/* Optimizar para copiar montos y texto numérico */
-.text-span {
-    font-feature-settings: "tnum";
-    font-variant-numeric: tabular-nums;
-    letter-spacing: 0.02em;
-}
-</style>
 @endsection

@@ -96,12 +96,17 @@
             }
         }</style>
             <!-- Header del Dashboard -->
-    <header class="dashboard-header text-center">
-        <div class="container">
-            <h1 class="display-5 fw-bold">Sistema de Gestión Integral</h1>
-            <p class="lead">Administre todos los procesos desde un solo lugar</p>
-        </div>
-    </header>
+<header class="dashboard-header text-center py-5 bg-light border-bottom shadow-sm">
+    <div class="container">
+        <h1 class="display-6 fw-bold text-primary mb-3">
+            Gestión de Personas y Documentación
+        </h1>
+        <p class="text-white fs-5">
+            Visualice, registre y administre la información personal y los documentos en un solo lugar.
+        </p>
+    </div>
+</header>
+
         <main class="container">
         <!-- Sección de Gestión de Personal -->
         <h2 class="section-title">Documentación de Incorporación</h2>

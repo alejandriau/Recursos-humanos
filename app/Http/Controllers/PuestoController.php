@@ -11,63 +11,69 @@ class PuestoController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request)
-    {
-        try {
-            $query = Puesto::with(['unidadOrganizacional.padre']);
+public function index(Request $request)
+{
+    try {
+        $query = Puesto::with(['unidadOrganizacional.padre']);
 
-            // Filtros
-            if ($request->has('activo')) {
-                $query->where('esActivo', $request->boolean('activo'));
-            }
-
-            if ($request->has('jefatura')) {
-                $query->where('esJefatura', $request->boolean('jefatura'));
-            }
-
-            if ($request->has('tipo_contrato')) {
-                $query->where('tipoContrato', $request->tipo_contrato);
-            }
-
-            if ($request->has('nivel_jerarquico')) {
-                $query->where('nivelJerarquico', $request->nivel_jerarquico);
-            }
-
-            if ($request->has('nivel')) {
-                $query->where('nivel', $request->nivel);
-            }
-
-            if ($request->has('id_unidad')) {
-                $query->where('idUnidadOrganizacional', $request->id_unidad);
-            }
-
-            if ($request->has('buscar')) {
-                $query->where('denominacion', 'LIKE', "%{$request->buscar}%")
-                      ->orWhere('item', 'LIKE', "%{$request->buscar}%");
-            }
-
-            // Ordenamiento
-            $orden = $request->get('orden', 'denominacion');
-            $direccion = $request->get('direccion', 'asc');
-            $query->orderBy($orden, $direccion);
-
-            $puestos = $query->paginate($request->get('por_pagina', 15));
-
-            // Estadísticas para la vista
-            $estadisticas = [
-                'activos' => Puesto::where('esActivo', true)->count(),
-                'inactivos' => Puesto::where('esActivo', false)->count(),
-                'vacantes' => Puesto::where('esActivo', true)->count(), // Por ahora, todos se consideran vacantes
-                'jefaturas' => Puesto::where('esActivo', true)->where('esJefatura', true)->count(),
-            ];
-
-            return view('admin.puestos.index', compact('puestos', 'estadisticas'));
-
-        } catch (\Exception $e) {
-            return redirect()->route('admin.puestos.index')
-                             ->with('error', 'Error al obtener puestos: ' . $e->getMessage());
+        // Filtros básicos
+        if ($request->filled('buscar')) {
+            $search = $request->buscar;
+            $query->where(function($q) use ($search) {
+                $q->where('denominacion', 'LIKE', "%{$search}%")
+                  ->orWhere('item', 'LIKE', "%{$search}%");
+            });
         }
+
+        if ($request->filled('nivel_jerarquico')) {
+            $query->where('nivelJerarquico', $request->nivel_jerarquico);
+        }
+
+        if ($request->filled('tipo_contrato')) {
+            $query->where('tipoContrato', $request->tipo_contrato);
+        }
+
+        // Ordenamiento
+        $query->orderBy('denominacion');
+
+        // Paginación
+        $puestos = $query->paginate(15);
+
+        // Niveles jerárquicos
+        $nivelesJerarquicos = [
+            'GOBERNADOR (A)',
+            'SECRETARIA (O) DEPARTAMENTAL',
+            'ASESORA (OR) / DIRECTORA (OR) / DIR. SERV. DPTAL.',
+            'JEFA (E) DE UNIDAD',
+            'PROFESIONAL I',
+            'PROFESIONAL II',
+            'ADMINISTRATIVO I',
+            'ADMINISTRATIVO II',
+            'APOYO ADMINISTRATIVO I',
+            'APOYO ADMINISTRATIVO II',
+            'ASISTENTE'
+        ];
+
+        // Estadísticas CORREGIDAS - incluyendo 'vacantes'
+        $estadisticas = [
+            'total' => Puesto::count(),
+            'activos' => Puesto::where('esActivo', true)->count(),
+            'inactivos' => Puesto::where('esActivo', false)->count(),
+            'jefaturas' => Puesto::where('esActivo', true)->where('esJefatura', true)->count(),
+            'vacantes' => Puesto::where('esActivo', true)->count(), // Agregado
+        ];
+
+        return view('admin.puestos.index', compact(
+            'puestos',
+            'estadisticas',
+            'nivelesJerarquicos'
+        ));
+
+    } catch (\Exception $e) {
+        return redirect()->route('puestos.index')
+                         ->with('error', 'Error al cargar los puestos: ' . $e->getMessage());
     }
+}
 
     /**
      * Show the form for creating a new resource.

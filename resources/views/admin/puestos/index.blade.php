@@ -24,64 +24,52 @@
     </div>
 
     <!-- Filtros -->
-    <div x-show="showFilters" x-transition class="bg-white p-4 rounded-lg shadow mb-6">
-        <form method="GET" action="{{ route('puestos.index') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <!-- Búsqueda -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Buscar</label>
-                <input type="text" name="buscar" value="{{ request('buscar') }}"
-                       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                       placeholder="Nombre, item...">
-            </div>
+<div x-show="showFilters" x-transition class="bg-white p-4 rounded-lg shadow mb-6">
+    <form method="GET" action="{{ route('puestos.index') }}" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <!-- Búsqueda -->
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Buscar</label>
+            <input type="text" name="buscar" value="{{ request('buscar') }}"
+                   class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                   placeholder="Nombre, item, nivel...">
+        </div>
 
-            <!-- Nivel Jerárquico -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Nivel Jerárquico</label>
-                <select name="nivel_jerarquico" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                    <option value="">Todos</option>
-                    @foreach([
-                        'GOBERNADOR (A)',
-                        'SECRETARIA (O) DEPARTAMENTAL',
-                        'ASESORA (OR) / DIRECTORA (OR) / DIR. SERV. DPTAL.',
-                        'JEFA (E) DE UNIDAD',
-                        'PROFESIONAL I',
-                        'PROFESIONAL II',
-                        'ADMINISTRATIVO I',
-                        'ADMINISTRATIVO II',
-                        'APOYO ADMINISTRATIVO I',
-                        'APOYO ADMINISTRATIVO II',
-                        'ASISTENTE'
-                    ] as $nivel)
-                        <option value="{{ $nivel }}" {{ request('nivel_jerarquico') == $nivel ? 'selected' : '' }}>
-                            {{ $nivel }}
-                        </option>
-                    @endforeach
-                </select>
-            </div>
+        <!-- Nivel Jerárquico -->
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Nivel Jerárquico</label>
+            <select name="nivel_jerarquico" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                <option value="">Todos</option>
+                @foreach($nivelesJerarquicos as $nivel)
+                    <option value="{{ $nivel }}" {{ request('nivel_jerarquico') == $nivel ? 'selected' : '' }}>
+                        {{ $nivel }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
 
-            <!-- Tipo de Contrato -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Tipo Contrato</label>
-                <select name="tipo_contrato" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                    <option value="">Todos</option>
-                    <option value="PERMANENTE" {{ request('tipo_contrato') == 'PERMANENTE' ? 'selected' : '' }}>Permanente</option>
-                    <option value="EVENTUAL" {{ request('tipo_contrato') == 'EVENTUAL' ? 'selected' : '' }}>Eventual</option>
-                </select>
-            </div>
+        <!-- Tipo de Contrato -->
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Tipo Contrato</label>
+            <select name="tipo_contrato" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                <option value="">Todos</option>
+                <option value="PERMANENTE" {{ request('tipo_contrato') == 'PERMANENTE' ? 'selected' : '' }}>Permanente</option>
+                <option value="EVENTUAL" {{ request('tipo_contrato') == 'EVENTUAL' ? 'selected' : '' }}>Eventual</option>
+            </select>
+        </div>
 
-            <!-- Botones -->
-            <div class="flex items-end space-x-2">
-                <button type="submit"
-                        class="px-4 py-2 bg-blue-600 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <i class="fas fa-search mr-2"></i>Filtrar
-                </button>
-                <a href="{{ route('puestos.index') }}"
-                   class="px-4 py-2 bg-gray-200 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500">
-                    <i class="fas fa-redo mr-2"></i>Limpiar
-                </a>
-            </div>
-        </form>
-    </div>
+        <!-- Botones -->
+        <div class="flex items-end space-x-2">
+            <button type="submit"
+                    class="px-4 py-2 bg-blue-600 border border-transparent rounded-md shadow-sm text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <i class="fas fa-search mr-2"></i>Filtrar
+            </button>
+            <a href="{{ route('puestos.index') }}"
+               class="px-4 py-2 bg-gray-200 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500">
+                <i class="fas fa-redo mr-2"></i>Limpiar
+            </a>
+        </div>
+    </form>
+</div>
 
     <!-- Tarjetas de Estadísticas -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">

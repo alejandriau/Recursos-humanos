@@ -46,8 +46,8 @@ public function store(Request $request)
 {
     $request->validate([
         'archivo_pdf' => 'required|file|mimes:pdf|max:10240',
-        'periodo_pago' => 'nullable|string|max:100',
-        'anio' => 'required|integer|min:2020|max:' . (date('Y') + 5),
+        'periodo_pago' => 'nullable|string|max:250',
+        'anio' => 'required|integer|min:1990|max:' . (date('Y') + 5),
         'fecha_elaboracion' => 'nullable|date',
         'total_empleados' => 'nullable|integer|min:0',
         'notas' => 'nullable|string|max:500'

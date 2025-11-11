@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Persona;
 use App\Models\Bajasaltas;
 use App\Models\Pasivodos;
+use App\Models\Historial;
 use Carbon\Carbon;
 
 class BajasaltasController extends Controller
@@ -72,8 +73,23 @@ class BajasaltasController extends Controller
             'apellidomaterno' => 'nullable|string',
             'nombre' => 'nullable|string',
             'obser' => 'nullable|string',
-            'pdffile' => 'nullable|file|mimes:pdf|max:2048'
+            'pdffile' => 'nullable|file|mimes:pdf|max:2048',
+            'idHistorial' => 'nullable|exists:historials,id'
         ]);
+
+        // Cerrar historial si se proporciona idHistorial
+        if ($validated['idHistorial']) {
+            $historial = Historial::find($validated['idHistorial']);
+
+            // Si el registro existe
+            if ($historial) {
+                // Si no tiene fecha_fin, se asigna la actual o la enviada
+                if (is_null($historial->fecha_fin)) {
+                    $historial->fecha_fin = $validated['fecha_fin'] ?? now();
+                    $historial->save();
+                }
+            }
+        }
 
         $persona = Persona::findOrFail($validated['idPersona']);
         $nombreCompleto = trim($validated['apellidopaterno'] . " " . $validated['apellidomaterno'] . " " . $validated['nombre']);

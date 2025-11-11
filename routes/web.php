@@ -1,7 +1,6 @@
 <?php
 
 use App\Models\Bajasaltas;
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\PersonaController;
 use App\Http\Controllers\ReporteController;
 use App\Http\Controllers\PasivounoController;
@@ -40,6 +39,19 @@ use App\Http\Controllers\TxtToWordController;
 use App\Http\Controllers\AuditLogsController;
 use App\Http\Controllers\UnidadOrganizacionalController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\VacacionAdminController;
+use App\Http\Controllers\VacacionEmpleadoController;
+use App\Http\Controllers\AsistenciaAdminController;
+use App\Http\Controllers\AsistenciaEmpleadoController;
+use App\Http\Controllers\Empleado\EmpleadoDashboardController;
+use App\Http\Controllers\EscalaBonoController;
+use App\Http\Controllers\SalarioMinimoController;
+use App\Http\Controllers\EmpleadoController;
+use App\Http\Controllers\CasHistorialBonosController;
+use App\Http\Controllers\ConfiguracionSalarioMinimoController;
+
+
+use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('welcome');
@@ -50,20 +62,14 @@ Route::middleware([
     config('jetstream.auth_session'),
     'verified',
 ])->group(function () {
-    Route::get('/dashboard', function () {
-        return view('inicio');
-    })->name('inicio');
+
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
 
         Route::get('/reporte', [ReporteController::class, 'index'])->name('reportes.index');
 
 
 
-
-
-
-
-    Route::get('/personas', [PersonaController::class, 'index']);
     Route::get('/personas/show/{id}', [PersonaController::class, 'show'])->name('personas.show');
         Route::get('/personas/{id}/expediente', [PersonaController::class, 'generarExpediente'])->name('personas.expediente');
     Route::get('/personas/{id}/expediente/ver', [PersonaController::class, 'verExpediente'])->name('personas.expediente.ver');
@@ -71,7 +77,7 @@ Route::middleware([
 
 // Rutas de reportes
 Route::prefix('reportes')->group(function () {
-    Route::get('/', [ReporteController::class, 'index'])->name('reportes.index');
+    //Route::get('/', [ReporteController::class, 'index'])->name('reportes.index');
     Route::get('/buscar', [ReporteController::class, 'buscar'])->name('reportes.buscar');
     Route::get('/tipo', [ReporteController::class, 'tipo'])->name('reportes.tipo');
     Route::post('/filtros-avanzados', [ReporteController::class, 'filtrosAvanzados'])->name('reportes.filtros-avanzados');
@@ -212,7 +218,7 @@ Route::post('/admin/puestos/{puesto}/reactivar', [PuestoController::class, 'reac
     Route::get('/areas', [GerarquiaController::class, 'areas'])->name('areas');
     Route::get('/areasdireccion', [GerarquiaController::class, 'areasDireccion'])->name('areasdireccion');
     Route::get('/areassecretaria', [GerarquiaController::class, 'areasSecretaria'])->name('areassecretaria');
-    Route::get('/puestos', [GerarquiaController::class, 'puestos'])->name('puestos');
+    //Route::get('/puestos', [GerarquiaController::class, 'puestos'])->name('puestos');
     //
     Route::get('/historial', [HistorialController::class, 'index'])->name('historial');
     Route::get('/historial/create/{id}', [HistorialController::class, 'create'])->name('historial.create');
@@ -308,12 +314,34 @@ Route::post('/admin/puestos/{puesto}/reactivar', [PuestoController::class, 'reac
     Route::put('/certificados/update/{certificado}', [CertificadoController::class, 'update'])->name('certificados.update');
     Route::delete('/certificados/{certificado}', [CertificadoController::class, 'destroy'])->name('certificados.destroy');
     //lisa de cas
-    Route::get('/cas', [CasController::class, 'index'])->name('cas.index');
-    Route::get('/cas/create', [CasController::class, 'create'])->name('cas.create');
-    Route::post('/cas', [CasController::class, 'store'])->name('cas.store');
-    Route::get('/cas/{cas}/edit', [CasController::class, 'edit'])->name('cas.edit');
-    Route::put('/cas/{cas}', [CasController::class, 'update'])->name('cas.update');
-    Route::delete('/cas/{cas}', [CasController::class, 'destroy'])->name('cas.destroy');
+// Rutas para CAS
+Route::get('/cas', [CasController::class, 'index'])->name('cas.index');
+Route::get('/cas/crear', [CasController::class, 'create'])->name('cas.create');
+Route::post('/cas', [CasController::class, 'store'])->name('cas.store');
+Route::get('/cas/{id}', [CasController::class, 'show'])->name('cas.show');
+Route::get('/cas/{id}/editar', [CasController::class, 'edit'])->name('cas.edit');
+Route::put('/cas/{id}', [CasController::class, 'update'])->name('cas.update');
+Route::delete('/cas/{id}', [CasController::class, 'destroy'])->name('cas.destroy');
+
+// Ruta para cálculo individual de bono
+Route::get('/cas/persona/{idPersona}/calcular-bono', [CasController::class, 'calcularBonoPersonaIndividual'])->name('cas.calcular-bono');
+
+// Ruta para crear CAS con persona pre-seleccionada
+Route::get('/cas/create/{idPersona}', [CasController::class, 'create'])->name('cas.create.persona');
+
+// Rutas adicionales para CAS
+//oute::get('/cas/{idPersona}/calcular-bono', [CasController::class, 'calcularBono'])->name('cas.calcular-bono');
+Route::post('/cas/actualizar-alertas', [CasController::class, 'actualizarAlertas'])->name('cas.actualizar-alertas');
+
+// Rutas para escalas de bono
+Route::get('/escalas-bono', [EscalaBonoController::class, 'index'])->name('escalas-bono.index');
+Route::get('/escalas-bono/{id}', [EscalaBonoController::class, 'show'])->name('escalas-bono.show');
+
+// Rutas para salario mínimo
+Route::get('/salario-minimo', [SalarioMinimoController::class, 'index'])->name('salario-minimo.index');
+Route::get('/salario-minimo/crear', [SalarioMinimoController::class, 'create'])->name('salario-minimo.create');
+Route::post('/salario-minimo', [SalarioMinimoController::class, 'store'])->name('salario-minimo.store');
+Route::get('/salario-minimo/vigente', [SalarioMinimoController::class, 'obtenerVigente'])->name('salario-minimo.vigente');
     //usuarios
 
 
@@ -545,5 +573,136 @@ Route::post('/convert-txt-simple', [TxtToWordController::class, 'convertTxtToWor
     Route::get('/audit-logs/user-statistics/{user}/auditoria', [AuditLogsController::class, 'userStatistics'])->name('audit-logs.user-statistics.show');
     Route::get('/audit-logs/suspicious-activities/auditoria', [AuditLogsController::class, 'suspiciousActivities'])->name('audit-logs.suspicious-activities');
     Route::get('/audit-logs/{auditLog}/auditoria', [AuditLogsController::class, 'show'])->name('audit-logs.show');
+
+    //reportes finales ==============================
+    Route::prefix('reportes')->name('reportes.')->group(function () {
+    Route::get('/dashboard', [ReporteController::class, 'dashboard'])->name('dashboard');
+    Route::get('/censo-laboral', [ReporteController::class, 'censoLaboral'])->name('censo-laboral');
+    Route::get('/distribucion-unidades', [ReporteController::class, 'distribucionUnidades'])->name('distribucion-unidades');
+    Route::get('/rotacion-personal', [ReporteController::class, 'rotacionPersonal'])->name('rotacion-personal');
+    Route::get('/estado-documentacion', [ReporteController::class, 'estadoDocumentacion'])->name('estado-documentacion');
+    Route::get('/dashboard/pdfs', [ReporteController::class, 'exportarDashboardPDF'])->name('dashboard-pdfs');
+    });
+
+
+
+    // routes/web.php
+
+
+
+// Rutas para administradores
+    Route::get('/admin/vacaciones', [VacacionAdminController::class, 'index'])->name('admin.vacaciones.index');
+    Route::get('/admin/vacaciones/{vacacion}', [VacacionAdminController::class, 'show'])->name('admin.vacaciones.show');
+    Route::post('/admin/vacaciones/{vacacion}/aprobar', [VacacionAdminController::class, 'aprobar'])->name('admin.vacaciones.aprobar');
+    Route::post('/admin/vacaciones/{vacacion}/rechazar', [VacacionAdminController::class, 'rechazar'])->name('admin.vacaciones.rechazar');
+    Route::get('/admin/vacaciones-reporte', [VacacionAdminController::class, 'reporte'])->name('admin.vacaciones.reporte');
+
+    // routes/web.php
+
+
+
+// Rutas para administradores
+
+    Route::get('/admin/asistencias', [AsistenciaAdminController::class, 'index'])->name('admin.asistencias.index');
+    Route::get('/admin/asistencias/create', [AsistenciaAdminController::class, 'create'])->name('admin.asistencias.create');
+    Route::post('/admin/asistencias', [AsistenciaAdminController::class, 'store'])->name('admin.asistencias.store');
+    Route::get('/admin/asistencias/{asistencia}/edit', [AsistenciaAdminController::class, 'edit'])->name('admin.asistencias.edit');
+    Route::put('/admin/asistencias/{asistencia}', [AsistenciaAdminController::class, 'update'])->name('admin.asistencias.update');
+    Route::delete('/admin/asistencias/{asistencia}', [AsistenciaAdminController::class, 'destroy'])->name('admin.asistencias.destroy');
+    Route::get('/admin/asistencias/reporte-mensual', [AsistenciaAdminController::class, 'reporteMensual'])->name('admin.asistencias.reporte-mensual');
+    Route::post('/admin/asistencias/marcar-ausentes', [AsistenciaAdminController::class, 'marcarAusentes'])->name('admin.asistencias.marcar-ausentes');
+
+// API para dispositivos biométricos
+    Route::post('/api/biometrico/registro', [BiometricoController::class, 'recibirRegistro']);
+
+
+    /// controller para historial bono cas
+
+
+    // Historial por CAS
+    Route::get('/historial-bonos', [CasHistorialBonosController::class, 'index'])->name('historial-bonos.index');
+
+    // Historial por persona
+    Route::get('/historial-bonos/persona/{idPersona}', [CasHistorialBonosController::class, 'porPersona'])->name('historial-bonos.por-persona');
+
+    // Estadísticas
+    Route::get('/historial-bonos/estadisticas', [CasHistorialBonosController::class, 'estadisticas'])->name('historial-bonos.estadisticas');
+
+    // Reportes
+    Route::get('/historial-bonos/reporte', [CasHistorialBonosController::class, 'reporte'])->name('historial-bonos.reporte');
+
+    // Detalle de cambio
+    Route::get('/historial-bonos/{id}', [CasHistorialBonosController::class, 'show'])->name('historial-bonos.show');
+
+    // Formulario cambio manual
+    Route::get('/historial-bonos/crear/cambio-manual', [CasHistorialBonosController::class, 'create'])->name('historial-bonos.create');
+    Route::post('/historial-bonos/crear/cambio-manual', [CasHistorialBonosController::class, 'store'])->name('historial-bonos.store');
+
+    // Recálculo forzado
+    Route::get('/historial-bonos/forzar-recalculo', [CasHistorialBonosController::class, 'showForzarRecalculo'])->name('historial-bonos.show-forzar-recalculo');
+    Route::post('/historial-bonos/forzar-recalculo', [CasHistorialBonosController::class, 'forzarRecalculo'])->name('historial-bonos.forzar-recalculo');
+
+    //configuracion de salarioi minimo
+
+    // Vista principal
+    Route::get('/configuracion-salario-minimo/uno', [ConfiguracionSalarioMinimoController::class, 'index'])->name('configuracion-salario-minimo.index');
+
+    // Crear nuevo salario mínimo
+    Route::post('/configuracion-salario-minimo/uno', [ConfiguracionSalarioMinimoController::class, 'store'])->name('configuracion-salario-minimo.store');
+
+    // Activar salario mínimo
+    Route::post('/configuracion-salario-minimo/{id}/activar', [ConfiguracionSalarioMinimoController::class, 'activar'])->name('configuracion-salario-minimo.activar');
+
+    // Eliminar salario mínimo (solo históricos, no vigentes)
+    Route::delete('/configuracion-salario-minimo/{id}', [ConfiguracionSalarioMinimoController::class, 'destroy'])->name('configuracion-salario-minimo.destroy');
+
+    // API - Obtener salario vigente
+    Route::get('/configuracion-salario-minimo/vigente', [ConfiguracionSalarioMinimoController::class, 'obtenerVigente'])->name('configuracion-salario-minimo.vigente');
+
+
+    Route::middleware(['auth', 'role:empleado'])->group(function () {
+
+        // Dashboard
+        Route::get('/empleado/index', [EmpleadoDashboardController::class, 'index'])->name('empleado.dashboard');
+
+        // Perfil
+        Route::get('/empleado/perfil', [EmpleadoController::class, 'miPerfil'])->name('empleado.perfil');
+        Route::get('/empleado/historial/ver', [EmpleadoController::class, 'miHistorial'])->name('empleado.historial');
+        Route::get('/empleado/expediente', [EmpleadoController::class, 'miExpediente'])->name('empleado.expediente');
+        Route::get('/empleado/ver-expediente', [EmpleadoController::class, 'verMiExpediente'])->name('empleado.ver-expediente');
+
+        Route::get('/empleado/perfil/edit', [PerfilController::class, 'edit'])->name('empleado.perfil.edit');
+        Route::put('/empleado/perfil', [PerfilController::class, 'update'])->name('empleado.perfil.update');
+
+        // Rutas para empleados
+        Route::get('/empleado/asistencias', [AsistenciaEmpleadoController::class, 'index'])->name('empleado.asistencias.index');
+        Route::post('/empleado/asistencias/marcar-entrada', [AsistenciaEmpleadoController::class, 'marcarEntrada'])->name('empleado.asistencias.marcar-entrada');
+        Route::post('/empleado/asistencias/marcar-salida', [AsistenciaEmpleadoController::class, 'marcarSalida'])->name('empleado.asistencias.marcar-salida');
+        Route::post('/empleado/asistencias/justificar', [AsistenciaEmpleadoController::class, 'justificarAusencia'])->name('empleado.asistencias.justificar');
+
+        // Rutas para empleados
+        Route::get('/empleado/vacaciones', [VacacionEmpleadoController::class, 'index'])->name('empleado.vacaciones.index');
+        Route::get('/empleado/vacaciones/create', [VacacionEmpleadoController::class, 'create'])->name('empleado.vacaciones.create');
+        Route::post('/empleado/vacaciones', [VacacionEmpleadoController::class, 'store'])->name('empleado.vacaciones.store');
+        Route::get('/empleado/vacaciones/{vacacion}', [VacacionEmpleadoController::class, 'show'])->name('empleado.vacaciones.show');
+
+        // Historial Laboral
+        Route::get('/empleado/historial', [HistorialController::class, 'index'])->name('empleado.historial.index');
+        Route::get('/empleado/historial/{historial}', [HistorialController::class, 'show'])->name('empleado.historial.show');
+
+        // Redirección por defecto
+        Route::get('/empleado', function () {
+            return redirect()->route('dashboard');
+        });
+    });
 });
 
+Route::fallback(function () {
+    if (auth()->check()) {
+        // Si está autenticado, redirigir al dashboard
+        return redirect()->route('dashboard');
+    }
+
+    // Si no está autenticado, redirigir al login
+    return redirect('/login');
+});

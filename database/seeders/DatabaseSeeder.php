@@ -15,9 +15,27 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->withPersonalTeam()->create();
 
-        User::factory()->withPersonalTeam()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        $this->call([
+            //RolesYPermisosSeeder::class,
+            AfpPermissionSeeder::class,
+            CajaCordePermissionSeeder::class,
+            CedulaIdentidadPermissionSeeder::class,
+            CenviPermissionSeeder::class,
+            CertNacimientoPermissionSeeder::class,
+            CompromisoPermissionSeeder::class,
+            CroquiPermissionSeeder::class,
+            CurriculumPermissionSeeder::class,
+            DjbrentaPermissionSeeder::class,
+            ForconsanguiPermissionSeeder::class,
+            Formulario1PermissionSeeder::class,
+            Formulario2PermissionSeeder::class,
+            LicenciaConducirPermissionSeeder::class,
+            LicenciaMilitarPermissionSeeder::class,
+            MenuSeeder::class,
+            PermisosPasivosDosSeeder::class,
+            PermisosPlanillasSeeder::class,
+            PermisosUsuariosSeeder::class,
+            PermissionSeeder::class,
         ]);
     }
 }
