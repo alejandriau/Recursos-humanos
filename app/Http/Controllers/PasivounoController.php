@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Pasivouno;
+use App\Exports\PasivoUnoExport;
+use Maatwebsite\Excel\Facades\Excel;
+use PDF;
 
 class PasivounoController extends Controller
 {
@@ -64,4 +67,57 @@ class PasivounoController extends Controller
                 $registro->delete();
                 return response()->json(['message' => 'Eliminado con éxito']);
             }
+
+    //exportables
+    public function exportPdf($letra = null)
+    {
+        if ($letra) {
+            // Exportar PDF para una letra específica
+            return $this->exportPdfPorLetra($letra);
+        }
+
+        // Mostrar vista de selección de letras
+        $letras = PasivoUno::where('estado', 1)
+            ->whereRaw('LENGTH(TRIM(nombrecompleto)) > 0')
+            ->get()
+            ->groupBy(function($item) {
+                return strtoupper(substr(trim($item->nombrecompleto), 0, 1));
+            })
+            ->keys()
+            ->sort()
+            ->toArray();
+
+        return view('reportes.seleccion-letra', [
+            'letras' => $letras,
+            'titulo' => 'PASIVO UNO - EX CORDECO',
+            'rutaBase' => 'reportes.pasivouno.pdf.letra'
+        ]);
+    }
+
+    public function exportPdfPorLetra($letra)
+    {
+        $datos = PasivoUno::where('estado', 1)
+            ->whereRaw('UPPER(SUBSTRING(TRIM(nombrecompleto), 1, 1)) = ?', [strtoupper($letra)])
+            ->orderBy('nombrecompleto')
+            ->get();
+
+        $pdf = PDF::loadView('reportes.exports.pasivouno-pdf-letra', [
+            'datos' => $datos,
+            'letra' => strtoupper($letra),
+            'titulo' => 'PASIVO UNO - EX CORDECO - LETRA ' . strtoupper($letra)
+        ]);
+
+        //return  view('reportes.exports.pasivouno-pdf-letra', [
+        //    'datos' => $datos,
+        //    'letra' => strtoupper($letra),
+        //    'titulo' => 'PASIVO UNO - EX CORDECO - LETRA ' . strtoupper($letra)
+        //]);
+
+        return $pdf->download("pasivo_uno_letra_{$letra}_".date('Y-m-d').'.pdf');
+    }
+
+    public function exportExcel()
+    {
+        return Excel::download(new PasivoUnoExport, 'reporte_pasivo_uno_'.date('Y-m-d').'.xlsx');
+    }
 }

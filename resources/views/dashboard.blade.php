@@ -244,10 +244,6 @@
 
                     {{-- MENSAJES --}}
                     <div class="nav-item dropdown">
-                        <a href="#" class="nav-item nav-link dropdown-toggle text-light" data-bs-toggle="dropdown">
-                            <i class="fa fa-envelope me-lg-2"></i>
-                            <span class="d-none d-lg-inline-flex">Mensajes</span>
-                        </a>
                         <div class="dropdown-menu dropdown-menu-end border-0 shadow-lg m-0"
                             style="background-color: #2b2b2b;">
                             <a href="#" class="dropdown-item text-white">
@@ -267,9 +263,9 @@
 
                     {{-- NOTIFICACIONES --}}
                     <div class="nav-item dropdown">
-                        <a href="#" class="nav-link dropdown-toggle text-light" data-bs-toggle="dropdown">
+                        <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
                             <i class="fa fa-bell me-lg-2"></i>
-                            <span class="d-none d-lg-inline-flex">Notificaciones</span>
+                            <span class="d-none d-lg-inline-flex text-white">Notificaciones</span>
                         </a>
                         <div class="dropdown-menu dropdown-menu-end border-0 shadow-lg m-0"
                             style="background-color: #2b2b2b;">

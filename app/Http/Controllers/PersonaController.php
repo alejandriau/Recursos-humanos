@@ -10,6 +10,7 @@ use App\Models\Puesto;
 use App\Models\historial;
 use App\Models\UnidadOrganizacional;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
 
 
@@ -43,53 +44,6 @@ class PersonaController extends Controller
         return view('admin.personas.form', ['persona' => new Persona()]);
     }
 
-    public function store(Request $request)
-    {
-        $data = $request->validate([
-            'ci' => 'required|string|max:45|unique:persona,ci',
-            'nombre' => 'required|string|max:100',
-            'apellidoPat' => 'nullable|string|max:70',
-            'apellidoMat' => 'nullable|string|max:70',
-            'fechaIngreso' => 'nullable|date',
-            'fechaNacimiento' => 'nullable|date',
-            'sexo' => 'required|string|max:45',
-            'telefono' => 'nullable|numeric',
-            'observaciones' => 'nullable|string',
-            'foto' => 'nullable|image|max:2048',
-            'tipo' => 'nullable|string|max:100',
-            'archivo' => 'nullable|string|max:2048'
-        ]);
-
-        if ($request->hasFile('foto')) {
-            $ci = $request->input('ci');
-            $extension = $request->file('foto')->extension();
-            $filename = $ci . '.' . $extension;
-
-            $path = $request->file('foto')->storeAs('perfiles', $filename, 'public');
-            $data['foto'] = 'perfiles/' . $filename;
-        }
-
-        // Crear la persona
-        $persona = Persona::create($data);
-
-        // Nombre carpeta personalizada
-        $nombre = Str::slug($persona->nombre);
-        $apellidoMat = Str::slug($persona->apellidoMat ?? 'SinApellido');
-        $fecha = now()->format('Y-m-d');
-
-        $nombreCarpeta = "{$persona->id}_{$nombre}_{$apellidoMat}_{$fecha}";
-        $ruta = "archivos/{$nombreCarpeta}";
-
-        // Crear carpeta en storage/app/archivos/...
-        Storage::disk('local')->makeDirectory($ruta);
-
-        // Guardar la ruta relativa en el campo archivo
-        $persona->archivo = $ruta;
-        $persona->save();
-
-
-        return redirect()->route('reportes.index')->with('success', 'Registro creado correctamente.');
-    }
 
 
     public function edit($id)
@@ -98,43 +52,234 @@ class PersonaController extends Controller
         return view('admin.personas.form', compact('persona'));
     }
 
-    public function update(Request $request, $id)
-    {
-        $persona = Persona::findOrFail($id);
+public function store(Request $request)
+{
+    // Validación personalizada para fechas
+    $validator = Validator::make($request->all(), [
+        'ci' => 'required|string|max:45|unique:persona,ci',
+        'nombre' => 'required|string|max:100',
+        'apellidoPat' => 'nullable|string|max:70',
+        'apellidoMat' => 'nullable|string|max:70',
+        'fechaIngreso' => 'nullable|date',
+        'fechaNacimiento' => 'nullable|date',
+        'sexo' => 'required|string|max:45',
+        'telefono' => 'nullable|numeric',
+        'observaciones' => 'nullable|string',
+        'foto' => 'nullable|image|max:2048',
+        'tipo' => 'nullable|string|max:100',
+        'archivo' => 'nullable|string|max:2048'
+    ]);
 
-        $data = $request->validate([
-            'ci' => 'required|string|max:45|unique:persona,ci,' . $persona->id,
-            'nombre' => 'required|string|max:100',
-            'apellidoPat' => 'nullable|string|max:70',
-            'apellidoMat' => 'nullable|string|max:70',
-            'fechaIngreso' => 'nullable|date',
-            'fechaNacimiento' => 'nullable|date',
-            'sexo' => 'required|string|max:45',
-            'telefono' => 'nullable|numeric',
-            'observaciones' => 'nullable|string',
-            'foto' => 'nullable|image|max:2048', // 👈 igual
-            'tipo' => 'nullable|string|max:100',
-            'archivo' => 'nullable|string|max:2048'
-        ]);
+    // Validaciones personalizadas para fechas
+    $validator->after(function ($validator) use ($request) {
+        $fechaNacimiento = $request->fechaNacimiento;
+        $fechaIngreso = $request->fechaIngreso;
+        $now = now();
 
-        // Si hay una nueva foto
-            if ($request->hasFile('foto')) {
-                if ($persona->foto && Storage::exists($persona->foto)) {
-                    Storage::delete($persona->foto);
-                }
+        // Validación de fecha de nacimiento
+        if ($fechaNacimiento) {
+            $fechaNac = Carbon::parse($fechaNacimiento);
+            $edad = $fechaNac->age;
 
-                $extension = $request->file('foto')->getClientOriginalExtension(); // Detecta .jpg, .png, etc.
-                $filename = $request->input('ci') . '.' . $extension;
-                $path = $request->file('foto')->storeAs('perfiles', $filename);
-                $data['foto'] = $path;
+            // No puede ser fecha futura
+            if ($fechaNac->isFuture()) {
+                $validator->errors()->add('fechaNacimiento', 'La fecha de nacimiento no puede ser futura.');
             }
 
+            // No puede ser menor a 12 años (ajustable según necesidad)
+            if ($edad < 12) {
+                $validator->errors()->add('fechaNacimiento', 'La persona debe tener al menos 12 años.');
+            }
 
-        $persona->update($data);
+            // No puede ser mayor a 120 años
+            if ($edad > 120) {
+                $validator->errors()->add('fechaNacimiento', 'La fecha de nacimiento no es válida (edad máxima 120 años).');
+            }
 
-        return redirect()->route('reportes.index')->with('success', 'Registro actualizado correctamente.');
+            // No puede ser anterior a 1900
+            if ($fechaNac->year < 1900) {
+                $validator->errors()->add('fechaNacimiento', 'La fecha de nacimiento no puede ser anterior a 1900.');
+            }
+        }
+
+        // Validación de fecha de ingreso
+        if ($fechaIngreso) {
+            $fechaIng = Carbon::parse($fechaIngreso);
+
+            // No puede ser fecha futura
+            if ($fechaIng->isFuture()) {
+                $validator->errors()->add('fechaIngreso', 'La fecha de ingreso no puede ser futura.');
+            }
+
+            // No puede ser anterior a 1980 (ajustable)
+            if ($fechaIng->year < 1980) {
+                $validator->errors()->add('fechaIngreso', 'La fecha de ingreso no puede ser anterior a 1980.');
+            }
+
+            // Si existe fecha de nacimiento, validar coherencia
+            if ($fechaNacimiento) {
+                $fechaNac = Carbon::parse($fechaNacimiento);
+                $edadAlIngresar = $fechaNac->diffInYears($fechaIng);
+
+                // No puede haber ingresado con menos de 14 años (edad laboral mínima)
+                if ($edadAlIngresar < 14) {
+                    $validator->errors()->add('fechaIngreso', 'La persona no pudo haber ingresado con menos de 14 años.');
+                }
+
+                // No puede haber ingresado con más de 80 años
+                if ($edadAlIngresar > 80) {
+                    $validator->errors()->add('fechaIngreso', 'La edad al ingresar no es válida.');
+                }
+            }
+        }
+    });
+
+    if ($validator->fails()) {
+        return redirect()->back()
+                    ->withErrors($validator)
+                    ->withInput();
     }
 
+    $data = $validator->validated();
+
+    if ($request->hasFile('foto')) {
+        $ci = $request->input('ci');
+        $extension = $request->file('foto')->extension();
+        $filename = $ci . '.' . $extension;
+
+        $path = $request->file('foto')->storeAs('perfiles', $filename, 'public');
+        $data['foto'] = 'perfiles/' . $filename;
+    }
+
+    // Crear la persona
+    $persona = Persona::create($data);
+
+    // Nombre carpeta personalizada
+    $nombre = Str::slug($persona->nombre);
+    $apellidoMat = Str::slug($persona->apellidoMat ?? 'SinApellido');
+    $fecha = now()->format('Y-m-d');
+
+    $nombreCarpeta = "{$persona->id}_{$nombre}_{$apellidoMat}_{$fecha}";
+    $ruta = "archivos/{$nombreCarpeta}";
+
+    // Crear carpeta en storage/app/archivos/...
+    Storage::disk('local')->makeDirectory($ruta);
+
+    // Guardar la ruta relativa en el campo archivo
+    $persona->archivo = $ruta;
+    $persona->save();
+
+    return redirect()->route('reportes.index')->with('success', 'Registro creado correctamente.');
+}
+
+public function update(Request $request, $id)
+{
+    $persona = Persona::findOrFail($id);
+
+    // Validación personalizada para fechas
+    $validator = Validator::make($request->all(), [
+        'ci' => 'required|string|max:45|unique:persona,ci,' . $persona->id,
+        'nombre' => 'required|string|max:100',
+        'apellidoPat' => 'nullable|string|max:70',
+        'apellidoMat' => 'nullable|string|max:70',
+        'fechaIngreso' => 'nullable|date',
+        'fechaNacimiento' => 'nullable|date',
+        'sexo' => 'required|string|max:45',
+        'telefono' => 'nullable|numeric',
+        'observaciones' => 'nullable|string',
+        'foto' => 'nullable|image|max:2048',
+        'tipo' => 'nullable|string|max:100',
+        'archivo' => 'nullable|string|max:2048'
+    ]);
+
+    // Validaciones personalizadas para fechas
+    $validator->after(function ($validator) use ($request, $persona) {
+        $fechaNacimiento = $request->fechaNacimiento ?? $persona->fechaNacimiento;
+        $fechaIngreso = $request->fechaIngreso ?? $persona->fechaIngreso;
+        $now = now();
+
+        // Validación de fecha de nacimiento
+        if ($fechaNacimiento) {
+            $fechaNac = Carbon::parse($fechaNacimiento);
+            $edad = $fechaNac->age;
+
+            // No puede ser fecha futura
+            if ($fechaNac->isFuture()) {
+                $validator->errors()->add('fechaNacimiento', 'La fecha de nacimiento no puede ser futura.');
+            }
+
+            // No puede ser menor a 12 años (ajustable según necesidad)
+            if ($edad < 12) {
+                $validator->errors()->add('fechaNacimiento', 'La persona debe tener al menos 12 años.');
+            }
+
+            // No puede ser mayor a 120 años
+            if ($edad > 120) {
+                $validator->errors()->add('fechaNacimiento', 'La fecha de nacimiento no es válida (edad máxima 120 años).');
+            }
+
+            // No puede ser anterior a 1900
+            if ($fechaNac->year < 1900) {
+                $validator->errors()->add('fechaNacimiento', 'La fecha de nacimiento no puede ser anterior a 1900.');
+            }
+        }
+
+        // Validación de fecha de ingreso
+        if ($fechaIngreso) {
+            $fechaIng = Carbon::parse($fechaIngreso);
+
+            // No puede ser fecha futura
+            if ($fechaIng->isFuture()) {
+                $validator->errors()->add('fechaIngreso', 'La fecha de ingreso no puede ser futura.');
+            }
+
+            // No puede ser anterior a 1980 (ajustable)
+            if ($fechaIng->year < 1980) {
+                $validator->errors()->add('fechaIngreso', 'La fecha de ingreso no puede ser anterior a 1980.');
+            }
+
+            // Si existe fecha de nacimiento, validar coherencia
+            if ($fechaNacimiento) {
+                $fechaNac = Carbon::parse($fechaNacimiento);
+                $edadAlIngresar = $fechaNac->diffInYears($fechaIng);
+
+                // No puede haber ingresado con menos de 14 años (edad laboral mínima)
+                if ($edadAlIngresar < 14) {
+                    $validator->errors()->add('fechaIngreso', 'La persona no pudo haber ingresado con menos de 14 años.');
+                }
+
+                // No puede haber ingresado con más de 80 años
+                if ($edadAlIngresar > 80) {
+                    $validator->errors()->add('fechaIngreso', 'La edad al ingresar no es válida.');
+                }
+            }
+        }
+    });
+
+    if ($validator->fails()) {
+        return redirect()->back()
+                    ->withErrors($validator)
+                    ->withInput();
+    }
+
+    $data = $validator->validated();
+
+    // Si hay una nueva foto
+    if ($request->hasFile('foto')) {
+        if ($persona->foto && Storage::exists($persona->foto)) {
+            Storage::delete($persona->foto);
+        }
+
+        $extension = $request->file('foto')->getClientOriginalExtension();
+        $filename = $request->input('ci') . '.' . $extension;
+        $path = $request->file('foto')->storeAs('perfiles', $filename);
+        $data['foto'] = $path;
+    }
+
+    $persona->update($data);
+
+    return redirect()->route('reportes.index')->with('success', 'Registro actualizado correctamente.');
+}
 public function mostrarFoto($id)
 {
     $persona = Persona::findOrFail($id);

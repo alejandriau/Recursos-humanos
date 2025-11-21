@@ -816,6 +816,7 @@ INSERT INTO `puestos`(denominacion, nivelJerarquico, item, haber, nivel,idUnidad
 ('Secretaria – Asistente de la SDMHyE ','APOYO ADMINISTRATIVO I ','290',3100,19,18,1,'2025-05-22 19:13:18','2025-05-22 19:13:18'),
 ('Chofer - Mensajero de la SDMHyE ','APOYO ADMINISTRATIVO I ','291',3100,19,18,1,'2025-05-22 19:13:18','2025-05-22 19:13:18'),
 
+
 ('Responsable del Área de Hidrocarburos y Energías ','PROFESIONAL I','292',6000,9,156,1,'2025-05-22 19:13:18','2025-05-22 19:13:18'),
 ('Técnica en Energías e Hidrocarburos ','PROFESIONAL II','293',4622,11,156,1,'2025-05-22 19:13:18','2025-05-22 19:13:18'),
 
@@ -832,7 +833,7 @@ INSERT INTO `puestos`(denominacion, nivelJerarquico, item, haber, nivel,idUnidad
 ('Técnico III de Control y Fiscalización de la Regalía Minera ','ADMINISTRATIVO II ','303',3347,17,106,1,'2025-05-22 19:13:18','2025-05-22 19:13:18'),
 ('Técnica (o) IV de Control y Fiscalización de la Regalía Minera ','ADMINISTRATIVO II ','304',3347,17,106,1,'2025-05-22 19:13:18','2025-05-22 19:13:18'),
 ('Técnica (o) de Manejo y Sistematización del Formulario 101 ','ADMINISTRATIVO II ','305',3347,17,106,1,'2025-05-22 19:13:18','2025-05-22 19:13:18'),
-
+--secretaria departala de mijnieria 
 
 ('Secretaria Departamental de Medio Ambiente y Recursos Hídricos. ','SECRETARIA (O) DEPARTAMENTAL','306',10577,3,19,1,'2025-05-22 19:13:18','2025-05-22 19:13:18'),
 ('Administradora (or) - Coordinadora (or) de la SDMAyRH. ','PROFESIONAL I','307',6000,9,19,1,'2025-05-22 19:13:18','2025-05-22 19:13:18'),

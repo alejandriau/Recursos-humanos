@@ -31,7 +31,6 @@ class Persona extends Model
         'observaciones',
         'estado',
         'foto',
-        'tipo',
         'archivo',
         'user_id',
         'fechaRegistro',

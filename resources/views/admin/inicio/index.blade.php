@@ -6,423 +6,162 @@
 @endsection
 
 @section('contenido')
-    <style>        :root {
+    <style>
+        :root {
             --primary-color: #4361ee;
             --secondary-color: #3a0ca3;
             --accent-color: #4cc9f0;
             --light-bg: #f8f9fa;
-            --card-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-            --transition: all 0.3s ease;
-        }
-
-        body {
-            background-color: var(--light-bg);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            padding-bottom: 2rem;
         }
 
         .dashboard-header {
             background: linear-gradient(120deg, var(--primary-color), var(--secondary-color));
             color: white;
-            padding: 2rem 0;
-            margin-bottom: 2rem;
+            padding: 1.5rem 0;
+            margin-bottom: 1.5rem;
             border-radius: 0 0 1rem 1rem;
-        }
-
-        .dashboard-card {
-            border: none;
-            border-radius: 0.8rem;
-            box-shadow: var(--card-shadow);
-            transition: var(--transition);
-            height: 100%;
-        }
-
-        .dashboard-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 20px rgba(0, 0, 0, 0.15);
-        }
-
-        .card-icon {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 60px;
-            height: 60px;
-            border-radius: 12px;
-            background: linear-gradient(45deg, var(--primary-color), var(--accent-color));
-            margin-bottom: 1rem;
-        }
-
-        .card-icon i {
-            font-size: 1.8rem;
-            color: white;
-        }
-
-        .card-title {
-            font-weight: 600;
-            color: var(--secondary-color);
-        }
-
-        .card-text {
-            color: #6c757d;
-            min-height: 48px;
-        }
-
-        .btn-dashboard {
-            background-color: var(--primary-color);
-            border: none;
-            color: white;
-            padding: 0.5rem 1.5rem;
-            border-radius: 0.5rem;
-            transition: var(--transition);
-        }
-
-        .btn-dashboard:hover {
-            background-color: var(--secondary-color);
-            transform: translateY(-2px);
         }
 
         .section-title {
             color: var(--secondary-color);
             font-weight: 700;
-            margin-bottom: 1.5rem;
-            padding-bottom: 0.5rem;
-            border-bottom: 2px solid var(--accent-color);
+            margin-bottom: 1rem;
+            font-size: 1.25rem;
+        }
+
+        .link-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .link-card {
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            padding: 1rem;
+            transition: all 0.3s ease;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .link-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+            text-decoration: none;
+        }
+
+        .link-content {
+            display: flex;
+            align-items: center;
+            color: #333;
+        }
+
+        .link-icon {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(45deg, var(--primary-color), var(--accent-color));
+            border-radius: 8px;
+            margin-right: 1rem;
+            color: white;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+
+        .link-text {
+            flex: 1;
+        }
+
+        .link-title {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+            color: var(--secondary-color);
+        }
+
+        .link-desc {
+            font-size: 0.85rem;
+            color: #666;
+            margin: 0;
         }
 
         @media (max-width: 768px) {
-            .dashboard-header h1 {
-                font-size: 1.8rem;
+            .link-grid {
+                grid-template-columns: 1fr;
             }
-        }</style>
-            <!-- Header del Dashboard -->
-<header class="dashboard-header text-center py-5 bg-light border-bottom shadow-sm">
-    <div class="container">
-        <h1 class="display-6 fw-bold text-primary mb-3">
-            Gestión de Personas y Documentación
-        </h1>
-        <p class="text-white fs-5">
-            Visualice, registre y administre la información personal y los documentos en un solo lugar.
-        </p>
-    </div>
-</header>
 
-        <main class="container">
-        <!-- Sección de Gestión de Personal -->
-        <h2 class="section-title">Documentación de Incorporación</h2>
-        <div class="row g-4 mb-5">
-            <!-- DJBRentas -->
-            <div class="col-xl-3 col-lg-4 col-md-6">
-                <div class="card dashboard-card">
-                    <div class="card-body text-center p-4">
-                        <div class="card-icon mx-auto">
-                            <i class="fa fa-file-signature me-2"></i>
-                        </div>
-                        <h5 class="card-title">DJBRentas</h5>
-                        <p class="card-text">Ver y generar DJBRentas.</p>
-                        <a href="{{route('djbrentas.index')}}" class="btn btn-dashboard">Ver más</a>
-                    </div>
-                </div>
-            </div>
-            <!-- Afps -->
-            <div class="col-xl-3 col-lg-4 col-md-6">
-                <div class="card dashboard-card">
-                    <div class="card-body text-center p-4">
-                        <div class="card-icon mx-auto">
-                            <i class="fa fa-users me-2"></i>
-                        </div>
-                        <h5 class="card-title">Afps</h5>
-                        <p class="card-text">Ver y generar Afps.</p>
-                        <a href="{{route('afps.index')}}" class="btn btn-dashboard">Ver más</a>
-                    </div>
-                </div>
-            </div>
-            <!-- Caja Cordes -->
-            <div class="col-xl-3 col-lg-4 col-md-6">
-                <div class="card dashboard-card">
-                    <div class="card-body text-center p-4">
-                        <div class="card-icon mx-auto">
-                            <i class="fa fa-hospital-o me-2"></i>
-                        </div>
-                        <h5 class="card-title">Caja Cordes</h5>
-                        <p class="card-text">Ver y generar Caja Cordes.</p>
-                        <a href="{{route('cajacordes.index')}}" class="btn btn-dashboard">Ver más</a>
-                    </div>
-                </div>
-            </div>
-            <!-- Cenvi -->
-            <div class="col-xl-3 col-lg-4 col-md-6">
-                <div class="card dashboard-card">
-                    <div class="card-body text-center p-4">
-                        <div class="card-icon mx-auto">
-                            <i class="fa fa-ban me-2"></i>
-                        </div>
-                        <h5 class="card-title">Cenvi</h5>
-                        <p class="card-text">Ver y generar Certificado de no violencia.</p>
-                        <a href="{{route('cenvis.index')}}" class="btn btn-dashboard">Ver más</a>
-                    </div>
-                </div>
-            </div>
-            <!-- Formulario 1 -->
-            <div class="col-xl-3 col-lg-4 col-md-6">
-                <div class="card dashboard-card">
-                    <div class="card-body text-center p-4">
-                        <div class="card-icon mx-auto">
-                            <i class="fa fa-clipboard me-2"></i>
-                        </div>
-                        <h5 class="card-title">formulario 1</h5>
-                        <p class="card-text">Curriculum vitae</p>
-                        <a href="{{route('formularios1.index')}}" class="btn btn-dashboard">Ver más</a>
-                    </div>
-                </div>
-            </div>
-            <!-- formulario 2 -->
-            <div class="col-xl-3 col-lg-4 col-md-6">
-                <div class="card dashboard-card">
-                    <div class="card-body text-center p-4">
-                        <div class="card-icon mx-auto">
-                            <i class="fa fa-clipboard me-2"></i>
-                        </div>
-                        <h5 class="card-title">formulario 2</h5>
-                        <p class="card-text">Inventario de personal</p>
-                        <a href="{{route('formularios2.index')}}" class="btn btn-dashboard">Ver más</a>
-                    </div>
-                </div>
-            </div>
-            <!-- Consanguinidad -->
-            <div class="col-xl-3 col-lg-4 col-md-6">
-                <div class="card dashboard-card">
-                    <div class="card-body text-center p-4">
-                        <div class="card-icon mx-auto">
-                            <i class="fa fa-code-branch me-2"></i>
-                        </div>
-                        <h5 class="card-title">Consanguinidad</h5>
-                        <p class="card-text">Declaración consanguinidad</p>
-                        <a href="{{route('consanguinidades.index')}}" class="btn btn-dashboard">Ver más</a>
-                    </div>
-                </div>
-            </div>
-            <!-- Compromisos -->
-            <div class="col-xl-3 col-lg-4 col-md-6">
-                <div class="card dashboard-card">
-                    <div class="card-body text-center p-4">
-                        <div class="card-icon mx-auto">
-                            <i class="fa fa-handshake-o me-2"></i>
-                        </div>
-                        <h5 class="card-title">Compromisos</h5>
-                        <p class="card-text">Compromisos adquiridos</p>
-                        <a href="{{route('compromisos.index')}}" class="btn btn-dashboard">Ver más</a>
-                    </div>
-                </div>
-            </div>
-            <!-- Croquis -->
-            <div class="col-xl-3 col-lg-4 col-md-6">
-                <div class="card dashboard-card">
-                    <div class="card-body text-center p-4">
-                        <div class="card-icon mx-auto">
-                            <i class="fa fa-lightbulb-o me-2"></i>
-                        </div>
-                        <h5 class="card-title">Croquis</h5>
-                        <p class="card-text">Croquis o direccion</p>
-                        <a href="{{route('croquis.index')}}" class="btn btn-dashboard">Ver más</a>
-                    </div>
-                </div>
-            </div>
-            <!-- cedula identidad -->
-            <div class="col-xl-3 col-lg-4 col-md-6">
-                <div class="card dashboard-card">
-                    <div class="card-body text-center p-4">
-                        <div class="card-icon mx-auto">
-                            <i class="fa fa-id-card me-2"></i>
-                        </div>
-                        <h5 class="card-title">Carnet de Identidad</h5>
-                        <p class="card-text">Carnet de Identidad</p>
-                        <a href="{{route('cedulas.index')}}" class="btn btn-dashboard">Ver más</a>
-                    </div>
-                </div>
-            </div>
-            <!-- Certificado de Nacimiento -->
-            <div class="col-xl-3 col-lg-4 col-md-6">
-                <div class="card dashboard-card">
-                    <div class="card-body text-center p-4">
-                        <div class="card-icon mx-auto">
-                            <i class="fa fa-child me-2"></i>
-                        </div>
-                        <h5 class="card-title">Certificado de Nacimiento</h5>
-                        <p class="card-text">Certificado de Nacimiento</p>
-                        <a href="{{route('certificados-nacimiento.index')}}" class="btn btn-dashboard">Ver más</a>
-                    </div>
-                </div>
-            </div>
-            <!-- licencia militar -->
-            <div class="col-xl-3 col-lg-4 col-md-6">
-                <div class="card dashboard-card">
-                    <div class="card-body text-center p-4">
-                        <div class="card-icon mx-auto">
-                            <i class="fa fa-shield me-2"></i>
-                        </div>
-                        <h5 class="card-title">Licencia Militar</h5>
-                        <p class="card-text">Licencia Militar</p>
-                        <a href="{{route('licencias-militares.index')}}" class="btn btn-dashboard">Ver más</a>
-                    </div>
-                </div>
-            </div>
-            <!-- licencia conducir -->
-            <div class="col-xl-3 col-lg-4 col-md-6">
-                <div class="card dashboard-card">
-                    <div class="card-body text-center p-4">
-                        <div class="card-icon mx-auto">
-                            <i class="fa fa-id-card-o me-2"></i>
-                        </div>
-                        <h5 class="card-title">Licencia de Conducir</h5>
-                        <p class="card-text">Licencia de Conducir</p>
-                        <a href="{{route('licencias-conducir.index')}}" class="btn btn-dashboard">Ver más</a>
-                    </div>
-                </div>
-            </div>
+            .dashboard-header h1 {
+                font-size: 1.5rem;
+            }
 
+            .dashboard-header p {
+                font-size: 1rem;
+            }
+        }
+    </style>
 
-
-
-
-        <!-- Sección de Documentación -->
-        <h2 class="section-title">Documentación perfil</h2>
-        <div class="row g-4 mb-5">
-            <!-- currículum -->
-            <div class="col-xl-3 col-lg-4 col-md-6">
-                <div class="card dashboard-card">
-                    <div class="card-body text-center p-4">
-                        <div class="card-icon mx-auto">
-                            <i class="bi bi-journal-text"></i>
-                        </div>
-                        <h5 class="card-title">Currículum</h5>
-                        <p class="card-text">Ver y generar currículums hoja de vida.</p>
-                        <a href="{{route('curriculums.index')}}" class="btn btn-dashboard">Ver más</a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- títulos bachiller -->
-            <div class="col-xl-3 col-lg-4 col-md-6">
-                <div class="card dashboard-card">
-                    <div class="card-body text-center p-4">
-                        <div class="card-icon mx-auto">
-                            <i class="bi bi-shield-check"></i>
-                        </div>
-                        <h5 class="card-title">Títulos de Bachiller</h5>
-                        <p class="card-text">Ver títulos de bachiller.</p>
-                        <a href="{{route('bachilleres.index')}}" class="btn btn-dashboard">Ver más</a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Profesiones -->
-            <div class="col-xl-3 col-lg-4 col-md-6">
-                <div class="card dashboard-card">
-                    <div class="card-body text-center p-4">
-                        <div class="card-icon mx-auto">
-                            <i class="fa fa-certificate me-2"></i>
-                        </div>
-                        <h5 class="card-title">Profesiones</h5>
-                        <p class="card-text">Ver y administrar las profesiones registradas.</p>
-                        <a href="{{route('profesion.index')}}" class="btn btn-dashboard">Ver más</a>
-                    </div>
-                </div>
-            </div>
-            <!-- Certificados -->
-            <div class="col-xl-3 col-lg-4 col-md-6">
-                <div class="card dashboard-card">
-                    <div class="card-body text-center p-4">
-                        <div class="card-icon mx-auto">
-                            <i class="bi bi-award"></i>
-                        </div>
-                        <h5 class="card-title">Certificados</h5>
-                        <p class="card-text">Listado y gestión de certificados.</p>
-                        <a href="{{route('certificados.index')}}" class="btn btn-dashboard">Ver más</a>
-                    </div>
-                </div>
-            </div>
-            <!-- CAS -->
-            <div class="col-xl-3 col-lg-4 col-md-6">
-                <div class="card dashboard-card">
-                    <div class="card-body text-center p-4">
-                        <div class="card-icon mx-auto">
-                            <i class="bi bi-file-earmark-text"></i>
-                        </div>
-                        <h5 class="card-title">CAS</h5>
-                        <p class="card-text">Contratos Administrativos de Servicios.</p>
-                        <a href="{{route('cas.index')}}" class="btn btn-dashboard">Ver más</a>
-                    </div>
-                </div>
-            </div>
-
-
-        <!-- Sección de Gestión Adicional -->
-        <h2 class="section-title">Documentación de generados en la institución</h2>
-        <div class="row g-4">
-            <!-- Caja Cordes -->
-            <div class="col-xl-3 col-lg-4 col-md-6">
-                <div class="card dashboard-card">
-                    <div class="card-body text-center p-4">
-                        <div class="card-icon mx-auto">
-                            <i class="bi bi-safe"></i>
-                        </div>
-                        <h5 class="card-title">memorandums</h5>
-                        <p class="card-text">Ver memorandums.</p>
-                        <a href="{{route('cajacordes.index')}}" class="btn btn-dashboard">Ver más</a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Cas
-            <div class="col-xl-3 col-lg-4 col-md-6">
-                <div class="card dashboard-card">
-                    <div class="card-body text-center p-4">
-                        <div class="card-icon mx-auto">
-                            <i class="bi bi-handshake"></i>
-                        </div>
-                        <h5 class="card-title">Cas</h5>
-                        <p class="card-text">Ver Cas.</p>
-                        <a href="{{route('cas.index')}}" class="btn btn-dashboard">Ver más</a>
-                    </div>
-                </div>
-            </div> -->
-
+    <!-- Header compacto -->
+    <header class="dashboard-header">
+        <div class="container">
+            <h1 class="h3 fw-bold mb-2">Gestión de Personas y Documentación</h1>
+            <p class="mb-0 opacity-90">Administre información personal y documentos en un solo lugar</p>
         </div>
-        <!-- Sección de Gestión Adicional -->
-        <h2 class="section-title">Documentos de desvinculación</h2>
-        <div class="row g-4">
-            <!-- Caja Cordes -->
-            <div class="col-xl-3 col-lg-4 col-md-6">
-                <div class="card dashboard-card">
-                    <div class="card-body text-center p-4">
-                        <div class="card-icon mx-auto">
-                            <i class="bi bi-safe"></i>
-                        </div>
-                        <h5 class="card-title">renuncias y agradecimientos</h5>
-                        <p class="card-text">Ver renuncias y agradecimientos.</p>
-                        <a href="{{route('cajacordes.index')}}" class="btn btn-dashboard">Ver más</a>
-                    </div>
-                </div>
-            </div>
+    </header>
 
-            <!-- Cas -->
-            <div class="col-xl-3 col-lg-4 col-md-6">
-                <div class="card dashboard-card">
-                    <div class="card-body text-center p-4">
-                        <div class="card-icon mx-auto">
-                            <i class="bi bi-handshake"></i>
-                        </div>
-                        <h5 class="card-title">Solvencia</h5>
-                        <p class="card-text">Ver Solvencias.</p>
-                        <a href="{{route('cas.index')}}" class="btn btn-dashboard">Ver más</a>
-                    </div>
-                </div>
-            </div>
+    <main class="container">
+        @php
+            $sections = [
+                'Documentación de Incorporación' => [
+                    ['route' => 'djbrentas.index', 'icon' => 'fa-file-signature', 'text' => 'DJBRentas', 'desc' => 'Ver y generar DJBRentas'],
+                    ['route' => 'afps.index', 'icon' => 'fa-users', 'text' => 'Afps', 'desc' => 'Ver y generar Afps'],
+                    ['route' => 'cajacordes.index', 'icon' => 'fa-hospital-o', 'text' => 'Caja Cordes', 'desc' => 'Ver y generar Caja Cordes'],
+                    ['route' => 'cenvis.index', 'icon' => 'fa-ban', 'text' => 'Cenvi', 'desc' => 'Certificado de no violencia'],
+                    ['route' => 'formularios1.index', 'icon' => 'fa-clipboard', 'text' => 'Formulario 1', 'desc' => 'Curriculum vitae'],
+                    ['route' => 'formularios2.index', 'icon' => 'fa-clipboard', 'text' => 'Formulario 2', 'desc' => 'Inventario de personal'],
+                    ['route' => 'consanguinidades.index', 'icon' => 'fa-code-branch', 'text' => 'Consanguinidad', 'desc' => 'Declaración consanguinidad'],
+                    ['route' => 'compromisos.index', 'icon' => 'fa-handshake-o', 'text' => 'Compromisos', 'desc' => 'Compromisos adquiridos'],
+                    ['route' => 'croquis.index', 'icon' => 'fa-lightbulb-o', 'text' => 'Croquis', 'desc' => 'Croquis o dirección'],
+                    ['route' => 'cedulas.index', 'icon' => 'fa-id-card', 'text' => 'Carnet de Identidad', 'desc' => 'Carnet de Identidad'],
+                    ['route' => 'certificados-nacimiento.index', 'icon' => 'fa-child', 'text' => 'Certificado de Nacimiento', 'desc' => 'Certificado de Nacimiento'],
+                    ['route' => 'licencias-militares.index', 'icon' => 'fa-shield', 'text' => 'Licencia Militar', 'desc' => 'Licencia Militar'],
+                    ['route' => 'licencias-conducir.index', 'icon' => 'fa-id-card-o', 'text' => 'Licencia de Conducir', 'desc' => 'Licencia de Conducir'],
+                ],
+                'Documentación Perfil' => [
+                    ['route' => 'curriculums.index', 'icon' => 'bi-journal-text', 'text' => 'Currículum', 'desc' => 'Ver y generar currículums'],
+                    ['route' => 'bachilleres.index', 'icon' => 'bi-shield-check', 'text' => 'Títulos de Bachiller', 'desc' => 'Ver títulos de bachiller'],
+                    ['route' => 'profesion.index', 'icon' => 'fa-certificate', 'text' => 'Profesiones', 'desc' => 'Administrar profesiones'],
+                    ['route' => 'certificados.index', 'icon' => 'bi-award', 'text' => 'Certificados', 'desc' => 'Gestión de certificados'],
+                    ['route' => 'cas.index', 'icon' => 'bi-file-earmark-text', 'text' => 'CAS', 'desc' => 'Contratos Administrativos'],
+                ],
+                'Documentación Institucional' => [
+                    ['route' => 'cajacordes.index', 'icon' => 'bi-safe', 'text' => 'Memorandums', 'desc' => 'Ver memorandums institucionales'],
+                ],
+                'Documentos de Desvinculación' => [
+                    ['route' => 'cajacordes.index', 'icon' => 'bi-safe', 'text' => 'Renuncias y Agradecimientos', 'desc' => 'Ver renuncias y agradecimientos'],
+                    ['route' => 'cas.index', 'icon' => 'bi-handshake', 'text' => 'Solvencia', 'desc' => 'Ver solvencias'],
+                ]
+            ];
+        @endphp
 
-        </div>
+        @foreach($sections as $title => $links)
+            <h2 class="section-title">{{ $title }}</h2>
+            <div class="link-grid">
+                @foreach($links as $link)
+                    <a href="{{ route($link['route']) }}" class="link-card">
+                        <div class="link-content">
+                            <div class="link-icon">
+                                <i class="fa {{ $link['icon'] }}"></i>
+                            </div>
+                            <div class="link-text">
+                                <div class="link-title">{{ $link['text'] }}</div>
+                                <p class="link-desc">{{ $link['desc'] }}</p>
+                            </div>
+                        </div>
+                    </a>
+                @endforeach
+            </div>
+        @endforeach
     </main>
 @endsection
-
-
-

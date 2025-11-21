@@ -257,4 +257,49 @@ public function reportepasivos(Request $request)
 
         return view('admin.pasivos.pasivosdos.ultimo', compact('pasivos'));
     }
+
+    //exportables
+    public function exportPdf($letra = null)
+    {
+        if ($letra) {
+            // Exportar PDF para una letra específica
+            return $this->exportPdfPorLetra($letra);
+        }
+
+        // Mostrar vista de selección de letras
+        $letras = PasivoDos::where('estado', 1)
+            ->whereNotNull('letra')
+            ->where('letra', '!=', '')
+            ->distinct()
+            ->orderBy('letra')
+            ->pluck('letra')
+            ->toArray();
+
+        return view('reportes.seleccion-letra', [
+            'letras' => $letras,
+            'titulo' => 'PASIVO DOS - GADC',
+            'rutaBase' => 'reportes.pasivodos.pdf.letra'
+        ]);
+    }
+
+    public function exportPdfPorLetra($letra)
+    {
+        $datos = PasivoDos::where('estado', 1)
+            ->where('letra', strtoupper($letra))
+            ->orderBy('codigo')
+            ->get();
+
+        $pdf = PDF::loadView('reportes.exports.pasivodos-pdf-letra', [
+            'datos' => $datos,
+            'letra' => strtoupper($letra),
+            'titulo' => 'PASIVO DOS - GADC - LETRA ' . strtoupper($letra)
+        ]);
+
+        return $pdf->download("pasivo_dos_letra_{$letra}_".date('Y-m-d').'.pdf');
+    }
+
+    public function exportExcel()
+    {
+        return Excel::download(new PasivoDosExport, 'reporte_pasivo_dos_'.date('Y-m-d').'.xlsx');
+    }
 }

@@ -29,6 +29,11 @@
         <a href="{{ route('cas.create') }}" class="btn btn-primary btn-sm">
             <i class="fas fa-plus"></i> Nuevo CAS
         </a>
+        <a href="{{ route('configuracion-salario-minimo.index') }}" class="btn btn-primary btn-sm">
+            <i class="fas fa-cog"></i>
+            Salario mínimo
+        </a>
+
         <form action="{{ route('cas.actualizar-alertas') }}" method="POST" class="d-inline">
             @csrf
             <button type="submit" class="btn btn-warning btn-sm">

@@ -274,15 +274,17 @@ Route::post('/admin/puestos/{puesto}/reactivar', [PuestoController::class, 'reac
     Route::get('/consanguinidad/{consanguinidad}/edit', [ForconsanguiController::class, 'editFromDashboard'])->name('persona.consanguinidad.edit');
 
 
-
-
-
-
-
     //altas y bajas
     Route::get('/altasbajas', [PersonaController::class, 'index'])->name('altasbajas');
     Route::post('/altasbajas/store', [BajasaltasController::class, 'store'])->name('altasbajas.store');
     Route::get('/altasbajas/buscar', [PersonaController::class, 'buscar'])->name('altasbajas.buscar');
+
+
+    Route::get('/bajasaltas/{id}', [BajasaltasController::class, 'show'])->name('bajasaltas.show');
+
+    Route::delete('/bajasaltas/{id}', [BajasaltasController::class, 'destroy'])->name('bajasaltas.destroy');
+
+
     //index
     Route::put('/bajasaltas/{id}', [BajasaltasController::class, 'update'])->name('bajasaltas.update');
     Route::get('/altasbajas/index', [BajasaltasController::class, 'index'])->name('bajasaltas.index');
@@ -582,7 +584,21 @@ Route::post('/convert-txt-simple', [TxtToWordController::class, 'convertTxtToWor
     Route::get('/rotacion-personal', [ReporteController::class, 'rotacionPersonal'])->name('rotacion-personal');
     Route::get('/estado-documentacion', [ReporteController::class, 'estadoDocumentacion'])->name('estado-documentacion');
     Route::get('/dashboard/pdfs', [ReporteController::class, 'exportarDashboardPDF'])->name('dashboard-pdfs');
+
+    //reportes para pasivo laboral
+
+    // Pasivo Uno
+    Route::get('/pasivouno/pdf', [PasivoUnoController::class, 'exportPdf'])->name('pasivouno.pdf');
+    Route::get('/pasivouno/pdf/{letra}', [PasivoUnoController::class, 'exportPdfPorLetra'])->name('pasivouno.pdf.letra');
+    Route::get('/pasivouno/excel', [PasivoUnoController::class, 'exportExcel'])->name('pasivouno.excel');
+
+    // Pasivo Dos
+    Route::get('/pasivodos/pdf', [PasivoDosController::class, 'exportPdf'])->name('pasivodos.pdf');
+    Route::get('/pasivodos/pdf/{letra}', [PasivoDosController::class, 'exportPdfPorLetra'])->name('pasivodos.pdf.letra');
+    Route::get('/pasivodos/excel', [PasivoDosController::class, 'exportExcel'])->name('pasivodos.excel');
+
     });
+
 
 
 
@@ -620,7 +636,7 @@ Route::post('/convert-txt-simple', [TxtToWordController::class, 'convertTxtToWor
 
 
     // Historial por CAS
-    Route::get('/historial-bonos', [CasHistorialBonosController::class, 'index'])->name('historial-bonos.index');
+    Route::get('/admin/cas/historial-bonos', [CasHistorialBonosController::class, 'index'])->name('historial-bonos.index');
 
     // Historial por persona
     Route::get('/historial-bonos/persona/{idPersona}', [CasHistorialBonosController::class, 'porPersona'])->name('historial-bonos.por-persona');

@@ -19,7 +19,7 @@
                         <select class="form-select" id="idPersona" name="idPersona" required>
                             <option value="">Seleccionar Persona</option>
                             @foreach($personas as $persona)
-                                <option value="{{ $persona->id }}">{{ $persona->nombre }}</option>
+                                <option value="{{ $persona->id }}">{{ $persona->nombre }} {{ $persona->apellidoPat }} {{ $persona->apellidoMat }}</option>
                             @endforeach
                         </select>
                     </div>

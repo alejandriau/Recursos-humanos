@@ -111,7 +111,7 @@
                         <td>
                             @if($cenvi->esta_vigente)
                                 <span class="badge bg-success">
-                                    Vigente ({{ $cenvi->dias_restantes }} días)
+                                    Vigente ({{ round($cenvi->dias_restantes) }} días)
                                 </span>
                             @else
                                 <span class="badge bg-danger">Vencido</span>

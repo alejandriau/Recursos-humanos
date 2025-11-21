@@ -28,6 +28,11 @@
         .dropdown-menu {
             z-index: 1000 !important;
         }
+        .pagination-wrapper {
+            margin-top: 1rem;
+            display: flex;
+            justify-content: center;
+        }
     </style>
 @endsection
 
@@ -281,7 +286,7 @@
                                                 </li>
                                                 <li>
                                                     <button class="dropdown-item" type="button"
-                                                            onclick="abrirModalBaja({{ $puesto->historial_actual->id }}, '{{ $puesto->persona->apellidoPat }}', '{{ $puesto->persona->apellidoMat }}', '{{ $puesto->persona->nombre }}')">
+                                                            onclick="abrirModalBaja({{ $puesto->historial_actual->id }}, '{{ $puesto->persona->id }}', '{{ $puesto->persona->apellidoPat }}', '{{ $puesto->persona->apellidoMat }}', '{{ $puesto->persona->nombre }}')">
                                                         <i class="fas fa-user-times me-2"></i>Dar de Baja
                                                     </button>
                                                 </li>
@@ -318,6 +323,11 @@
                         @endforelse
                     </tbody>
                 </table>
+            </div>
+
+            <!-- PAGINACIÓN -->
+            <div class="pagination-wrapper">
+                {{ $puestos->links() }}
             </div>
         </div>
     </div>
@@ -365,6 +375,123 @@
         </div>
     </div>
 </div>
+@if (session('success'))
+<script>
+    Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'success',
+        title: '{{ session('success') }}',
+        showConfirmButton: false,
+        timer: 1000,
+        timerProgressBar: true,
+        background: '#007BFF', // azul
+        color: '#fff', // texto blanco
+        customClass: {
+            popup: 'custom-toast'
+        },
+    });
+</script>
+@endif
+
+@if (session('error'))
+<script>
+    Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'error',
+        title: '{{ session('error') }}',
+        showConfirmButton: false,
+        timer: 3000, // Más tiempo para errores
+        timerProgressBar: true,
+        background: '#dc3545', // rojo
+        color: '#fff',
+        customClass: {
+            popup: 'custom-toast'
+        },
+    });
+</script>
+@endif
+
+@if ($errors->any())
+<script>
+    Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'error',
+        title: 'Errores en el formulario',
+        html: `@foreach ($errors->all() as $error)<p>{{ $error }}</p>@endforeach`,
+        showConfirmButton: false,
+        timer: 5000, // Aún más tiempo para múltiples errores
+        timerProgressBar: true,
+        background: '#dc3545',
+        color: '#fff',
+        customClass: {
+            popup: 'custom-toast custom-toast-large'
+        },
+    });
+</script>
+@endif
+
+@if (session('warning'))
+<script>
+    Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'warning',
+        title: '{{ session('warning') }}',
+        showConfirmButton: false,
+        timer: 2000,
+        timerProgressBar: true,
+        background: '#ffc107', // amarillo
+        color: '#000', // texto negro para mejor contraste
+        customClass: {
+            popup: 'custom-toast'
+        },
+    });
+</script>
+@endif
+
+@if (session('info'))
+<script>
+    Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'info',
+        title: '{{ session('info') }}',
+        showConfirmButton: false,
+        timer: 2000,
+        timerProgressBar: true,
+        background: '#17a2b8', // azul info
+        color: '#fff',
+        customClass: {
+            popup: 'custom-toast'
+        },
+    });
+</script>
+@endif
+
+<!-- Estilos personalizados -->
+<style>
+    .swal2-popup.custom-toast {
+        width: 300px !important;
+        height: 80px !important;
+        border-radius: 12px;
+        font-size: 16px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+
+    .swal2-popup.custom-toast-large {
+        width: 400px !important;
+        height: auto !important;
+        min-height: 100px;
+    }
+
+    .swal2-popup.custom-toast-large p {
+        margin: 5px 0;
+        font-size: 14px;
+    }
+</style>
 
 <script>
 function descargarMemo(historialId) {
@@ -379,7 +506,7 @@ $(document).ready(function() {
     });
 });
 
-function abrirModalBaja(historialId, apellidoPat, apellidoMat, nombre) {
+function abrirModalBaja(historialId, personaId, apellidoPat, apellidoMat, nombre) {
     // Cerrar dropdown primero
     var dropdown = document.querySelector('.dropdown-menu.show');
     if (dropdown) {
@@ -390,7 +517,7 @@ function abrirModalBaja(historialId, apellidoPat, apellidoMat, nombre) {
     }
 
     // Configurar los datos en el modal
-    document.getElementById('modalIdPersona').value = historialId;
+    document.getElementById('modalIdPersona').value = personaId;
     document.getElementById('modalApellidoPaterno').value = apellidoPat;
     document.getElementById('modalApellidoMaterno').value = apellidoMat;
     document.getElementById('modalNombre').value = nombre;

@@ -179,69 +179,71 @@ public function store(Request $request)
     }
 
     // Lista principal con filtros
-    public function index(Request $request)
-    {
-        $search = $request->input('search');
-        $tipoMovimiento = $request->input('tipo_movimiento');
-        $estado = $request->input('estado');
-        $tipoContrato = $request->input('tipo_contrato');
+public function index(Request $request)
+{
+    $search = $request->input('search');
+    $tipoMovimiento = $request->input('tipo_movimiento');
+    $estado = $request->input('estado');
+    $tipoContrato = $request->input('tipo_contrato');
 
-        $puestos = Puesto::where('estado', 1)
-            ->where(function ($query) use ($search, $tipoMovimiento, $estado, $tipoContrato) {
-                if ($search) {
-                    $query->where('item', 'like', "%$search%")
-                          ->orWhere('nivelJerarquico', 'like', "%$search%")
-                          ->orWhere('denominacion', 'like', "%$search%")
-                          ->orWhereHas('historial', function ($historialQuery) use ($search, $tipoMovimiento, $estado, $tipoContrato) {
-                              $historialQuery->whereNull('fecha_fin')
-                                  ->when($tipoMovimiento, function ($q) use ($tipoMovimiento) {
-                                      $q->where('tipo_movimiento', $tipoMovimiento);
-                                  })
-                                  ->when($estado, function ($q) use ($estado) {
-                                      $q->where('estado', $estado);
-                                  })
-                                  ->when($tipoContrato, function ($q) use ($tipoContrato) {
-                                      $q->where('tipo_contrato', $tipoContrato);
-                                  })
-                                  ->whereHas('persona', function ($personaQuery) use ($search) {
-                                      $personaQuery->where('estado', 1)
-                                          ->where(function ($subquery) use ($search) {
-                                              $subquery->where('nombre', 'like', '%' . $search . '%')
-                                                  ->orWhere('apellidoPat', 'like', '%' . $search . '%')
-                                                  ->orWhere('apellidoMat', 'like', '%' . $search . '%')
-                                                  ->orWhere(DB::raw("CONCAT(nombre, ' ', apellidoPat, ' ', apellidoMat)"), 'like', '%' . $search . '%');
-                                          });
-                                  });
-                          });
-                }
-            })
-            ->with([
-                'unidadOrganizacional.padre.padre.padre', // Para cargar la jerarquía completa
-                'historial' => function ($query) use ($tipoMovimiento, $estado, $tipoContrato) {
-                    $query->whereNull('fecha_fin')
-                          ->when($tipoMovimiento, function ($q) use ($tipoMovimiento) {
-                              $q->where('tipo_movimiento', $tipoMovimiento);
-                          })
-                          ->when($estado, function ($q) use ($estado) {
-                              $q->where('estado', $estado);
-                          })
-                          ->when($tipoContrato, function ($q) use ($tipoContrato) {
-                              $q->where('tipo_contrato', $tipoContrato);
-                          })
-                          ->with('persona')
-                          ->orderBy('id', 'desc');
-                }
-            ])
-            ->get()
-            ->map(function ($puesto) {
-                $historial = $puesto->historial->first();
-                $puesto->persona = $historial?->persona;
-                $puesto->historial_actual = $historial;
-                return $puesto;
-            });
+    $puestos = Puesto::where('estado', 1)
+        ->where(function ($query) use ($search, $tipoMovimiento, $estado, $tipoContrato) {
+            if ($search) {
+                $query->where('item', 'like', "%$search%")
+                      ->orWhere('nivelJerarquico', 'like', "%$search%")
+                      ->orWhere('denominacion', 'like', "%$search%")
+                      ->orWhereHas('historial', function ($historialQuery) use ($search, $tipoMovimiento, $estado, $tipoContrato) {
+                          $historialQuery->whereNull('fecha_fin')
+                              ->when($tipoMovimiento, function ($q) use ($tipoMovimiento) {
+                                  $q->where('tipo_movimiento', $tipoMovimiento);
+                              })
+                              ->when($estado, function ($q) use ($estado) {
+                                  $q->where('estado', $estado);
+                              })
+                              ->when($tipoContrato, function ($q) use ($tipoContrato) {
+                                  $q->where('tipo_contrato', $tipoContrato);
+                              })
+                              ->whereHas('persona', function ($personaQuery) use ($search) {
+                                  $personaQuery->where('estado', 1)
+                                      ->where(function ($subquery) use ($search) {
+                                          $subquery->where('nombre', 'like', '%' . $search . '%')
+                                              ->orWhere('apellidoPat', 'like', '%' . $search . '%')
+                                              ->orWhere('apellidoMat', 'like', '%' . $search . '%')
+                                              ->orWhere(DB::raw("CONCAT(nombre, ' ', apellidoPat, ' ', apellidoMat)"), 'like', '%' . $search . '%');
+                                      });
+                              });
+                      });
+            }
+        })
+        ->with([
+            'unidadOrganizacional.padre.padre.padre',
+            'historial' => function ($query) use ($tipoMovimiento, $estado, $tipoContrato) {
+                $query->whereNull('fecha_fin')
+                      ->when($tipoMovimiento, function ($q) use ($tipoMovimiento) {
+                          $q->where('tipo_movimiento', $tipoMovimiento);
+                      })
+                      ->when($estado, function ($q) use ($estado) {
+                          $q->where('estado', $estado);
+                      })
+                      ->when($tipoContrato, function ($q) use ($tipoContrato) {
+                          $q->where('tipo_contrato', $tipoContrato);
+                      })
+                      ->with('persona')
+                      ->orderBy('id', 'desc');
+            }
+        ])
+        ->paginate(100); // Primero paginar
 
-        return view('admin.pasivos.bajas', compact('puestos', 'search', 'tipoMovimiento', 'estado', 'tipoContrato'));
-    }
+    // Luego mapear los resultados
+    $puestos->getCollection()->transform(function ($puesto) {
+        $historial = $puesto->historial->first();
+        $puesto->persona = $historial?->persona;
+        $puesto->historial_actual = $historial;
+        return $puesto;
+    });
+
+    return view('admin.pasivos.bajas', compact('puestos', 'search', 'tipoMovimiento', 'estado', 'tipoContrato'));
+}
 
     // Puestos vacíos
     public function vacios(Request $request)

@@ -133,6 +133,92 @@
         </div>
     </div>
 
+
+
+
+<div class="bg-white rounded-lg shadow p-6">
+    <h2 class="text-lg font-semibold text-gray-900 mb-4">
+        Pasivo ex Cordeco y GADC
+    </h2>
+
+    <div class="flex flex-col lg:flex-row gap-4">
+
+        <!-- Pasivo Uno -->
+        <div class="flex flex-1 items-center justify-between bg-blue-100 border border-blue-200 rounded-xl p-4 hover:bg-blue-200 transition-colors shadow-sm">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-blue-500 text-white shadow">
+                    <i class="fas fa-users text-lg"></i>
+                </div>
+                <h3 class="ml-3 text-blue-900 font-semibold text-base">
+                    Pasivo Uno
+                </h3>
+            </div>
+
+            <div class="flex gap-3">
+                <a href="{{ route('reportes.pasivouno.pdf') }}"
+                   class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md text-sm font-medium flex items-center transition shadow-sm">
+                    <i class="fas fa-file-pdf mr-2 text-red-200"></i>PDF por Letra
+                </a>
+                <a href="{{ route('reportes.pasivouno.excel') }}"
+                   class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-md text-sm font-medium flex items-center transition shadow-sm">
+                    <i class="fas fa-file-excel mr-2 text-green-200"></i>Excel Completo
+                </a>
+            </div>
+        </div>
+
+        <!-- Pasivo Dos -->
+        <div class="flex flex-1 items-center justify-between bg-blue-100 border border-blue-200 rounded-xl p-4 hover:bg-blue-200 transition-colors shadow-sm">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-blue-500 text-white shadow">
+                    <i class="fas fa-users text-lg"></i>
+                </div>
+                <h3 class="ml-3 text-blue-900 font-semibold text-base">
+                    Pasivo Dos
+                </h3>
+            </div>
+
+            <div class="flex gap-3">
+                <a href="{{ route('reportes.pasivodos.pdf') }}"
+                   class="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md text-sm font-medium flex items-center transition shadow-sm">
+                    <i class="fas fa-file-pdf mr-2 text-red-200"></i>PDF por Letra
+                </a>
+                <a href="{{ route('reportes.pasivodos.excel') }}"
+                   class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-md text-sm font-medium flex items-center transition shadow-sm">
+                    <i class="fas fa-file-excel mr-2 text-green-200"></i>Excel Completo
+                </a>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+
+
+
+
+<!-- Para Pasivo Uno -->
+<a href="{{ route('reportes.pasivouno.pdf') }}"
+   class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg text-sm font-medium text-center transition-colors">
+    <i class="fas fa-file-pdf mr-2"></i>PDF por Letra
+</a>
+<a href="{{ route('reportes.pasivouno.excel') }}"
+   class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg text-sm font-medium text-center transition-colors">
+    <i class="fas fa-file-excel mr-2"></i>Excel Completo
+</a>
+
+<!-- Para Pasivo Dos -->
+<a href="{{ route('reportes.pasivodos.pdf') }}"
+   class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg text-sm font-medium text-center transition-colors">
+    <i class="fas fa-file-pdf mr-2"></i>PDF por Letra
+</a>
+<a href="{{ route('reportes.pasivodos.excel') }}"
+   class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg text-sm font-medium text-center transition-colors">
+    <i class="fas fa-file-excel mr-2"></i>Excel Completo
+</a>
+
+
+
+
     <!-- Distribución por Unidades -->
     <div class="bg-white rounded-lg shadow p-6">
         <div class="flex justify-between items-center mb-4">
