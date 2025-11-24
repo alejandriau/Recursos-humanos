@@ -196,29 +196,6 @@
 
 
 
-<!-- Para Pasivo Uno -->
-<a href="{{ route('reportes.pasivouno.pdf') }}"
-   class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg text-sm font-medium text-center transition-colors">
-    <i class="fas fa-file-pdf mr-2"></i>PDF por Letra
-</a>
-<a href="{{ route('reportes.pasivouno.excel') }}"
-   class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg text-sm font-medium text-center transition-colors">
-    <i class="fas fa-file-excel mr-2"></i>Excel Completo
-</a>
-
-<!-- Para Pasivo Dos -->
-<a href="{{ route('reportes.pasivodos.pdf') }}"
-   class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg text-sm font-medium text-center transition-colors">
-    <i class="fas fa-file-pdf mr-2"></i>PDF por Letra
-</a>
-<a href="{{ route('reportes.pasivodos.excel') }}"
-   class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg text-sm font-medium text-center transition-colors">
-    <i class="fas fa-file-excel mr-2"></i>Excel Completo
-</a>
-
-
-
-
     <!-- Distribución por Unidades -->
     <div class="bg-white rounded-lg shadow p-6">
         <div class="flex justify-between items-center mb-4">

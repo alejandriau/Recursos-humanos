@@ -179,12 +179,25 @@
                                 </td>
                                 <td>
                                     @if($baja['pdfbaja'])
-                                        <a href="{{ asset('storage/' . $baja['pdfbaja']) }}"
-                                           target="_blank"
-                                           class="btn btn-sm btn-outline-danger"
-                                           title="Ver PDF">
-                                            <i class="fas fa-file-pdf"></i> Ver
-                                        </a>
+                                        <div class="btn-group" role="group">
+                                            <!-- Botón Ver PDF en Modal -->
+                                            <button type="button" class="btn btn-sm btn-outline-danger ver-pdf-btn"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#modalPdf"
+                                                    data-pdf-url="{{ route('bajasaltas.ver-pdf', $baja['id']) }}"
+                                                    data-download-url="{{ route('bajasaltas.descargar-pdf', $baja['id']) }}"
+                                                    data-nombre="{{ $baja['nombre'] }}"
+                                                    title="Ver PDF">
+                                                <i class="fas fa-file-pdf"></i>
+                                            </button>
+
+                                            <!-- Botón Descargar -->
+                                            <a href="{{ route('bajasaltas.descargar-pdf', $baja['id']) }}"
+                                               class="btn btn-sm btn-outline-success"
+                                               title="Descargar PDF">
+                                                <i class="fas fa-download"></i>
+                                            </a>
+                                        </div>
                                     @else
                                         <span class="text-muted small">Sin PDF</span>
                                     @endif
@@ -192,159 +205,36 @@
                                 <td>
                                     <div class="btn-group" role="group">
                                         <!-- Botón Ver Detalles -->
-                                        <button type="button" class="btn btn-sm btn-outline-info"
+                                        <button type="button" class="btn btn-sm btn-outline-info ver-detalles-btn"
                                                 data-bs-toggle="modal"
-                                                data-bs-target="#modalVer{{ $key }}">
+                                                data-bs-target="#modalVer"
+                                                data-baja-data='@json($baja)'
+                                                title="Ver Detalles">
                                             <i class="fas fa-eye"></i>
                                         </button>
 
                                         <!-- Botón Editar -->
-                                        <button type="button" class="btn btn-sm btn-outline-primary"
+                                        <button type="button" class="btn btn-sm btn-outline-primary editar-baja-btn"
                                                 data-bs-toggle="modal"
-                                                data-bs-target="#modalEditar{{ $key }}">
+                                                data-bs-target="#modalEditar"
+                                                data-baja-id="{{ $baja['id'] }}"
+                                                data-baja-data='@json($baja)'
+                                                title="Editar Baja">
                                             <i class="fas fa-edit"></i>
                                         </button>
 
                                         <!-- Botón Eliminar -->
-                                        <button type="button" class="btn btn-sm btn-outline-danger"
+                                        <button type="button" class="btn btn-sm btn-outline-danger eliminar-baja-btn"
                                                 data-bs-toggle="modal"
-                                                data-bs-target="#modalEliminar{{ $key }}">
+                                                data-bs-target="#modalEliminar"
+                                                data-baja-id="{{ $baja['id'] }}"
+                                                data-baja-nombre="{{ $baja['nombre'] }}"
+                                                title="Eliminar Baja">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </div>
                                 </td>
                             </tr>
-
-                            <!-- Modal Ver Detalles -->
-                            <div class="modal fade" id="modalVer{{ $key }}" tabindex="-1">
-                                <div class="modal-dialog modal-lg">
-                                    <div class="modal-content">
-                                        <div class="modal-header bg-info text-white">
-                                            <h5 class="modal-title">
-                                                <i class="fas fa-eye me-2"></i>Detalles de Baja
-                                            </h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                        </div>
-                                        <div class="modal-body">
-                                            <div class="row">
-                                                <div class="col-md-6">
-                                                    <h6>Información Personal</h6>
-                                                    <p><strong>Nombre:</strong> {{ $baja['nombre'] }}</p>
-                                                    <p><strong>CI:</strong> {{ $baja['ci'] ?? 'N/A' }}</p>
-                                                    <p><strong>Fecha Nacimiento:</strong>
-                                                        {{ $baja['fecha_nacimiento'] ? \Carbon\Carbon::parse($baja['fecha_nacimiento'])->format('d/m/Y') : 'N/A' }}
-                                                    </p>
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <h6>Información de Baja</h6>
-                                                    <p><strong>Fecha Ingreso:</strong>
-                                                        {{ \Carbon\Carbon::parse($baja['fecha_ingreso'])->format('d/m/Y') }}
-                                                    </p>
-                                                    <p><strong>Fecha Baja:</strong>
-                                                        {{ \Carbon\Carbon::parse($baja['fecha_baja'])->format('d/m/Y') }}
-                                                    </p>
-                                                    <p><strong>Tiempo:</strong> {{ $baja['tiempo_en_institucion'] }}</p>
-                                                </div>
-                                            </div>
-                                            <div class="row mt-3">
-                                                <div class="col-12">
-                                                    <p><strong>Motivo:</strong> {{ $baja['motivo'] }}</p>
-                                                    <p><strong>Observación:</strong>
-                                                        {{ $baja['observacion'] ?: 'Sin observación' }}
-                                                    </p>
-                                                    @if($baja['pdfbaja'])
-                                                        <p><strong>Documento:</strong></p>
-                                                        <a href="{{ asset('storage/' . $baja['pdfbaja']) }}"
-                                                           target="_blank"
-                                                           class="btn btn-danger">
-                                                            <i class="fas fa-file-pdf me-1"></i>Ver PDF de Baja
-                                                        </a>
-                                                    @endif
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="modal-footer">
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Modal Editar -->
-                            <div class="modal fade" id="modalEditar{{ $key }}" tabindex="-1">
-                                <div class="modal-dialog">
-                                    <div class="modal-content">
-                                        <form action="{{ route('bajasaltas.update', $baja['id']) }}" method="POST" enctype="multipart/form-data">
-                                            @csrf
-                                            @method('PUT')
-                                            <div class="modal-header bg-primary text-white">
-                                                <h5 class="modal-title">Editar Baja</h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                            </div>
-                                            <div class="modal-body">
-                                                <div class="mb-3">
-                                                    <label class="form-label">Fecha de Baja *</label>
-                                                    <input type="date" name="fecha" class="form-control"
-                                                           value="{{ \Carbon\Carbon::parse($baja['fecha_baja'])->format('Y-m-d') }}" required>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label class="form-label">Motivo *</label>
-                                                    <select name="motivo" class="form-select" required>
-                                                        <option value="renuncia" {{ $baja['motivo'] == 'renuncia' ? 'selected' : '' }}>Renuncia</option>
-                                                        <option value="despido" {{ $baja['motivo'] == 'despido' ? 'selected' : '' }}>Despido</option>
-                                                        <option value="jubilacion" {{ $baja['motivo'] == 'jubilacion' ? 'selected' : '' }}>Jubilación</option>
-                                                        <option value="termino_contrato" {{ $baja['motivo'] == 'termino_contrato' ? 'selected' : '' }}>Término de contrato</option>
-                                                        <option value="otros" {{ $baja['motivo'] == 'otros' ? 'selected' : '' }}>Otros</option>
-                                                    </select>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label class="form-label">Observaciones</label>
-                                                    <textarea name="observacion" class="form-control" rows="3">{{ $baja['observacion'] }}</textarea>
-                                                </div>
-                                                <div class="mb-3">
-                                                    <label class="form-label">PDF de Baja (Actualizar)</label>
-                                                    <input type="file" name="pdffile" class="form-control" accept=".pdf">
-                                                    @if($baja['pdfbaja'])
-                                                        <div class="form-text">
-                                                            <a href="{{ asset('storage/' . $baja['pdfbaja']) }}" target="_blank">
-                                                                Ver PDF actual
-                                                            </a>
-                                                        </div>
-                                                    @endif
-                                                </div>
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                                                <button type="submit" class="btn btn-primary">Guardar Cambios</button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Modal Eliminar -->
-                            <div class="modal fade" id="modalEliminar{{ $key }}" tabindex="-1">
-                                <div class="modal-dialog">
-                                    <div class="modal-content">
-                                        <div class="modal-header bg-danger text-white">
-                                            <h5 class="modal-title">Confirmar Eliminación</h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                        </div>
-                                        <div class="modal-body">
-                                            <p>¿Estás seguro de que deseas eliminar la baja de <strong>{{ $baja['nombre'] }}</strong>?</p>
-                                            <p class="text-muted">Esta acción no se puede deshacer.</p>
-                                        </div>
-                                        <div class="modal-footer">
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                                            <form action="{{ route('bajasaltas.destroy', $baja['id']) }}" method="POST">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn btn-danger">Eliminar</button>
-                                            </form>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
                         @empty
                             <tr>
                                 <td colspan="10" class="text-center text-muted py-4">
@@ -370,27 +260,327 @@
     </div>
 </div>
 
-<!-- Scripts adicionales -->
-@section('scripts')
-<script>
-    // Inicializar tooltips
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl)
-    });
+<!-- Modal Único para Ver PDF -->
+<div class="modal fade" id="modalPdf" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-file-pdf me-2"></i>
+                    PDF de Baja - <span id="pdfNombre"></span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3">
+                    <a href="#" id="pdfDownloadBtn" class="btn btn-success me-2">
+                        <i class="fas fa-download me-1"></i>Descargar PDF
+                    </a>
+                    <button type="button" class="btn btn-primary" id="pdfPrintBtn">
+                        <i class="fas fa-print me-1"></i>Imprimir
+                    </button>
+                </div>
 
-    // Confirmación antes de eliminar
+                <div class="embed-responsive embed-responsive-16by9">
+                <iframe src="" class="w-100"
+                        style="height: 80vh; border: none;"
+                        id="pdfIframe">
+                </iframe>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Único para Ver Detalles -->
+<div class="modal fade" id="modalVer" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-eye me-2"></i>Detalles de Baja
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalVerBody">
+                <!-- Contenido dinámico -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Único para Editar -->
+<div class="modal fade" id="modalEditar" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form action="" method="POST" enctype="multipart/form-data" id="formEditar">
+                @csrf
+                @method('PUT')
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">
+                        <i class="fas fa-edit me-2"></i>Editar Baja - <span id="editarNombre"></span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="modalEditarBody">
+                    <!-- Contenido dinámico -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Único para Eliminar -->
+<div class="modal fade" id="modalEliminar" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-trash me-2"></i>Confirmar Eliminación
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3">
+                    <i class="fas fa-exclamation-triangle fa-3x text-warning"></i>
+                </div>
+                <p>¿Estás seguro de que deseas eliminar la baja de <strong id="eliminarNombre"></strong>?</p>
+                <p class="text-muted small">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Esta acción reactivará al empleado en el sistema y no se puede deshacer.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancelar
+                </button>
+                <form action="" method="POST" id="formEliminar">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash me-1"></i>Eliminar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts adicionales -->
+<script>
     document.addEventListener('DOMContentLoaded', function() {
-        const deleteForms = document.querySelectorAll('form[action*="destroy"]');
-        deleteForms.forEach(form => {
-            form.addEventListener('submit', function(e) {
-                if (!confirm('¿Estás seguro de que deseas eliminar este registro?')) {
-                    e.preventDefault();
+        // Inicializar tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl)
+        });
+
+        // Modal PDF
+        const modalPdf = document.getElementById('modalPdf');
+        if (modalPdf) {
+            modalPdf.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                const pdfUrl = button.getAttribute('data-pdf-url');
+                const downloadUrl = button.getAttribute('data-download-url');
+                const nombre = button.getAttribute('data-nombre');
+
+                document.getElementById('pdfNombre').textContent = nombre;
+                document.getElementById('pdfDownloadBtn').href = downloadUrl;
+
+                const iframe = document.getElementById('pdfIframe');
+                iframe.src = pdfUrl;
+                        const pdfViewUrl = pdfUrl + '#view=FitH&zoom=100';
+                iframe.src = pdfViewUrl;
+            });
+
+            modalPdf.addEventListener('hidden.bs.modal', function () {
+                const iframe = document.getElementById('pdfIframe');
+                iframe.src = '';
+            });
+
+            document.getElementById('pdfPrintBtn').addEventListener('click', function() {
+                const iframe = document.getElementById('pdfIframe');
+                if (iframe.contentWindow) {
+                    iframe.contentWindow.print();
                 }
             });
+        }
+
+        // Modal Ver Detalles
+        const modalVer = document.getElementById('modalVer');
+        if (modalVer) {
+            modalVer.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                const bajaData = JSON.parse(button.getAttribute('data-baja-data'));
+
+                const contenido = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Información Personal</h6>
+                            <p><strong>Nombre:</strong> ${bajaData.nombre}</p>
+                            <p><strong>CI:</strong> ${bajaData.ci || 'N/A'}</p>
+                            <p><strong>Fecha Nacimiento:</strong> ${bajaData.fecha_nacimiento ? new Date(bajaData.fecha_nacimiento).toLocaleDateString('es-ES') : 'N/A'}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Información de Baja</h6>
+                            <p><strong>Fecha Ingreso:</strong> ${new Date(bajaData.fecha_ingreso).toLocaleDateString('es-ES')}</p>
+                            <p><strong>Fecha Baja:</strong> ${new Date(bajaData.fecha_baja).toLocaleDateString('es-ES')}</p>
+                            <p><strong>Tiempo:</strong> ${bajaData.tiempo_en_institucion}</p>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <p><strong>Motivo:</strong> <span class="badge bg-warning text-dark">${bajaData.motivo}</span></p>
+                            <p><strong>Observación:</strong> ${bajaData.observacion || 'Sin observación'}</p>
+                            ${bajaData.pdfbaja ? `
+                                <p><strong>Documento:</strong></p>
+                                <div class="btn-group">
+                                    <a href="${bajaData.pdfbaja}" target="_blank" class="btn btn-danger">
+                                        <i class="fas fa-file-pdf me-1"></i>Ver PDF
+                                    </a>
+                                    <a href="${bajaData.pdfbaja}" download class="btn btn-success">
+                                        <i class="fas fa-download me-1"></i>Descargar
+                                    </a>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('modalVerBody').innerHTML = contenido;
+            });
+        }
+
+        // Modal Editar
+        const modalEditar = document.getElementById('modalEditar');
+        if (modalEditar) {
+            modalEditar.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                const bajaId = button.getAttribute('data-baja-id');
+                const bajaData = JSON.parse(button.getAttribute('data-baja-data'));
+
+                document.getElementById('editarNombre').textContent = bajaData.nombre;
+                document.getElementById('formEditar').action = `/bajasaltas/${bajaId}`;
+
+                const contenido = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Fecha de Baja *</label>
+                                <input type="date" name="fecha" class="form-control" value="${new Date(bajaData.fecha_baja).toISOString().split('T')[0]}" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Motivo *</label>
+                                <select name="motivo" class="form-select" required>
+                                    <option value="renuncia" ${bajaData.motivo == 'renuncia' ? 'selected' : ''}>Renuncia</option>
+                                    <option value="despido" ${bajaData.motivo == 'despido' ? 'selected' : ''}>Despido</option>
+                                    <option value="jubilacion" ${bajaData.motivo == 'jubilacion' ? 'selected' : ''}>Jubilación</option>
+                                    <option value="termino_contrato" ${bajaData.motivo == 'termino_contrato' ? 'selected' : ''}>Término de contrato</option>
+                                    <option value="otros" ${bajaData.motivo == 'otros' ? 'selected' : ''}>Otros</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Observaciones</label>
+                        <textarea name="observacion" class="form-control" rows="3" placeholder="Ingrese observaciones adicionales...">${bajaData.observacion || ''}</textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">PDF de Baja</label>
+                        <input type="file" name="pdffile" class="form-control" accept=".pdf">
+                        <div class="form-text">
+                            Formatos aceptados: PDF (Máximo 2MB)
+                            ${bajaData.pdfbaja ? `
+                                <br>
+                                <a href="${bajaData.pdfbaja}" target="_blank" class="text-danger">
+                                    <i class="fas fa-file-pdf me-1"></i>Ver PDF actual
+                                </a>
+                            ` : '<span class="text-muted">No hay PDF cargado actualmente</span>'}
+                        </div>
+                    </div>
+
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <h6 class="card-title">Información del Empleado</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong>Nombre:</strong> ${bajaData.nombre}</p>
+                                    <p class="mb-1"><strong>CI:</strong> ${bajaData.ci || 'N/A'}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong>Fecha Ingreso:</strong> ${new Date(bajaData.fecha_ingreso).toLocaleDateString('es-ES')}</p>
+                                    <p class="mb-1"><strong>Tiempo en Institución:</strong> ${bajaData.tiempo_en_institucion}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('modalEditarBody').innerHTML = contenido;
+            });
+        }
+
+        // Modal Eliminar
+        const modalEliminar = document.getElementById('modalEliminar');
+        if (modalEliminar) {
+            modalEliminar.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                const bajaId = button.getAttribute('data-baja-id');
+                const bajaNombre = button.getAttribute('data-baja-nombre');
+
+                document.getElementById('eliminarNombre').textContent = bajaNombre;
+                document.getElementById('formEliminar').action = `/bajasaltas/${bajaId}`;
+            });
+        }
+
+        // Validación de archivos PDF
+        document.addEventListener('submit', function(e) {
+            if (e.target.matches('#formEditar')) {
+                const fileInput = e.target.querySelector('input[type="file"]');
+                if (fileInput && fileInput.files.length > 0) {
+                    const file = fileInput.files[0];
+                    const fileType = file.type;
+                    const fileSize = file.size;
+
+                    if (fileType !== 'application/pdf') {
+                        e.preventDefault();
+                        alert('Solo se permiten archivos PDF.');
+                        return;
+                    }
+
+                    if (fileSize > 2 * 1024 * 1024) {
+                        e.preventDefault();
+                        alert('El archivo PDF no debe exceder los 2MB.');
+                        return;
+                    }
+                }
+            }
+
+            if (e.target.matches('#formEliminar')) {
+                if (!confirm('¿Estás seguro de que deseas eliminar este registro? Esta acción reactivará al empleado.')) {
+                    e.preventDefault();
+                }
+            }
         });
     });
 </script>
-@endsection
 
 @endsection

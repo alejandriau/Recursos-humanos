@@ -9,6 +9,7 @@ use App\Models\Pasivodos;
 use App\Models\Historial;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 
 class BajasaltasController extends Controller
@@ -186,23 +187,223 @@ public function store(Request $request)
         return back()->with('error', 'Error al registrar la baja: ' . $e->getMessage())->withInput();
     }
 }
-        public function update(Request $request, $id)
+    public function edit(string $id)
     {
-        $baja = Bajasaltas::findOrFail($id);
+        try {
+            $baja = Bajasaltas::with('persona')->findOrFail($id);
 
-        // Validación
-        $request->validate([
-            'motivo' => 'required|string|max:255',
-            'fecha_baja' => 'required|date',
-            'observaciones' => 'nullable|string',
+            // Formatear datos para la vista
+            $datosBaja = [
+                'id' => $baja->id,
+                'idPersona' => $baja->idPersona,
+                'fecha_baja' => $baja->fecha,
+                'motivo' => $baja->motivo,
+                'observacion' => $baja->observacion,
+                'pdfbaja' => $baja->pdfbaja,
+                'nombre_completo' => $baja->persona ?
+                    $baja->persona->nombre . ' ' . $baja->persona->apellidopaterno . ' ' . $baja->persona->apellidomaterno :
+                    'N/A'
+            ];
+
+            \Log::info('Datos cargados para edición:', $datosBaja);
+
+            return response()->json([
+                'success' => true,
+                'data' => $datosBaja
+            ]);
+
+        } catch (\Exception $e) {
+            \Log::error('Error en método edit:', [
+                'id' => $id,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al cargar los datos para edición'
+            ], 404);
+        }
+    }
+    public function update(Request $request, string $id)
+    {
+        $validated = $request->validate([
+            'fecha' => 'required|date',
+            'motivo' => 'required|string',
+            'observacion' => 'nullable|string',
+            'pdffile' => 'nullable|file|mimes:pdf|max:2048'
         ]);
 
-        // Actualización
-        $baja->motivo = $request->motivo;
-        $baja->fecha = $request->fecha_baja;
-        $baja->observacion = $request->observaciones;
-        $baja->save();
+        // Debug: Verificar los datos recibidos
+        \Log::info('Datos recibidos en update:', array_merge($validated, ['id' => $id]));
 
-        return redirect()->route('bajasaltas.index')->with('mensaje', 'Registro de baja actualizado correctamente.');
+        try {
+            // Buscar la baja existente
+            $baja = Bajasaltas::findOrFail($id);
+            \Log::info('Baja encontrada:', ['id' => $baja->id, 'idPersona' => $baja->idPersona]);
+
+            // Obtener la persona relacionada
+            $persona = Persona::find($baja->idPersona);
+            if (!$persona) {
+                return back()->with('error', 'La persona asociada a esta baja no existe.')->withInput();
+            }
+
+            // Actualizar el historial laboral si existe
+            $historial = Historial::where('idPersona', $baja->idPersona)
+                                ->where('estado', 'concluido')
+                                ->latest()
+                                ->first();
+
+            if ($historial) {
+                $historial->fecha_fin = $validated['fecha'];
+                $historial->save();
+                \Log::info('Historial actualizado:', ['id' => $historial->id, 'fecha_fin' => $historial->fecha_fin]);
+            }
+
+            // Actualizar el registro en pasivodos si existe
+            $nombreCompleto = trim(($persona->apellidopaterno ?? '') . " " .
+                                ($persona->apellidomaterno ?? '') . " " .
+                                ($persona->nombre ?? ''));
+
+            $letra = substr($persona->apellidopaterno ?? ($persona->apellidomaterno ?? 'A'), 0, 1);
+
+            $pasivo = Pasivodos::where('nombrecompleto', 'like', '%' . $nombreCompleto . '%')
+                            ->orWhere('letra', $letra)
+                            ->first();
+
+            if ($pasivo) {
+                // Si encontramos un pasivo, actualizamos el nombre completo por si hubo cambios
+                $pasivo->nombrecompleto = $nombreCompleto;
+                $pasivo->save();
+                \Log::info('Pasivo actualizado:', ['id' => $pasivo->id]);
+            }
+
+            // Manejar archivo PDF si se subió uno nuevo
+            $pdfPath = $baja->pdfbaja; // Mantener el PDF existente por defecto
+
+            if ($request->hasFile('pdffile')) {
+                // Eliminar PDF anterior si existe
+                if ($baja->pdfbaja && Storage::disk('public')->exists($baja->pdfbaja)) {
+                    Storage::disk('public')->delete($baja->pdfbaja);
+                    \Log::info('PDF anterior eliminado:', ['ruta' => $baja->pdfbaja]);
+                }
+
+                // Guardar nuevo PDF
+                $pdfPath = $request->file('pdffile')->store('pdfs', 'public');
+                \Log::info('Nuevo PDF guardado:', ['ruta' => $pdfPath]);
+            }
+
+            // Actualizar el registro de baja
+            $baja->update([
+                'fecha' => $validated['fecha'],
+                'motivo' => $validated['motivo'],
+                'observacion' => $validated['observacion'] ?? null,
+                'pdfbaja' => $pdfPath
+            ]);
+
+            \Log::info('Baja actualizada correctamente:', ['id' => $baja->id]);
+
+            return redirect()->route('bajasaltas.index')
+                            ->with('success', 'Baja actualizada correctamente');
+
+        } catch (\Exception $e) {
+            \Log::error('Error al actualizar baja:', [
+                'id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return back()->with('error', 'Error al actualizar la baja: ' . $e->getMessage())->withInput();
+        }
+    }
+    public function show(string $id)
+    {
+        try {
+            $baja = Bajasaltas::with(['persona', 'historial'])->findOrFail($id);
+
+            // Buscar historial laboral
+            $historial = Historial::where('idPersona', $baja->idPersona)
+                                ->where('estado', 'concluido')
+                                ->latest()
+                                ->first();
+
+            // Calcular tiempo en la institución
+            $tiempoInstitucion = 'N/A';
+            if ($historial && $historial->fecha_inicio && $baja->fecha) {
+                $fechaInicio = Carbon::parse($historial->fecha_inicio);
+                $fechaFin = Carbon::parse($baja->fecha);
+
+                $anos = $fechaFin->diffInYears($fechaInicio);
+                $meses = $fechaFin->diffInMonths($fechaInicio) % 12;
+                $dias = $fechaFin->diffInDays($fechaInicio) % 30;
+
+                $tiempoInstitucion = $anos . ' años, ' . $meses . ' meses, ' . $dias . ' días';
+            }
+
+            $datosBaja = [
+                'id' => $baja->id,
+                'nombre' => $baja->persona ?
+                    $baja->persona->nombre . ' ' . $baja->persona->apellidopaterno . ' ' . $baja->persona->apellidomaterno :
+                    'N/A',
+                'ci' => $baja->persona ? $baja->persona->ci : 'N/A',
+                'foto' => $baja->persona ? $baja->persona->foto : null,
+                'fecha_nacimiento' => $baja->persona ? $baja->persona->fechanacimiento : null,
+                'fecha_ingreso' => $historial ? $historial->fecha_inicio : null,
+                'fecha_baja' => $baja->fecha,
+                'motivo' => $baja->motivo,
+                'observacion' => $baja->observacion,
+                'pdfbaja' => $baja->pdfbaja,
+                'tiempo_en_institucion' => $tiempoInstitucion
+            ];
+
+            return response()->json([
+                'success' => true,
+                'data' => $datosBaja
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener los datos de la baja'
+            ], 404);
+        }
+    }
+    public function verPdf($id)
+    {
+        try {
+            $baja = Bajasaltas::findOrFail($id);
+
+            if (!$baja->pdfbaja || !Storage::disk('public')->exists($baja->pdfbaja)) {
+                abort(404, 'PDF no encontrado');
+            }
+
+            $path = storage_path('app/public/' . $baja->pdfbaja);
+
+            return response()->file($path, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="baja_' . $baja->id . '.pdf"'
+            ]);
+
+        } catch (\Exception $e) {
+            abort(404, 'Error al cargar el PDF: ' . $e->getMessage());
+        }
+    }
+
+    public function descargarPdf($id)
+    {
+        try {
+            $baja = Bajasaltas::findOrFail($id);
+
+            if (!$baja->pdfbaja || !Storage::disk('public')->exists($baja->pdfbaja)) {
+                abort(404, 'PDF no encontrado');
+            }
+
+            $path = storage_path('app/public/' . $baja->pdfbaja);
+            $nombreArchivo = 'baja_' . $baja->id . '.pdf';
+
+            return response()->download($path, $nombreArchivo);
+
+        } catch (\Exception $e) {
+            abort(404, 'Error al descargar el PDF: ' . $e->getMessage());
+        }
     }
 }
