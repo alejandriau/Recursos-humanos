@@ -59,7 +59,28 @@ class Puestoss extends Model
     {
         return $this->hasMany(Historial::class, 'puesto_id');
     }
+    public function unidadOrganizacional()
+    {
+        return $this->belongsTo(UnidadOrganizacional::class);
+    }
+    // En app/Models/Puesto.php
+public function obtenerJefeInmediato()
+{
+    // Verificar si existe la relación con la unidad organizacional
+    if (!$this->unidadOrganizacional) {
+        return null;
+    }
 
+    // Buscar el jefe en la unidad organizacional actual
+    $jefe = $this->unidadOrganizacional->obtenerJefe();
+
+    // Si no hay jefe en esta unidad, buscar en la unidad padre
+    if (!$jefe && $this->unidadOrganizacional->padre) {
+        $jefe = $this->unidadOrganizacional->padre->obtenerJefe();
+    }
+
+    return $jefe;
+}
 
 
 

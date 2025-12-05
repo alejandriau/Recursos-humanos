@@ -487,13 +487,7 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label class="form-label">Motivo *</label>
-                                <select name="motivo" class="form-select" required>
-                                    <option value="renuncia" ${bajaData.motivo == 'renuncia' ? 'selected' : ''}>Renuncia</option>
-                                    <option value="despido" ${bajaData.motivo == 'despido' ? 'selected' : ''}>Despido</option>
-                                    <option value="jubilacion" ${bajaData.motivo == 'jubilacion' ? 'selected' : ''}>Jubilación</option>
-                                    <option value="termino_contrato" ${bajaData.motivo == 'termino_contrato' ? 'selected' : ''}>Término de contrato</option>
-                                    <option value="otros" ${bajaData.motivo == 'otros' ? 'selected' : ''}>Otros</option>
-                                </select>
+                                <input type="text" name="motivo" class="form-control" value="${bajaData.motivo || ''}">
                             </div>
                         </div>
                     </div>

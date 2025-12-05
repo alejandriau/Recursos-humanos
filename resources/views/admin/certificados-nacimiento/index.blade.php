@@ -96,7 +96,7 @@
                         <td>{{ $certificado->id }}</td>
                         <td>{{ $certificado->fecha ? $certificado->fecha->format('d/m/Y') : 'Sin fecha' }}</td>
 
-                        <td>{{ $certificado->persona->nombre ?? 'N/A' }}</td>
+                        <td>{{ $certificado->persona->nombre ?? 'N/A' }} {{ $certificado->persona->apellidoPat ?? 'N/A' }} {{ $certificado->persona->apellidoMat ?? 'N/A' }}</td>
                         <td>{{ Str::limit($certificado->descripcion, 50) }}</td>
                         <td>
                             <span class="badge bg-{{ $certificado->estado ? 'success' : 'danger' }}">

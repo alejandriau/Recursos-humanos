@@ -77,7 +77,7 @@
             <table class="table table-striped">
                 <thead>
                     <tr>
-                        <th>ID</th>
+                        <!--<th>ID</th>-->
                         <th>Dirección</th>
                         <th>Persona</th>
                         <th>Coordenadas</th>
@@ -88,9 +88,9 @@
                 <tbody>
                     @forelse($croquis as $croqui)
                     <tr>
-                        <td>{{ $croqui->id }}</td>
+                        <!--<td>{{ $croqui->id }}</td>-->
                         <td>{{ Str::limit($croqui->direccion, 50) }}</td>
-                        <td>{{ $croqui->persona->nombre ?? 'N/A' }}</td>
+                        <td>{{ $croqui->persona->nombre ?? 'N/A' }} {{ $croqui->persona->apellidoPat ?? 'N/A' }} {{ $croqui->persona->apellidoMat ?? 'N/A' }}</td>
                         <td>
                             <small>Lat: {{ $croqui->latitud }}</small><br>
                             <small>Lng: {{ $croqui->longitud }}</small>

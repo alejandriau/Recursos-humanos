@@ -101,7 +101,7 @@
                     @forelse($consanguinidades as $consanguinidad)
                     <tr>
                         <td>{{ $consanguinidad->id }}</td>
-                        <td>{{ $consanguinidad->persona->nombre ?? 'N/A' }}</td>
+                        <td>{{ $consanguinidad->persona->nombre ?? 'N/A' }} {{ $consanguinidad->persona->apellidoPat ?? 'N/A' }} {{ $consanguinidad->persona->apellidoMat ?? 'N/A' }}</td>
                         <td>
                             @if($consanguinidad->fecha)
                                 {{ $consanguinidad->fecha->format('d/m/Y') }}

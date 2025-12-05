@@ -45,7 +45,7 @@
                         </button>
                     </div>
                     <div class="form-text">
-                        Ej: "Lima, Perú", "Avenida Javier Prado, Lima", "Miraflores, Lima"
+                        Ej: "Cochabamba, Bolivia", "Avenida Aroma, Cochabamba", "Jaihuayco, Cochabamba"
                     </div>
                 </div>
             </div>
@@ -104,11 +104,11 @@
                 </div>
                 <div class="col-md-6">
                     <div class="mb-3">
-                        <label for="longitud" class="form-label">Longitud *</label>
-                        <input type="number" step="any" class="form-control @error('longitud') is-invalid @enderror"
-                               id="longitud" name="longitud" value="{{ old('longitud') }}"
+                        <label for="longetud" class="form-label">Longitud *</label>
+                        <input type="number" step="any" class="form-control @error('longetud') is-invalid @enderror"
+                               id="longetud" name="longetud" value="{{ old('longetud') }}"
                                placeholder="Seleccione en el mapa" required readonly>
-                        @error('longitud')
+                        @error('longetud')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
@@ -126,13 +126,9 @@
         </form>
     </div>
 </div>
-@endsection
-
-@push('styles')
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
       integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
       crossorigin=""/>
-
 <style>
     #map {
         height: 400px;
@@ -149,9 +145,6 @@
         font-family: inherit;
     }
 </style>
-@endpush
-
-@push('scripts')
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
         integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
         crossorigin=""></script>
@@ -236,7 +229,7 @@
     // Función para actualizar los campos de coordenadas
     function updateCoordinates(latlng) {
         const latInput = document.getElementById('latitud');
-        const lngInput = document.getElementById('longitud');
+        const lngInput = document.getElementById('longetud');
         const coordsInfo = document.getElementById('coordinatesInfo');
 
         if (latInput && lngInput && coordsInfo) {
@@ -353,7 +346,7 @@
         if (form) {
             form.addEventListener('submit', function(e) {
                 const latitud = parseFloat(document.getElementById('latitud').value);
-                const longitud = parseFloat(document.getElementById('longitud').value);
+                const longitud = parseFloat(document.getElementById('longetud').value);
 
                 if (!latitud || !longitud) {
                     e.preventDefault();
@@ -376,4 +369,6 @@
     }, 500);
 
 </script>
-@endpush
+@endsection
+
+

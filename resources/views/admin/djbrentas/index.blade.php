@@ -95,7 +95,7 @@
                     <tr>
                         <td>{{ $djbrenta->id }}</td>
                         <td>{{ $djbrenta->fecha->format('d/m/Y') }}</td>
-                        <td>{{ $djbrenta->persona->nombre ?? 'N/A' }}</td>
+                        <td>{{ $djbrenta->persona->nombre ?? 'N/A' }} {{ $djbrenta->persona->apellidoPat ?? 'N/A' }} {{ $djbrenta->persona->apellidoMat ?? 'N/A' }}</td>
                         <td>{{ $djbrenta->tipo ?? 'Sin tipo' }}</td>
                         <td>
                             <span class="badge bg-{{ $djbrenta->estado ? 'success' : 'danger' }}">

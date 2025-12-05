@@ -268,5 +268,23 @@ class Persona extends Model
     {
         return $query->where('estado', '1');
     }
+        // Scope para búsqueda por apellido
+    public function scopePorApellido($query, $apellido)
+    {
+        return $query->where('apellidoPat', 'LIKE', "%{$apellido}%")
+                    ->orWhere('apellidoMat', 'LIKE', "%{$apellido}%");
+    }
+
+    // Scope para búsqueda por nombre
+    public function scopePorNombre($query, $nombre)
+    {
+        return $query->where('nombre', 'LIKE', "%{$nombre}%");
+    }
+
+    // Scope para búsqueda por CI
+    public function scopePorCi($query, $ci)
+    {
+        return $query->where('ci', 'LIKE', "%{$ci}%");
+    }
 
 }

@@ -105,9 +105,9 @@ class CroquiController extends Controller
         $request->validate([
             'direccion' => 'required|string|max:500',
             'descripcion' => 'nullable|string|max:500',
+            'longetud' => 'required|numeric|between:-180,180',
             'latitud' => 'required|numeric|between:-90,90',
-            'longitud' => 'required|numeric|between:-180,180',
-            'idPersona' => 'required|exists:personas,id'
+            'idPersona' => 'required|exists:persona,id'
         ]);
 
         Croqui::create($request->all());
@@ -132,9 +132,9 @@ class CroquiController extends Controller
         $request->validate([
             'direccion' => 'required|string|max:500',
             'descripcion' => 'nullable|string|max:500',
+            'longetud' => 'required|numeric|between:-180,180',
             'latitud' => 'required|numeric|between:-90,90',
-            'longitud' => 'required|numeric|between:-180,180',
-            'idPersona' => 'required|exists:personas,id',
+            'idPersona' => 'required|exists:persona,id',
             'estado' => 'required|boolean'
         ]);
 

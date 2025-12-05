@@ -102,7 +102,7 @@
                     <tr>
                         <td>{{ $cajacorde->id }}</td>
                         <td>{{ $cajacorde->fecha->format('d/m/Y') }}</td>
-                        <td>{{ $cajacorde->persona->nombre ?? 'N/A' }}</td>
+                        <td>{{ $cajacorde->persona->nombre ?? 'N/A' }} {{ $cajacorde->persona->apellidoPat ?? 'N/A' }} {{ $cajacorde->persona->apellidoMat ?? 'N/A' }}</td>
                         <td>{{ $cajacorde->codigo ?? 'N/A' }}</td>
                         <td>{{ $cajacorde->otros ?? 'N/A' }}</td>
                         <td>

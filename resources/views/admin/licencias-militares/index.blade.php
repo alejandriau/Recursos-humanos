@@ -103,7 +103,7 @@
                     @forelse($licencias as $licencia)
                     <tr>
                         <td>{{ $licencia->id }}</td>
-                        <td>{{ $licencia->persona->nombre ?? 'N/A' }}</td>
+                        <td>{{ $licencia->persona->nombre ?? 'N/A' }} {{ $licencia->persona->apellidoPat ?? 'N/A' }} {{ $licencia->persona->apellidoMat ?? 'N/A' }}</td>
                         <td>{{ $licencia->codigo ?? 'N/A' }}</td>
                         <td>{{ $licencia->serie ?? 'N/A' }}</td>
                         <td>

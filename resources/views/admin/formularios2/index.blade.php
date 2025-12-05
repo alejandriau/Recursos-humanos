@@ -101,7 +101,7 @@
                     @forelse($formularios as $formulario)
                     <tr>
                         <td>{{ $formulario->id }}</td>
-                        <td>{{ $formulario->persona->nombre ?? 'N/A' }}</td>
+                        <td>{{ $formulario->persona->nombre ?? 'N/A' }} {{ $formulario->persona->apellidoPat ?? 'N/A' }} {{ $formulario->persona->apellidoMat ?? 'N/A' }}</td>
                         <td>
                             @if($formulario->fecha)
                                 {{ $formulario->fecha->format('d/m/Y') }}

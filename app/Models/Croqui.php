@@ -17,7 +17,7 @@ class Croqui extends Model
     protected $fillable = [
         'direccion',
         'descripcion',
-        'longitud',
+        'longetud',
         'latitud',
         'estado',
         'idPersona'
@@ -28,7 +28,7 @@ class Croqui extends Model
         'fechaRegistro' => 'datetime',
         'fechaActualizacion' => 'datetime',
         'latitud' => 'float',
-        'longitud' => 'float'
+        'longetud' => 'float'
     ];
 
     protected $dates = [
@@ -59,19 +59,19 @@ class Croqui extends Model
     {
         return [
             'lat' => (float) $this->latitud,
-            'lng' => (float) $this->longitud
+            'lng' => (float) $this->longetud
         ];
     }
 
     // Método para obtener enlace de Google Maps
     public function getGoogleMapsLinkAttribute()
     {
-        return "https://www.google.com/maps?q={$this->latitud},{$this->longitud}";
+        return "https://www.google.com/maps?q={$this->latitud},{$this->longetud}";
     }
 
     // Método para obtener iframe de Google Maps
     public function getGoogleMapsIframeAttribute()
     {
-        return "https://maps.google.com/maps?q={$this->latitud},{$this->longitud}&z=15&output=embed";
+        return "https://maps.google.com/maps?q={$this->latitud},{$this->longetud}&z=15&output=embed";
     }
 }

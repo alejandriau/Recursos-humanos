@@ -29,14 +29,14 @@
             </div>
             <div class="card-body">
                 <div class="row g-3">
-                    <div class="col-md-3">
+                    <!--<div class="col-md-3">
                         <label class="form-label">Tipo de Personal:</label>
                         <select name="tipo" id="tipo-select" class="form-select">
                             <option value="TODOS">Todos</option>
                             <option value="ITEM">Planta</option>
                             <option value="CONTRATO">Contrato</option>
                         </select>
-                    </div>
+                    </div>-->
 
                     <!--<div class="col-md-3">
                         <label class="form-label">Unidad Organizacional:</label>
@@ -58,15 +58,11 @@
                         <input type="date" id="fecha-fin" class="form-control">
                     </div>
 
-                    <div class="col-md-6">
-                        <label class="form-label">Búsqueda General:</label>
-                        <input type="text" id="search" class="form-control" placeholder="Buscar por nombre, apellido, CI, título...">
-                    </div>
 
-                    <div class="col-md-3">
+                    <!--<div class="col-md-3">
                         <label class="form-label">Nivel Jerárquico:</label>
                         <input type="text" id="nivel-jerarquico" class="form-control" placeholder="Ej: Jefe, Director, etc.">
-                    </div>
+                    </div>-->
 
                     <div class="col-md-3">
                         <label class="form-label">Estado:</label>
@@ -76,6 +72,10 @@
                         </select>
                     </div>
 
+                    <div class="col-md-6">
+                        <label class="form-label">Búsqueda General:</label>
+                        <input type="text" id="search" class="form-control" placeholder="Buscar por nombre, apellido, CI, título...">
+                    </div>
                     <div class="col-md-12">
                         <button type="button" id="btn-aplicar-filtros" class="btn btn-primary">
                             <i class="fa fa-filter"></i> Aplicar Filtros

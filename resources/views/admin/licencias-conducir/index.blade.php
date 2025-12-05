@@ -101,7 +101,7 @@
                     @endphp
                     <tr>
                         <td>{{ $licencia->id }}</td>
-                        <td>{{ $licencia->persona->nombre ?? 'N/A' }}</td>
+                        <td>{{ $licencia->persona->nombre ?? 'N/A' }} {{ $licencia->persona->apellidoPat ?? 'N/A' }} {{ $licencia->persona->apellidoMat ?? 'N/A' }}</td>
                         <td>
                             <span class="badge bg-primary">{{ $licencia->categoria }}</span>
                             <br>

@@ -384,7 +384,7 @@ public function actualizarRutasArchivos()
 
 
 
-public function historial($id)
+    public function historial($id)
     {
         $persona = Persona::with([
             'historialPuestos.puesto.unidadOrganizacional',

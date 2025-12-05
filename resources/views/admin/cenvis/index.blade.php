@@ -101,7 +101,7 @@
                     <tr>
                         <td>{{ $cenvi->id }}</td>
                         <td>{{ $cenvi->fecha->format('d/m/Y') }}</td>
-                        <td>{{ $cenvi->persona->nombre ?? 'N/A' }}</td>
+                        <td>{{ $cenvi->persona->nombre ?? 'N/A' }} {{ $cenvi->persona->apellidoPat ?? 'N/A' }} {{ $cenvi->persona->apellidoMat ?? 'N/A' }}</td>
                         <td>{{ Str::limit($cenvi->observacion, 30) }}</td>
                         <td>
                             <span class="badge bg-{{ $cenvi->estado ? 'success' : 'danger' }}">

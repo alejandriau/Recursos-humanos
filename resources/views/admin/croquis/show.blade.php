@@ -19,11 +19,12 @@
         <div class="row">
             <div class="col-md-6">
                 <div class="mb-3">
-                    <strong>ID:</strong> {{ $croqui->id }}
+                    <!--<strong>ID:</strong> {{ $croqui->id }}-->
                 </div>
 
                 <div class="mb-3">
-                    <strong>Persona:</strong> {{ $croqui->persona->nombre ?? 'N/A' }}
+                    <strong>Persona:</strong> {{ $croqui->persona->nombre ?? 'N/A' }}{{ $croqui->persona->nombre ?? 'N/A' }}
+                    {{ $croqui->persona->apellidoPat ?? 'N/A' }} {{ $croqui->persona->apellidoMat ?? 'N/A' }}
                 </div>
 
                 <div class="mb-3">

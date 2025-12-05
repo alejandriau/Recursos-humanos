@@ -6,7 +6,7 @@
             <th>APELLIDO 2</th>
             <th>NOMBRE</th>
             <th>CI</th>
-            <th>HABER</th>
+            <!--<th>HABER</th>-->
             <th>FECHA INGRESO</th>
             <th>FECHA NACIMIENTO</th>
             <th>TITULO PROVISION NACIONAL</th>
@@ -29,13 +29,13 @@
                 <td>{{ $persona->ci }}</td>
 
                 <!-- Haber -->
-                <td>
+                <!--<td>
                     @if($persona->puestoActual && $persona->puestoActual->puesto)
                         {{ number_format($persona->puestoActual->puesto->haber ?? 0, 2, ',', '.') }}
                     @else
                         <span class="text-muted">0,00</span>
                     @endif
-                </td>
+                </td>-->
 
                 <!-- Fechas -->
                 <td>{{ !empty($persona->fechaIngreso) ? \Carbon\Carbon::parse($persona->fechaIngreso)->format('d/m/Y') : '' }}</td>

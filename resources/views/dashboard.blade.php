@@ -34,7 +34,7 @@
     <link href="<?php echo asset('dashmin'); ?>/css/bootstrap.min.css" rel="stylesheet">
 
 
-
+ <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/waypoints/4.0.1/jquery.waypoints.min.js"></script>
 
 
@@ -49,6 +49,168 @@
 
 
 </head>
+<style>
+    /* Botón flotante */
+.chatbot-floating-btn {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 70px;
+    height: 70px;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 28px;
+    cursor: pointer;
+    box-shadow:
+        0 6px 20px rgba(99, 102, 241, 0.4),
+        0 0 0 0 rgba(99, 102, 241, 0.5);
+    transition: all 0.3s ease;
+    z-index: 1000;
+    animation: pulse 2s infinite;
+}
+
+.chatbot-floating-btn:hover {
+    transform: scale(1.1);
+    box-shadow:
+        0 8px 25px rgba(99, 102, 241, 0.6),
+        0 0 0 15px rgba(99, 102, 241, 0.1);
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow:
+            0 6px 20px rgba(99, 102, 241, 0.4),
+            0 0 0 0 rgba(99, 102, 241, 0.5);
+    }
+    70% {
+        box-shadow:
+            0 6px 20px rgba(99, 102, 241, 0.4),
+            0 0 0 15px rgba(99, 102, 241, 0);
+    }
+    100% {
+        box-shadow:
+            0 6px 20px rgba(99, 102, 241, 0.4),
+            0 0 0 0 rgba(99, 102, 241, 0);
+    }
+}
+
+.notification-dot {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 12px;
+    height: 12px;
+    background: #10b981;
+    border-radius: 50%;
+    border: 2px solid white;
+    animation: ping 1.5s infinite;
+}
+
+@keyframes ping {
+    0% {
+        transform: scale(0.8);
+        opacity: 1;
+    }
+    75%, 100% {
+        transform: scale(2);
+        opacity: 0;
+    }
+}
+
+/* Modal del chatbot */
+.chatbot-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+    z-index: 1001;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.chatbot-modal-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 800px;
+    height: 85vh;
+    max-height: 700px;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow:
+        0 25px 50px rgba(0, 0, 0, 0.5),
+        0 0 0 1px rgba(99, 102, 241, 0.3);
+    animation: scaleIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .chatbot-modal-content {
+        width: 95%;
+        height: 90vh;
+    }
+
+    .chatbot-floating-btn {
+        bottom: 20px;
+        right: 20px;
+        width: 60px;
+        height: 60px;
+        font-size: 24px;
+    }
+}
+
+
+
+.back-to-top {
+    position: fixed;
+    bottom: 90px;      /* Más arriba */
+    right: 20px;
+    z-index: 999;
+}
+
+.chatbot-floating-btn {
+    position: fixed;
+    bottom: 20px;      /* Más abajo */
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    background: #0d6efd;
+    border-radius: 50%;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    cursor: pointer;
+    z-index: 999;
+}
+
+</style>
 
 <body>
     <div class="container-xxl position-relative bg-white d-flex p-0">
@@ -161,14 +323,14 @@
                         </div>
                     </div>-->
                     @endcan
-                    @can('ver configuracion')
+                    <!--@can('ver configuracion')
                     <li class="nav-item">
                         <a class="nav-link" href="{{ route('audit-logs.index') }}">
                             <i class="fas fa-eye"></i>
                             <span>Auditoría</span>
                         </a>
                     </li>
-                    @endcan
+                    @endcan-->
                     @can('ver configuracion')
                     <li class="nav-item">
                         <a class="nav-link" href="{{ route('reportes.dashboard') }}">
@@ -262,7 +424,7 @@
                     </div>
 
                     {{-- NOTIFICACIONES --}}
-                    <div class="nav-item dropdown">
+                    <!--<div class="nav-item dropdown">
                         <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">
                             <i class="fa fa-bell me-lg-2"></i>
                             <span class="d-none d-lg-inline-flex text-white">Notificaciones</span>
@@ -276,7 +438,7 @@
                             <hr class="dropdown-divider bg-secondary">
                             <a href="#" class="dropdown-item text-center text-white">Ver todas las notificaciones</a>
                         </div>
-                    </div>
+                    </div>-->
 
                     {{-- PERFIL DE USUARIO --}}
                     <div class="nav-item dropdown">
@@ -331,6 +493,18 @@
 
         <!-- Back to Top -->
         <a href="#" class="btn btn-lg btn-primary btn-lg-square back-to-top"><i class="bi bi-arrow-up"></i></a>
+        <div class="chatbot-floating-btn" id="chatbotFloatingBtn">
+            <i class="fas fa-robot"></i>
+            <span class="notification-dot"></span>
+        </div>
+
+
+
+        <div class="chatbot-modal" id="chatbotModal">
+            <div class="chatbot-modal-content">
+                <!-- Aquí irá el contenido del chatbot -->
+            </div>
+        </div>
     </div>
 
     <!-- JavaScript Libraries -->
@@ -408,6 +582,142 @@
                     document.body.classList.remove('overflow-hidden');
                 });
             });
+        }
+
+
+
+            document.addEventListener('DOMContentLoaded', function() {
+            const floatingBtn = document.getElementById('chatbotFloatingBtn');
+            const modal = document.getElementById('chatbotModal');
+            const modalContent = document.querySelector('.chatbot-modal-content');
+
+            // Cargar el contenido del chatbot
+            fetch('/chatbot-content')
+                .then(response => response.text())
+                .then(html => {
+                    modalContent.innerHTML = html;
+                    initializeChatbot();
+                });
+
+            // Abrir modal
+            floatingBtn.addEventListener('click', function() {
+                modal.style.display = 'block';
+                document.body.style.overflow = 'hidden'; // Prevenir scroll
+            });
+
+            // Cerrar modal al hacer clic fuera
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    modal.style.display = 'none';
+                    document.body.style.overflow = 'auto';
+                }
+            });
+
+            // Cerrar con tecla Escape
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && modal.style.display === 'block') {
+                    modal.style.display = 'none';
+                    document.body.style.overflow = 'auto';
+                }
+            });
+        });
+
+        function initializeChatbot() {
+    // Crear partículas visuales
+    function createParticles() {
+        const particlesContainer = document.getElementById('particles');
+        const particleCount = 20;
+
+        for (let i = 0; i < particleCount; i++) {
+            const particle = document.createElement('div');
+            particle.classList.add('particle');
+
+            const size = Math.random() * 10 + 5;
+            const posX = Math.random() * 100;
+            const posY = Math.random() * 100;
+
+            particle.style.width = `${size}px`;
+            particle.style.height = `${size}px`;
+            particle.style.left = `${posX}%`;
+            particle.style.top = `${posY}%`;
+
+            particle.style.animationDelay = `${Math.random() * 10}s`;
+            particle.style.animationDuration = `${Math.random() * 10 + 10}s`;
+
+            particlesContainer.appendChild(particle);
+        }
+    }
+
+    // Obtener hora actual
+    function getCurrentTime() {
+        const now = new Date();
+        return now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    // Enviar mensaje al backend y mostrar respuesta real
+    function sendMessage() {
+        const messageInput = document.getElementById('message');
+        const message = messageInput.value.trim();
+        if (!message) return;
+
+        const chatbox = document.getElementById('chatbox');
+
+        const userMsg = document.createElement('div');
+        userMsg.className = 'user message';
+        userMsg.innerHTML = `<strong>Tú:</strong> ${message}<div class="message-time">${getCurrentTime()}</div>`;
+        chatbox.appendChild(userMsg);
+
+        messageInput.value = '';
+        chatbox.scrollTop = chatbox.scrollHeight;
+
+        // Indicador de "Bozo está pensando..."
+        const typingMsg = document.createElement('div');
+        typingMsg.className = 'bot message typing-indicator';
+        typingMsg.innerHTML = 'Bueno Bozo está pensando...<div class="typing-dots"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>';
+        chatbox.appendChild(typingMsg);
+        chatbox.scrollTop = chatbox.scrollHeight;
+
+        fetch('/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({ message })
+        })
+        .then(response => response.json())
+        .then(data => {
+            typingMsg.remove();
+
+            const botMsg = document.createElement('div');
+            botMsg.className = 'bot message';
+            chatbox.appendChild(botMsg);
+
+            let i = 0;
+            const text = data.response;
+
+            const typingInterval = setInterval(() => {
+                if (i < text.length) {
+                    botMsg.innerHTML = `<strong>Bozo:</strong> ${text.substring(0, i + 1)}<div class="message-time">${getCurrentTime()}</div>`;
+                    i++;
+                    chatbox.scrollTop = chatbox.scrollHeight;
+                } else {
+                    clearInterval(typingInterval);
+                }
+            }, 25);
+        });
+    }
+
+    // Enviar con Enter
+    document.getElementById('message').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendMessage();
+    });
+
+    // Inicializar
+    window.onload = function () {
+        createParticles();
+        document.getElementById('message').focus();
+    };
         }
     </script>
 </body>

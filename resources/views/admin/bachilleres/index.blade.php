@@ -100,7 +100,7 @@
                     @forelse($bachilleres as $bachiller)
                     <tr>
                         <td>{{ $bachiller->id }}</td>
-                        <td>{{ $bachiller->persona->nombre ?? 'N/A' }}</td>
+                        <td>{{ $bachiller->persona->nombre ?? 'N/A' }} {{ $bachiller->persona->apellidoPat ?? 'N/A' }} {{ $bachiller->persona->apellidoMat ?? 'N/A' }}</td>
                         <td>
                             @if($bachiller->fecha)
                                 {{ $bachiller->fecha->format('d/m/Y') }}

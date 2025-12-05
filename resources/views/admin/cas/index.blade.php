@@ -258,37 +258,45 @@
                                             </span>
                                         @endif
                                     </td>
-                                    <td>
-                                        <div class="btn-group">
-                                            @if($antiguedad['tiene_cas'])
-                                                <a href="{{ route('cas.show', $antiguedad['cas_id']) }}"
-                                                   class="btn btn-info btn-sm" title="Ver CAS">
-                                                    <i class="fas fa-eye"></i>
-                                                </a>
-                                                <a href="{{ route('cas.edit', $antiguedad['cas_id']) }}"
-                                                   class="btn btn-warning btn-sm" title="Editar CAS">
-                                                    <i class="fas fa-edit"></i>
-                                                </a>
-                                            @else
-                                                <a href="{{ route('cas.create.persona', ['idPersona' => $persona->id]) }}"
-                                                   class="btn btn-success btn-sm" title="Registrar CAS">
-                                                    <i class="fas fa-file-contract"></i>
-                                                </a>
-                                            @endif
+<td>
+    <div class="btn-group">
+        @if($antiguedad['tiene_cas'])
+            <!-- Botones para CAS existente -->
+            <a href="{{ route('cas.show', $antiguedad['cas_id']) }}"
+               class="btn btn-info btn-sm" title="Ver CAS">
+                <i class="fas fa-eye"></i>
+            </a>
+            <a href="{{ route('cas.edit', $antiguedad['cas_id']) }}"
+               class="btn btn-warning btn-sm" title="Editar CAS">
+                <i class="fas fa-edit"></i>
+            </a>
 
-                                            <a href="{{ route('cas.calcular-bono', $persona->id) }}"
-                                               class="btn btn-primary btn-sm" title="Calcular Bono">
-                                                <i class="fas fa-calculator"></i>
-                                            </a>
+            <!-- Botón para registrar NUEVO CAS -->
+            <a href="{{ route('cas.create.persona', ['idPersona' => $persona->id]) }}"
+               class="btn btn-success btn-sm" title="Registrar Nuevo CAS">
+                <i class="fas fa-plus-circle"></i>
+            </a>
+        @else
+            <!-- Botón para primer CAS -->
+            <a href="{{ route('cas.create.persona', ['idPersona' => $persona->id]) }}"
+               class="btn btn-success btn-sm" title="Registrar CAS">
+                <i class="fas fa-file-contract"></i>
+            </a>
+        @endif
 
-                                            @if($alerta == 'urgente' && $antiguedad['tiene_cas'])
-                                                <a href="{{ route('cas.create.persona', ['idPersona' => $persona->id]) }}"
-                                                   class="btn btn-danger btn-sm" title="Actualizar CAS">
-                                                    <i class="fas fa-sync-alt"></i>
-                                                </a>
-                                            @endif
-                                        </div>
-                                    </td>
+        <a href="{{ route('cas.calcular-bono', $persona->id) }}"
+           class="btn btn-primary btn-sm" title="Calcular Bono">
+            <i class="fas fa-calculator"></i>
+        </a>
+
+        @if($alerta == 'urgente' && $antiguedad['tiene_cas'])
+            <a href="{{ route('cas.create.persona', ['idPersona' => $persona->id]) }}"
+               class="btn btn-danger btn-sm" title="Actualizar CAS">
+                <i class="fas fa-sync-alt"></i>
+            </a>
+        @endif
+    </div>
+</td>
                                 </tr>
                                 @empty
                                 <tr>

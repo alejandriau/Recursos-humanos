@@ -32,8 +32,8 @@
                         <td>{{ $loop->iteration }}</td>
                         <td>
                             @if($profesion->persona)
-                                {{ $profesion->persona->nombre }} 
-                                {{ $profesion->persona->apellidoPat }} 
+                                {{ $profesion->persona->nombre }}
+                                {{ $profesion->persona->apellidoPat }}
                                 {{ $profesion->persona->apellidoMat }}
                             @else
                                 <span class="text-muted">Sin persona asignada</span>
@@ -43,8 +43,8 @@
                         <td>{{ $profesion->fechaDiploma ?? '—' }}</td>
                         <td>{{ $profesion->provisionN ?? '—' }}</td>
                         <td>
-                            {{ $profesion->fechaProvision 
-                                ? \Carbon\Carbon::parse($profesion->fechaProvision)->format('d/m/Y') 
+                            {{ $profesion->fechaProvision
+                                ? \Carbon\Carbon::parse($profesion->fechaProvision)->format('d/m/Y')
                                 : '—' }}
                         </td>
                         <td>
@@ -101,11 +101,11 @@
         font-size: 16px;
         box-shadow: 0 0 10px rgba(0,0,0,0.2);
     }
-    
+
     .table-hover tbody tr:hover {
         background-color: rgba(0, 123, 255, 0.05);
     }
-    
+
     .d-inline-flex.gap-2 {
         gap: 0.5rem;
     }

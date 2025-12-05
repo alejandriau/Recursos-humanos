@@ -49,6 +49,7 @@ use App\Http\Controllers\SalarioMinimoController;
 use App\Http\Controllers\EmpleadoController;
 use App\Http\Controllers\CasHistorialBonosController;
 use App\Http\Controllers\ConfiguracionSalarioMinimoController;
+use App\Http\Controllers\ChatbotController;
 
 
 use Illuminate\Support\Facades\Route;
@@ -68,7 +69,12 @@ Route::middleware([
 
         Route::get('/reporte', [ReporteController::class, 'index'])->name('reportes.index');
 
-
+    Route::post('/chat', [ChatbotController::class, 'chat']);
+    Route::get('/chat/index', [ChatbotController::class, 'index'])->name('chat.index');
+    // routes/web.php
+    Route::get('/chatbot-content', function () {
+        return view('chatbot.chatbot');
+    });
 
     Route::get('/personas/show/{id}', [PersonaController::class, 'show'])->name('personas.show');
         Route::get('/personas/{id}/expediente', [PersonaController::class, 'generarExpediente'])->name('personas.expediente');
@@ -84,6 +90,7 @@ Route::prefix('reportes')->group(function () {
     Route::get('/personal-pdf', [ReporteController::class, 'personalPDF'])->name('reportes.personal');
     Route::get('/personal-excel', [ReporteController::class, 'personalXLS'])->name('reportes.excel');
         Route::get('/{id}/historial', [PersonaController::class, 'historial'])->name('personas.historial');
+        Route::get('/{id}/destroy', [PersonaController::class, 'destroy'])->name('personas.historial.destroy');
 });
 
     Route::get('/reportes/buscar', [ReporteController::class, 'buscar'])->name('reportes.buscar');

@@ -274,7 +274,7 @@ public function index(Request $request)
     {
         try {
             $query = Puesto::with(['unidadOrganizacional.padre'])
-                          ->where('esActivo', true);
+                        ->where('esActivo', true);
 
             if ($request->has('id_unidad')) {
                 $query->where('idUnidadOrganizacional', $request->id_unidad);
@@ -284,13 +284,13 @@ public function index(Request $request)
                 $query->where('denominacion', 'LIKE', "%{$request->buscar}%");
             }
 
-            $puestos = $query->paginate(15);
+            $puestos = $query->paginate(100); // Ya tienes la paginación aquí
 
             return view('admin.puestos.vacantes', compact('puestos'));
 
         } catch (\Exception $e) {
             return redirect()->route('admin.puestos.index')
-                             ->with('error', 'Error al obtener puestos vacantes: ' . $e->getMessage());
+                            ->with('error', 'Error al obtener puestos vacantes: ' . $e->getMessage());
         }
     }
 

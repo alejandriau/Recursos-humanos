@@ -39,10 +39,10 @@
                                 <strong>Item:</strong> {{ $persona->puestoActual->puesto->item ?? 'N/A' }}
                             </div>
                             <div class="col-md-3">
-                                <strong>Puesto:</strong> {{ $persona->puestoActual->puesto->nombre ?? 'N/A' }}
+                                <strong>Puesto:</strong> {{ $persona->puestoActual->puesto->denominacion ?? 'N/A' }}
                             </div>
                             <div class="col-md-3">
-                                <strong>Unidad:</strong> {{ $persona->puestoActual->puesto->unidadOrganizacional->nombre ?? 'N/A' }}
+                                <strong>Unidad:</strong> {{ $persona->puestoActual->puesto->unidadOrganizacional->denominacion ?? 'N/A' }}
                             </div>
                             <div class="col-md-3">
                                 <strong>Nivel:</strong> {{ $persona->puestoActual->puesto->nivelJerarquico ?? 'N/A' }}
@@ -79,8 +79,8 @@
                                     <tr>
                                         <td>{{ $index + 1 }}</td>
                                         <td>{{ $historial->puesto->item ?? 'N/A' }}</td>
-                                        <td>{{ $historial->puesto->nombre ?? 'N/A' }}</td>
-                                        <td>{{ $historial->puesto->unidadOrganizacional->nombre ?? 'N/A' }}</td>
+                                        <td>{{ $historial->puesto->denominacion ?? 'N/A' }}</td>
+                                        <td>{{ $historial->puesto->unidadOrganizacional->denominacion ?? 'N/A' }}</td>
                                         <td>{{ \Carbon\Carbon::parse($historial->fecha_inicio)->format('d/m/Y') }}</td>
                                         <td>
                                             @if($historial->fecha_fin)

@@ -83,7 +83,7 @@
                     <tr>
                         <td>{{ $afp->id }}</td>
                         <td>{{ $afp->cua }}</td>
-                        <td>{{ $afp->persona->nombre ?? 'N/A' }}</td>
+                        <td>{{ $afp->persona->nombre ?? 'N/A' }} {{ $afp->persona->apellidoPat ?? 'N/A' }} {{ $afp->persona->apellidoMat ?? 'N/A' }}</td>
                         <td>{{ Str::limit($afp->observacion, 30) }}</td>
                         <td>
                             <span class="badge bg-{{ $afp->estado ? 'success' : 'danger' }}">

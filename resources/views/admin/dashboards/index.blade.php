@@ -239,7 +239,7 @@
                 <i class="fas fa-user-plus text-green-500 text-xl mb-2"></i>
                 <span class="text-sm font-medium">Nuevo Puesto</span>
             </a>
-            <a href="{{ route('puestos.vacantes') }}"
+            <a href="{{ route('historial.vacio') }}"
                class="flex flex-col items-center justify-center p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-yellow-500 hover:bg-yellow-50 transition">
                 <i class="fas fa-search text-yellow-500 text-xl mb-2"></i>
                 <span class="text-sm font-medium">Ver Vacantes</span>

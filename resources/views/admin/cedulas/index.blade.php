@@ -103,7 +103,7 @@
                     <tr>
                         <td>{{ $cedula->id }}</td>
                         <td>{{ $cedula->ci ?? 'N/A' }}</td>
-                        <td>{{ $cedula->persona->nombre. " ". $cedula->persona->apellidoPat ?? 'N/A' }}</td>
+                        <td>{{ $cedula->persona->nombre ?? 'N/A' }} {{ $cedula->persona->apellidoPat ?? 'N/A' }} {{ $cedula->persona->apellidoMat ?? 'N/A' }}</td>
                         <td>{{ $cedula->expedido ?? 'N/A' }}</td>
                         <td>
                             @if($cedula->fechaVencimiento)

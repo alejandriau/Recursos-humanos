@@ -246,30 +246,31 @@ public function index(Request $request)
 }
 
     // Puestos vacíos
-    public function vacios(Request $request)
-    {
-        $search = $request->input('search');
+// Puestos vacíos
+public function vacios(Request $request)
+{
+    $search = $request->input('search');
 
-        $puestos = Puesto::where('estado', 1)
-            ->whereDoesntHave('historial', function ($query) {
-                $query->whereNull('fecha_fin')
-                    ->where('estado', 'activo')
-                    ->whereHas('persona', function ($q) {
-                        $q->where('estado', 1);
-                    });
-            })
-            ->when($search, function ($query) use ($search) {
-                $query->where(function ($q) use ($search) {
-                    $q->where('item', 'like', "%$search%")
-                      ->orWhere('nivelJerarquico', 'like', "%$search%")
-                      ->orWhere('denominacion', 'like', "%$search%");
+    $puestos = Puesto::where('estado', 1)
+        ->whereDoesntHave('historial', function ($query) {
+            $query->whereNull('fecha_fin')
+                ->where('estado', 'activo')
+                ->whereHas('persona', function ($q) {
+                    $q->where('estado', 1);
                 });
-            })
-            ->with(['unidadOrganizacional.padre.padre.padre'])
-            ->get();
+        })
+        ->when($search, function ($query) use ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('item', 'like', "%$search%")
+                  ->orWhere('nivelJerarquico', 'like', "%$search%")
+                  ->orWhere('denominacion', 'like', "%$search%");
+            });
+        })
+        ->with(['unidadOrganizacional.padre.padre.padre'])
+        ->paginate(100); // Cambiado de get() a paginate(100)
 
-        return view('admin.pasivos.bajas', compact('puestos', 'search'));
-    }
+    return view('admin.pasivos.bajas', compact('puestos', 'search'));
+}
 
     // Concluir designación actual
     public function concluir($id)
@@ -298,15 +299,23 @@ public function index(Request $request)
     }
 
     // Historial completo de una persona
-    public function historialPersona($personaId)
-    {
-        $persona = Persona::with(['historial' => function($query) {
-            $query->with(['puesto', 'puestoAnterior', 'puestoOriginal'])
-                  ->orderBy('fecha_inicio', 'desc');
-        }])->findOrFail($personaId);
+public function historial($id)
+{
+    $persona = Persona::with([
+        'historial' => function($query) {
+            $query->with([
+                'puesto.unidadOrganizacional',
+                'persona'
+            ])->orderBy('fecha_inicio', 'desc');
+        },
+        'puestoActual.puesto.unidadOrganizacional'
+    ])->findOrFail($id);
 
-        return view('admin.historial.persona', compact('persona'));
-    }
+    $puestos = Puesto::where('estado', 1)->get();
+    $unidades = UnidadOrganizacional::where('estado', 1)->get();
+
+    return view('admin.personas.historial', compact('persona', 'puestos', 'unidades'));
+}
 
     // Descargar memo PDF
     public function descargarMemo($id)

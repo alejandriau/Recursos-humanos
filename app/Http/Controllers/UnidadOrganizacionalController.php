@@ -224,61 +224,156 @@ class UnidadOrganizacionalController extends Controller
     /**
      * Obtener árbol organizacional completo
      */
-public function arbolOrganizacional(Request $request)
-{
-    try {
-        $unidadSeleccionada = null;
-        $raices = collect();
-        $filtroUnidad = $request->get('unidad_id');
+    public function arbolOrganizacional(Request $request)
+    {
+        try {
+            $unidadSeleccionada = null;
+            $raices = collect();
+            $filtroUnidad = $request->get('unidad_id');
 
-        // Obtener todas las unidades para el dropdown
-        $todasUnidades = UnidadOrganizacional::where('esActivo', true)
-            ->orderBy('denominacion')
-            ->get();
+            // Obtener todas las unidades para el dropdown
+            $todasUnidades = UnidadOrganizacional::where('esActivo', true)
+                ->orderBy('denominacion')
+                ->get();
 
-        if ($filtroUnidad) {
-            // Buscar la unidad específica seleccionada
-            $unidadSeleccionada = UnidadOrganizacional::with([
-                'hijos.jefe.personaActual',
-                'hijos.hijos.jefe.personaActual',
-                'hijos.hijos.hijos.jefe.personaActual',
-                'jefe.personaActual'
-            ])->find($filtroUnidad);
+            if ($filtroUnidad) {
+                // Buscar la unidad específica seleccionada
+                $unidadSeleccionada = UnidadOrganizacional::with([
+                    'hijos.jefe.personaActual',
+                    'hijos.hijos.jefe.personaActual',
+                    'hijos.hijos.hijos.jefe.personaActual',
+                    'jefe.personaActual'
+                ])->find($filtroUnidad);
 
-            if ($unidadSeleccionada) {
-                // Si la unidad tiene hijos, mostrarlos como raíces
-                if ($unidadSeleccionada->hijos->count() > 0) {
-                    $raices = $unidadSeleccionada->hijos;
-                } else {
-                    // Si no tiene hijos, mostrar solo la unidad seleccionada
-                    $raices = collect([$unidadSeleccionada]);
+                if ($unidadSeleccionada) {
+                    // Si la unidad tiene hijos, mostrarlos como raíces
+                    if ($unidadSeleccionada->hijos->count() > 0) {
+                        $raices = $unidadSeleccionada->hijos;
+                    } else {
+                        // Si no tiene hijos, mostrar solo la unidad seleccionada
+                        $raices = collect([$unidadSeleccionada]);
+                    }
                 }
+            } else {
+                // Mostrar todas las unidades raíz
+                $raices = UnidadOrganizacional::with([
+                    'hijos.jefe.personaActual',
+                    'hijos.hijos.jefe.personaActual',
+                    'hijos.hijos.hijos.jefe.personaActual',
+                    'jefe.personaActual'
+                ])->whereNull('idPadre')
+                  ->where('esActivo', true)
+                  ->orderBy('denominacion')
+                  ->get();
             }
-        } else {
-            // Mostrar todas las unidades raíz
-            $raices = UnidadOrganizacional::with([
-                'hijos.jefe.personaActual',
-                'hijos.hijos.jefe.personaActual',
-                'hijos.hijos.hijos.jefe.personaActual',
-                'jefe.personaActual'
-            ])->whereNull('idPadre')
-              ->where('esActivo', true)
-              ->orderBy('denominacion')
-              ->get();
+
+            // Preparar datos para D3.js
+            $treeData = $this->buildTreeData($raices, $filtroUnidad, $unidadSeleccionada);
+
+            return view('admin.unidades.arbol', compact(
+                'raices',
+                'todasUnidades',
+                'filtroUnidad',
+                'unidadSeleccionada',
+                'treeData'
+            ));
+
+        } catch (\Exception $e) {
+            return redirect()->route('unidades.index')
+                             ->with('error', 'Error al obtener árbol organizacional: ' . $e->getMessage());
+        }
+    }
+
+    private function buildTreeData($raices, $filtroUnidad, $unidadSeleccionada)
+    {
+        // Si hay filtro y la unidad seleccionada no tiene hijos, mostrarla como raíz
+        if ($filtroUnidad && $unidadSeleccionada && $unidadSeleccionada->hijos->count() === 0) {
+            $rootNode = $this->formatNode($unidadSeleccionada);
+            $rootNode['children'] = [];
+            return $rootNode;
         }
 
-        return view('admin.unidades.arbol', compact(
-            'raices',
-            'todasUnidades',
-            'filtroUnidad',
-            'unidadSeleccionada'
-        ));
+        // Para múltiples raíces, crear un nodo raíz virtual
+        if ($raices->count() > 1 || ($filtroUnidad && $unidadSeleccionada)) {
+            $rootNode = [
+                'name' => $filtroUnidad && $unidadSeleccionada ? $unidadSeleccionada->denominacion : 'Organigrama General',
+                'title' => 'RAIZ',
+                'type' => 'ROOT',
+                'children' => []
+            ];
 
-    } catch (\Exception $e) {
-        return redirect()->route('unidades.index')
-                         ->with('error', 'Error al obtener árbol organizacional: ' . $e->getMessage());
+            foreach ($raices as $raiz) {
+                $rootNode['children'][] = $this->buildNodeRecursively($raiz);
+            }
+
+            return $rootNode;
+        }
+
+        // Para una sola raíz
+        if ($raices->count() === 1) {
+            return $this->buildNodeRecursively($raices->first());
+        }
+
+        return ['name' => 'No hay datos', 'children' => []];
     }
-}
+
+    private function buildNodeRecursively($unidad)
+    {
+        $node = $this->formatNode($unidad);
+
+        if ($unidad->hijos->count() > 0) {
+            $node['children'] = [];
+            foreach ($unidad->hijos as $hijo) {
+                $node['children'][] = $this->buildNodeRecursively($hijo);
+            }
+        }
+
+        return $node;
+    }
+
+    private function formatNode($unidad)
+    {
+        $jefeNombre = 'Sin jefe asignado';
+        $jefePuesto = '';
+
+        if ($unidad->jefe && $unidad->jefe->personaActual) {
+            $jefeNombre = $unidad->jefe->personaActual->nombre . ' ' .
+                         $unidad->jefe->personaActual->apellidoPat . ' ' .
+                         ($unidad->jefe->personaActual->apellidoMat ?? '');
+            $jefePuesto = $unidad->jefe->denominacion;
+        }
+
+        return [
+            'id' => $unidad->id,
+            'name' => $unidad->denominacion,
+            'title' => $unidad->tipo,
+            'type' => $unidad->tipo,
+            'codigo' => $unidad->codigo,
+            'jefe' => $jefeNombre,
+            'puestoJefe' => $jefePuesto,
+            'subunidades' => $unidad->hijos->count(),
+            'totalPuestos' => $unidad->puestos->count(),
+            'esActivo' => $unidad->esActivo,
+            'color' => $this->getColorByType($unidad->tipo)
+        ];
+    }
+
+    private function getColorByType($tipo)
+    {
+        $colores = [
+            'DIRECCION' => '#2563eb',
+            'SECRETARIA' => '#7c3aed',
+            'SERVICIO' => '#4f46e5',
+            'GERENCIA' => '#059669',
+            'UNIDAD' => '#10b981',
+            'AREA' => '#d97706',
+            'DEPARTAMENTO' => '#dc2626',
+            'COORDINACION' => '#db2777',
+            'default' => '#6b7280'
+        ];
+
+        return $colores[$tipo] ?? $colores['default'];
+    }
     /**
      * Obtener estructura completa de una unidad con todas sus subunidades
      */

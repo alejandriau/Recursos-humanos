@@ -81,7 +81,7 @@
                     @forelse($compromisos as $compromiso)
                     <tr>
                         <td>{{ $compromiso->id }}</td>
-                        <td>{{ $compromiso->persona->nombre ?? 'N/A' }}</td>
+                        <td>{{ $compromiso->persona->nombre ?? 'N/A' }} {{ $compromiso->persona->apellidoPat ?? 'N/A' }} {{ $compromiso->persona->apellidoMat ?? 'N/A' }}</td>
                         <td>
                             @foreach($compromiso->compromisos as $comp)
                                 <span class="badge bg-info mb-1">Comp. {{ $comp['numero'] }}</span>

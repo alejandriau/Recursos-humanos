@@ -208,9 +208,9 @@
                                 <td>{{ $puesto->persona->ci ?? 'N/A' }}</td>
                                 <td>
                                     @if($puesto->historial_actual)
-                                        ${{ number_format($puesto->historial_actual->salario ?? 0, 2) }}
+                                        <p class="text-nowrap">Bs {{ number_format($puesto->haber ?? 0, 2) }}</p>
                                     @else
-                                        ${{ number_format($puesto->haber ?? 0, 2) }}
+                                        Bs {{ number_format($puesto->haber ?? 0, 2) }}
                                     @endif
                                 </td>
                                 <td>
@@ -250,7 +250,7 @@
                                         }
 
                                         // Mostrar en orden inverso (de mayor a menor jerarquía)
-                                        echo implode(' → ', array_reverse($jerarquia));
+                                        echo implode(' → ', $jerarquia);
                                     @endphp
                                 </td>
                                 <td>
@@ -262,7 +262,7 @@
                                         <ul class="dropdown-menu acciones-dropdown">
                                             @if($puesto->historial_actual && $puesto->persona)
                                                 <li>
-                                                    <a class="dropdown-item" href="{{ route('historial.persona', $puesto->persona->id) }}">
+                                                    <a class="dropdown-item" href="{{ route('personas.historial', $puesto->persona->id) }}">
                                                         <i class="fas fa-history me-2"></i>Ver Historial
                                                     </a>
                                                 </li>

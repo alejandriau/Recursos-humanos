@@ -94,7 +94,7 @@
                     @forelse($curriculums as $curriculum)
                     <tr>
                         <td>{{ $curriculum->id }}</td>
-                        <td>{{ $curriculum->persona->nombre ?? 'N/A' }}</td>
+                        <td>{{ $curriculum->persona->nombre ?? 'N/A' }} {{ $curriculum->persona->apellidoPat ?? 'N/A' }} {{ $curriculum->persona->apellidoMat ?? 'N/A' }}</td>
                         <td>{{ Str::limit($curriculum->descripcion, 50) }}</td>
                         <td>
                             <small class="text-muted">{{ $curriculum->informacion_resumida }}</small>
