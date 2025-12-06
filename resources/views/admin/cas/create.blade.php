@@ -240,21 +240,26 @@
 </div>
 
 <script>
-
 document.addEventListener('DOMContentLoaded', function() {
     const selectPersona = document.getElementById('id_persona');
     const inputFechaIngreso = document.getElementById('fecha_ingreso_institucion');
 
+    console.log('Script CAS cargado'); // Para debug
+
     // Función para actualizar la fecha de ingreso
-    function actualizarFechaIngreso(personaId = null) {
-        const selectedId = personaId || selectPersona.value;
-        const selectedOption = selectPersona.querySelector(option[value="${selectedId}"]);
+    function actualizarFechaIngreso() {
+        if (!selectPersona || !inputFechaIngreso) {
+            console.error('Elementos no encontrados');
+            return;
+        }
+
+        const selectedOption = selectPersona.options[selectPersona.selectedIndex];
 
         if (selectedOption) {
             const fechaIngreso = selectedOption.getAttribute('data-fecha-ingreso');
-            console.log('Fecha obtenida:', fechaIngreso); // Para debug
+            console.log('Fecha obtenida:', fechaIngreso, 'para persona:', selectPersona.value);
 
-            if (fechaIngreso && selectedId !== '') {
+            if (fechaIngreso && selectPersona.value !== '') {
                 inputFechaIngreso.value = fechaIngreso;
             } else {
                 inputFechaIngreso.value = '';
@@ -262,98 +267,33 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Inicialización con TomSelect (si está disponible)
-    if (typeof TomSelect !== 'undefined') {
-        const tomselect = new TomSelect('#id_persona', {
-            plugins: ['dropdown_input'],
-            create: false,
-            sortField: {
-                field: "text",
-                direction: "asc"
-            },
-            searchField: ['text'],
-            onInitialize: function() {
-                // Auto-selección si hay una persona pre-seleccionada o solo una disponible
-                autoSeleccionarPersona();
-            },
-            onChange: function(value) {
-                if (value && value !== '') {
-                    actualizarFechaIngreso(value);
-                } else {
-                    inputFechaIngreso.value = '';
-                }
+    // Inicializar al cargar
+    if (selectPersona && selectPersona.value && selectPersona.value !== '') {
+        console.log('Inicializando fecha para persona seleccionada:', selectPersona.value);
+        actualizarFechaIngreso();
+    }
+
+    // Evento cuando cambia la selección
+    if (selectPersona) {
+        selectPersona.addEventListener('change', actualizarFechaIngreso);
+    }
+
+    // Validaciones del formulario
+    const form = document.getElementById('casForm');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            // Validar fecha de ingreso
+            if (!inputFechaIngreso.value) {
+                e.preventDefault();
+                alert('Error: La fecha de ingreso a la institución es obligatoria.');
+                inputFechaIngreso.focus();
+                return false;
             }
-        });
-    } else {
-        // Lógica sin TomSelect
-        autoSeleccionarPersona();
 
-        // Evento cuando cambia la selección
-        selectPersona.addEventListener('change', function() {
-            actualizarFechaIngreso();
+            // Resto de validaciones...
+            return true;
         });
     }
-
-    // Función para auto-seleccionar persona
-    function autoSeleccionarPersona() {
-        const opciones = Array.from(selectPersona.options);
-        const opcionesValidas = opciones.filter(opt => opt.value !== '');
-
-        // Si hay una persona pre-seleccionada desde el controlador
-        const personaPreseleccionada = "{{ $personaSeleccionada ? $personaSeleccionada->id : '' }}";
-
-        if (personaPreseleccionada) {
-            selectPersona.value = personaPreseleccionada;
-            actualizarFechaIngreso(personaPreseleccionada);
-        }
-        // Si no hay pre-selección pero solo hay una persona disponible
-        else if (opcionesValidas.length === 1) {
-            const unicaPersonaId = opcionesValidas[0].value;
-            selectPersona.value = unicaPersonaId;
-            actualizarFechaIngreso(unicaPersonaId);
-        }
-    }
-
-    // Resto de las validaciones del formulario (igual que antes)
-    document.getElementById('casForm').addEventListener('submit', function(e) {
-        const fechaEmision = new Date(document.getElementById('fecha_emision_cas').value);
-        const fechaPresentacion = new Date(document.getElementById('fecha_presentacion_rrhh').value);
-        const fechaCalculo = new Date(document.getElementById('fecha_calculo_antiguedad').value);
-
-        if (fechaPresentacion < fechaEmision) {
-            e.preventDefault();
-            alert('Error: La fecha de presentación no puede ser anterior a la fecha de emisión.');
-            return false;
-        }
-
-        if (fechaCalculo < fechaEmision) {
-            e.preventDefault();
-            alert('Error: La fecha de cálculo no puede ser anterior a la fecha de emisión.');
-            return false;
-        }
-
-        const anios = parseInt(document.getElementById('anios_servicio').value);
-        const meses = parseInt(document.getElementById('meses_servicio').value);
-        const dias = parseInt(document.getElementById('dias_servicio').value);
-
-        if (anios < 0 || meses < 0 || dias < 0) {
-            e.preventDefault();
-            alert('Error: Los valores de antigüedad no pueden ser negativos.');
-            return false;
-        }
-
-        if (meses > 11) {
-            e.preventDefault();
-            alert('Error: Los meses no pueden ser mayores a 11.');
-            return false;
-        }
-
-        if (dias > 30) {
-            e.preventDefault();
-            alert('Error: Los días no pueden ser mayores a 30.');
-            return false;
-        }
-    });
 });
 </script>
 @endsection
