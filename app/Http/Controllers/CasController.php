@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use App\Exports\CasExport;
 use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Support\Facades\Storage;
+
 
 class CasController extends Controller
 {
@@ -406,11 +408,14 @@ public function store(Request $request)
             'anios_servicio' => 'required|integer|min:0',
             'meses_servicio' => 'required|integer|min:0|max:11',
             'dias_servicio' => 'required|integer|min:0|max:30',
-            'archivo_cas' => 'nullable|string|max:250',
+            'archivo_cas' => 'nullable|file|mimes:pdf|max:4096',
             'periodo_calificacion' => 'nullable|string|max:100',
             'meses_calificacion' => 'nullable|string|max:100',
             'observaciones' => 'nullable|string'
         ]);
+
+        // Obtener persona para crear estructura de carpetas
+        $persona = Persona::findOrFail($request->id_persona);
         // 1. VERIFICAR Y CERRAR CAS ANTERIOR SI EXISTE
         $casAnterior = Cas::where('id_persona', $request->id_persona)
             ->where('estado_cas', 'vigente')
@@ -445,6 +450,42 @@ public function store(Request $request)
         $cas->periodo_calificacion = $request->periodo_calificacion;
         $cas->meses_calificacion = $request->meses_calificacion;
         $cas->observaciones = $request->observaciones;
+
+                // Manejar archivo PDF
+        if ($request->hasFile('archivo_cas')) {
+            // Verificar si la carpeta de la persona existe
+            if (!$persona->archivo) {
+                // Si no existe carpeta, crear una similar al store de persona
+                $nombre = Str::slug($persona->nombre);
+                $apellidoMat = Str::slug($persona->apellidoMat ?? 'SinApellido');
+                $fecha = now()->format('Y-m-d');
+                $nombreCarpeta = "{$persona->id}_{$nombre}_{$apellidoMat}_{$fecha}";
+                $rutaBase = "archivos/{$nombreCarpeta}";
+
+                // Crear carpeta si no existe
+                Storage::disk('local')->makeDirectory($rutaBase);
+
+                // Actualizar persona con la ruta
+                $persona->archivo = $rutaBase;
+                $persona->save();
+            }
+
+            // Crear subcarpeta para CAS
+            $rutaCAS = $persona->archivo . '/cas';
+            Storage::disk('local')->makeDirectory($rutaCAS);
+
+            // Generar nombre único para el archivo
+            $numeroCAS = Cas::where('id_persona', $persona->id)->count() + 1;
+            $nombreArchivo = "CAS_" . $persona->ci . "_" . $numeroCAS . "_" .
+                           now()->format('YmdHis') . "." .
+                           $request->file('archivo_cas')->extension();
+
+            // Guardar archivo
+            $path = $request->file('archivo_cas')->storeAs($rutaCAS, $nombreArchivo, 'local');
+
+            // Guardar ruta relativa en la base de datos
+            $cas->archivo_cas = $path;
+        }
 
         // Calcular bono con los datos ingresados
         $calculoBono = $this->calcularBonoConAntiguedad(
@@ -572,78 +613,184 @@ private function calcularBonoConAntiguedad($anios, $meses, $dias)
 
 
     public function update(Request $request, $id)
-    {
-        DB::beginTransaction();
+{
+    DB::beginTransaction();
 
-        try {
-            $cas = Cas::find($id);
+    try {
+        $cas = Cas::findOrFail($id);
+        $persona = Persona::findOrFail($cas->id_persona);
 
-            if (!$cas) {
-                return redirect()->route('cas.index')->with('error', 'CAS no encontrado');
+        // Determinar qué campos están cambiando para saber si recalcular bono
+        $datosOriginales = $cas->toArray();
+        $camposQueRequirierenRecalculo = [
+            'anios_servicio',
+            'meses_servicio',
+            'dias_servicio',
+            'fecha_calculo_antiguedad'
+        ];
+
+        $necesitaRecalculoBono = false;
+
+        // Validación
+        $validatedData = $request->validate([
+            'fecha_ingreso_institucion' => 'required|date',
+            'fecha_emision_cas' => 'required|date',
+            'fecha_presentacion_rrhh' => 'required|date',
+            'fecha_calculo_antiguedad' => 'required|date',
+            'anios_servicio' => 'required|integer|min:0',
+            'meses_servicio' => 'required|integer|min:0|max:11',
+            'dias_servicio' => 'required|integer|min:0|max:30',
+            'archivo_cas' => 'nullable|file|mimes:pdf|max:4096',
+            'periodo_calificacion' => 'nullable|string|max:100',
+            'meses_calificacion' => 'nullable|string|max:100',
+            'observaciones' => 'nullable|string'
+        ]);
+
+        // Verificar si necesita recalcular bono
+        foreach ($camposQueRequirierenRecalculo as $campo) {
+            if (isset($validatedData[$campo]) && $validatedData[$campo] != $datosOriginales[$campo]) {
+                $necesitaRecalculoBono = true;
+                break;
             }
-
-            $request->validate([
-                'fecha_emision_cas' => 'sometimes|date',
-                'fecha_presentacion_rrhh' => 'sometimes|date',
-                'fecha_calculo_antiguedad' => 'sometimes|date',
-                'anios_servicio' => 'sometimes|integer|min:0',
-                'meses_servicio' => 'sometimes|integer|min:0|max:11',
-                'dias_servicio' => 'sometimes|integer|min:0|max:30',
-                'archivo_cas' => 'nullable|string|max:250',
-                'periodo_calificacion' => 'nullable|string|max:100',
-                'meses_calificacion' => 'nullable|string|max:100',
-                'observaciones' => 'nullable|string',
-                'estado_cas' => 'sometimes|in:vigente,vencido,procesado'
-            ]);
-
-            $estadoAnterior = $cas->estado_cas;
-            $alertaAnterior = $cas->nivel_alerta;
-
-            $cas->fill($request->all());
-
-            // Recalcular bono si cambia la antigüedad
-            if ($request->has('anios_servicio') || $request->has('meses_servicio') || $request->has('dias_servicio')) {
-                $calculoBono = $this->calcularBonoConAntiguedad(
-                    $request->anios_servicio,
-                    $request->meses_servicio,
-                    $request->dias_servicio
-                );
-
-                $cas->aplica_bono_antiguedad = $calculoBono['aplica_bono'];
-                $cas->porcentaje_bono = $calculoBono['porcentaje'];
-                $cas->monto_bono = $calculoBono['monto'];
-                $cas->rango_antiguedad = $calculoBono['rango'];
-
-                if (isset($calculoBono['escala'])) {
-                    $cas->id_escala_bono = $calculoBono['escala']->id;
-                }
-            }
-
-            $cas->actualizarAlerta();
-            $cas->save();
-
-            // Registrar en historial si cambió el estado o alerta
-            if ($estadoAnterior != $cas->estado_cas || $alertaAnterior != $cas->nivel_alerta) {
-                \App\Models\CasHistorial::create([
-                    'id_cas' => $cas->id,
-                    'id_usuario' => auth()->id(),
-                    'estado_anterior' => $estadoAnterior,
-                    'estado_nuevo' => $cas->estado_cas,
-                    'alerta_anterior' => $alertaAnterior,
-                    'alerta_nuevo' => $cas->nivel_alerta,
-                    'observacion' => 'Actualización de estado/alertas'
-                ]);
-            }
-
-            DB::commit();
-
-            return redirect()->route('cas.show', $cas->id)->with('success', 'CAS actualizado exitosamente');
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return redirect()->back()->with('error', 'Error al actualizar CAS: ' . $e->getMessage())->withInput();
         }
+
+        // Manejar archivo PDF
+        if ($request->hasFile('archivo_cas')) {
+            // Eliminar archivo anterior si existe
+            if ($cas->archivo_cas && Storage::disk('local')->exists($cas->archivo_cas)) {
+                Storage::disk('local')->delete($cas->archivo_cas);
+            }
+
+            // Crear subcarpeta para CAS si no existe
+            $rutaCAS = $persona->archivo . '/cas';
+            if (!Storage::disk('local')->exists($rutaCAS)) {
+                Storage::disk('local')->makeDirectory($rutaCAS);
+            }
+
+            // Generar nombre único para el archivo
+            $nombreArchivo = "CAS_" . $persona->ci . "_" . $cas->id . "_UPDATE_" .
+                           now()->format('YmdHis') . "." .
+                           $request->file('archivo_cas')->extension();
+
+            // Guardar archivo
+            $path = $request->file('archivo_cas')->storeAs($rutaCAS, $nombreArchivo, 'local');
+
+            // Guardar ruta relativa en la base de datos
+            $validatedData['archivo_cas'] = $path;
+        } else {
+            // Mantener el archivo existente si no se sube uno nuevo
+            unset($validatedData['archivo_cas']);
+        }
+
+        // Variables para historial de bono (si aplica)
+        $historialBonoData = null;
+
+        // Si necesita recalcular bono
+        if ($necesitaRecalculoBono) {
+            // Guardar datos anteriores para el historial
+            $datosBonoAnteriores = [
+                'porcentaje' => $cas->porcentaje_bono,
+                'monto' => $cas->monto_bono,
+                'id_salario_minimo' => $cas->id_salario_minimo,
+                'anios_servicio' => $cas->anios_servicio,
+                'meses_servicio' => $cas->meses_servicio,
+                'dias_servicio' => $cas->dias_servicio,
+                'rango_antiguedad' => $cas->rango_antiguedad,
+                'id_escala_bono' => $cas->id_escala_bono,
+                'aplica_bono' => $cas->aplica_bono_antiguedad
+            ];
+
+            // Recalcular bono
+            $calculoBono = $this->calcularBonoConAntiguedad(
+                $validatedData['anios_servicio'],
+                $validatedData['meses_servicio'],
+                $validatedData['dias_servicio']
+            );
+
+            // Actualizar campos de bono
+            $validatedData['aplica_bono_antiguedad'] = $calculoBono['aplica_bono'];
+            $validatedData['porcentaje_bono'] = $calculoBono['porcentaje'];
+            $validatedData['monto_bono'] = $calculoBono['monto'];
+            $validatedData['rango_antiguedad'] = $calculoBono['rango'];
+
+            if (isset($calculoBono['escala'])) {
+                $validatedData['id_escala_bono'] = $calculoBono['escala']->id;
+            } else {
+                $validatedData['id_escala_bono'] = null;
+            }
+
+            // Verificar si hubo cambio en salario mínimo vigente
+            $salarioVigente = ConfiguracionSalarioMinimo::where('vigente', true)->first();
+            $nuevoIdSalarioMinimo = $salarioVigente ? $salarioVigente->id : $cas->id_salario_minimo;
+
+            // Preparar datos para historial de bono
+            $historialBonoData = [
+                'id_cas' => $cas->id,
+                'id_usuario' => auth()->id(),
+                'porcentaje_anterior' => $datosBonoAnteriores['porcentaje'],
+                'porcentaje_nuevo' => $validatedData['porcentaje_bono'],
+                'monto_anterior' => $datosBonoAnteriores['monto'],
+                'monto_nuevo' => $validatedData['monto_bono'],
+                'id_salario_minimo_anterior' => $datosBonoAnteriores['id_salario_minimo'],
+                'id_salario_minimo_nuevo' => $nuevoIdSalarioMinimo,
+                'anios_servicio_anterior' => $datosBonoAnteriores['anios_servicio'],
+                'anios_servicio_nuevo' => $validatedData['anios_servicio'],
+                'meses_servicio_anterior' => $datosBonoAnteriores['meses_servicio'],
+                'meses_servicio_nuevo' => $validatedData['meses_servicio'],
+                'dias_servicio_anterior' => $datosBonoAnteriores['dias_servicio'],
+                'dias_servicio_nuevo' => $validatedData['dias_servicio'],
+                'tipo_cambio' => 'actualizacion',
+                'observacion' => 'Actualización de datos de antigüedad o cálculo'
+            ];
+
+            // Actualizar salario mínimo si cambió
+            if ($nuevoIdSalarioMinimo != $cas->id_salario_minimo) {
+                $validatedData['id_salario_minimo'] = $nuevoIdSalarioMinimo;
+            }
+        }
+
+        // Actualizar otros campos
+        $cas->fill($validatedData);
+
+        // Actualizar alerta basada en fechas (siempre)
+        $cas->actualizarAlerta();
+
+        // Guardar cambios
+        $cas->save();
+
+        // Registrar historial de bono si hubo cambios relevantes
+        if ($historialBonoData && $cas->aplica_bono_antiguedad) {
+            // Solo registrar si realmente hubo cambios en los valores del bono
+            $huboCambioBono =
+                $historialBonoData['porcentaje_anterior'] != $historialBonoData['porcentaje_nuevo'] ||
+                $historialBonoData['monto_anterior'] != $historialBonoData['monto_nuevo'] ||
+                $historialBonoData['id_salario_minimo_anterior'] != $historialBonoData['id_salario_minimo_nuevo'];
+
+            if ($huboCambioBono) {
+                \App\Models\CasHistorialBonos::registrarCambio($historialBonoData);
+            }
+        }
+
+        // Registrar en historial de estados si cambió el estado
+        if ($cas->wasChanged('estado_cas')) {
+            \App\Models\CasHistorial::create([
+                'id_cas' => $cas->id,
+                'id_usuario' => auth()->id(),
+                'estado_anterior' => $datosOriginales['estado_cas'],
+                'estado_nuevo' => $cas->estado_cas,
+                'observacion' => 'Actualización de CAS'
+            ]);
+        }
+
+        DB::commit();
+
+        return redirect()->route('cas.index')->with('success', 'CAS actualizado exitosamente');
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return redirect()->back()->with('error', 'Error al actualizar CAS: ' . $e->getMessage())->withInput();
     }
+}
 
     public function destroy($id)
     {
@@ -762,4 +909,22 @@ private function calcularBonoConAntiguedad($anios, $meses, $dias)
             'id_salario_minimo' => $salarioMinimo->id,
         ];
     }
+public function verArchivo($id)
+{
+    $cas = Cas::findOrFail($id);
+
+    if (!$cas->archivo_cas || !Storage::disk('local')->exists($cas->archivo_cas)) {
+        abort(404, 'Archivo no encontrado');
+    }
+
+    $contenido = Storage::disk('local')->get($cas->archivo_cas);
+    $tipo = Storage::disk('local')->mimeType($cas->archivo_cas);
+
+    return response($contenido)
+        ->header('Content-Type', $tipo)
+        ->header('Content-Disposition', 'inline; filename="' . basename($cas->archivo_cas) . '"');
+}
+
+
+
 }

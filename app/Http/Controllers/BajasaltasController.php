@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
+use Illuminate\Support\Str;
+
 
 class BajasaltasController extends Controller
 {
@@ -160,8 +162,25 @@ public function store(Request $request)
         // Guardar archivo si existe
         $pdfPath = null;
         if ($request->hasFile('pdffile')) {
-            $pdfPath = $request->file('pdffile')->store('pdfs', 'public');
-            \Log::info('PDF guardado:', ['ruta' => $pdfPath]);
+            // Crear subcarpeta para bajas si no existe
+            $rutaBajas = $persona->archivo . '/bajas';
+            if (!Storage::disk('local')->exists($rutaBajas)) {
+                Storage::disk('local')->makeDirectory($rutaBajas);
+            }
+
+            // Generar nombre único para el archivo
+            $nombreArchivo = "BAJA_" . $persona->ci . "_" .
+                           now()->format('YmdHis') . "_" .
+                           Str::slug($validated['motivo'], '_') . ".pdf";
+
+            // Guardar archivo
+            $path = $request->file('pdffile')->storeAs($rutaBajas, $nombreArchivo, 'local');
+            $pdfPath = $path;
+
+            \Log::info('PDF de baja guardado:', [
+                'ruta' => $pdfPath,
+                'persona_id' => $persona->id
+            ]);
         }
 
         // Registrar baja
@@ -277,18 +296,52 @@ public function store(Request $request)
                 \Log::info('Pasivo actualizado:', ['id' => $pasivo->id]);
             }
 
-            // Manejar archivo PDF si se subió uno nuevo
+            // Manejar archivo PDF igual que en store
             $pdfPath = $baja->pdfbaja; // Mantener el PDF existente por defecto
 
             if ($request->hasFile('pdffile')) {
-                // Eliminar PDF anterior si existe
-                if ($baja->pdfbaja && Storage::disk('public')->exists($baja->pdfbaja)) {
-                    Storage::disk('public')->delete($baja->pdfbaja);
-                    \Log::info('PDF anterior eliminado:', ['ruta' => $baja->pdfbaja]);
+                // Verificar/crear estructura de carpetas de la persona
+                if (!$persona->archivo) {
+                    $nombre = Str::slug($persona->nombre);
+                    $apellidoMat = Str::slug($persona->apellidomaterno ?? 'SinApellido');
+                    $fecha = now()->format('Y-m-d');
+                    $nombreCarpeta = "{$persona->id}_{$nombre}_{$apellidoMat}_{$fecha}";
+                    $rutaBase = "archivos/{$nombreCarpeta}";
+
+                    // Crear carpeta principal y subcarpetas
+                    Storage::disk('local')->makeDirectory($rutaBase);
+
+                    // Actualizar persona con la ruta
+                    $persona->archivo = $rutaBase;
+                    $persona->save();
+                    \Log::info('Carpeta creada para persona:', ['ruta' => $rutaBase]);
                 }
 
-                // Guardar nuevo PDF
-                $pdfPath = $request->file('pdffile')->store('pdfs', 'public');
+                // Crear subcarpeta para bajas si no existe (igual que en store)
+                $rutaBajas = $persona->archivo . '/bajas';
+                if (!Storage::disk('local')->exists($rutaBajas)) {
+                    Storage::disk('local')->makeDirectory($rutaBajas);
+                }
+
+                // Generar nombre único para el archivo (igual que en store)
+                $nombreArchivo = "BAJA_" . $persona->ci . "_" .
+                            now()->format('YmdHis') . "_" .
+                            Str::slug($validated['motivo'], '_') . ".pdf";
+
+                // Guardar archivo en el disco local (igual que en store)
+                $path = $request->file('pdffile')->storeAs($rutaBajas, $nombreArchivo, 'local');
+                $pdfPath = $path;
+
+                // Eliminar archivo anterior si existe
+                if ($baja->pdfbaja && Storage::disk('local')->exists($baja->pdfbaja)) {
+                    Storage::disk('local')->delete($baja->pdfbaja);
+                    \Log::info('PDF anterior eliminado:', ['ruta' => $baja->pdfbaja]);
+                } elseif ($baja->pdfbaja && Storage::disk('public')->exists($baja->pdfbaja)) {
+                    // Para compatibilidad: si el archivo antiguo está en 'public', eliminarlo de allí también
+                    Storage::disk('public')->delete($baja->pdfbaja);
+                    \Log::info('PDF anterior eliminado de public:', ['ruta' => $baja->pdfbaja]);
+                }
+
                 \Log::info('Nuevo PDF guardado:', ['ruta' => $pdfPath]);
             }
 
@@ -369,41 +422,39 @@ public function store(Request $request)
     }
     public function verPdf($id)
     {
-        try {
-            $baja = Bajasaltas::findOrFail($id);
+        $baja = Bajasaltas::findOrFail($id);
 
-            if (!$baja->pdfbaja || !Storage::disk('public')->exists($baja->pdfbaja)) {
-                abort(404, 'PDF no encontrado');
-            }
-
-            $path = storage_path('app/public/' . $baja->pdfbaja);
-
-            return response()->file($path, [
-                'Content-Type' => 'application/pdf',
-                'Content-Disposition' => 'inline; filename="baja_' . $baja->id . '.pdf"'
-            ]);
-
-        } catch (\Exception $e) {
-            abort(404, 'Error al cargar el PDF: ' . $e->getMessage());
+        // Verifica que exista el PDF
+        if (!$baja->pdfbaja || !Storage::exists($baja->pdfbaja)) {
+            abort(404, 'PDF no encontrado');
         }
+
+        // Obtiene contenido y tipo MIME
+        $contenido = Storage::get($baja->pdfbaja);
+        $tipo = Storage::mimeType($baja->pdfbaja);
+
+        // Devuelve el PDF para ver en el navegador
+        return response($contenido)
+            ->header('Content-Type', $tipo)
+            ->header('Content-Disposition', 'inline; filename="' . basename($baja->pdfbaja) . '"');
     }
 
     public function descargarPdf($id)
     {
-        try {
-            $baja = Bajasaltas::findOrFail($id);
+        $baja = Bajasaltas::findOrFail($id);
 
-            if (!$baja->pdfbaja || !Storage::disk('public')->exists($baja->pdfbaja)) {
-                abort(404, 'PDF no encontrado');
-            }
-
-            $path = storage_path('app/public/' . $baja->pdfbaja);
-            $nombreArchivo = 'baja_' . $baja->id . '.pdf';
-
-            return response()->download($path, $nombreArchivo);
-
-        } catch (\Exception $e) {
-            abort(404, 'Error al descargar el PDF: ' . $e->getMessage());
+        if (!$baja->pdfbaja || !Storage::exists($baja->pdfbaja)) {
+            abort(404, 'PDF no encontrado');
         }
+
+        $contenido = Storage::get($baja->pdfbaja);
+        $nombreArchivo = 'baja_' . $baja->id . '.pdf';
+
+        return response($contenido)
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'attachment; filename="' . $nombreArchivo . '"');
     }
+
+
+
 }

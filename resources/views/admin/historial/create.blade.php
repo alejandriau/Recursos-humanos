@@ -56,6 +56,21 @@
                             <i class="fas fa-arrow-left me-2"></i>Volver a la lista
                         </a>
                     </div>
+                    {{-- Después de las alertas generales --}}
+@if(session('error'))
+<div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <strong>Error:</strong> {{ session('error') }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+@endif
+
+{{-- Añade también debug si estás en desarrollo --}}
+@if(config('app.debug') && session()->has('errors'))
+<div class="alert alert-warning mt-3">
+    <h5>Debug Info:</h5>
+    <pre>{{ print_r($errors->all(), true) }}</pre>
+</div>
+@endif
 
                     <!-- Alertas de error generales -->
                     @if ($errors->any())

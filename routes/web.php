@@ -332,6 +332,7 @@ Route::get('/cas/{id}', [CasController::class, 'show'])->name('cas.show');
 Route::get('/cas/{id}/editar', [CasController::class, 'edit'])->name('cas.edit');
 Route::put('/cas/{id}', [CasController::class, 'update'])->name('cas.update');
 Route::delete('/cas/{id}', [CasController::class, 'destroy'])->name('cas.destroy');
+Route::get('/cas/{id}/ver-archivo', [CasController::class, 'verArchivo'])->name('cas.ver-archivo');
 
 // Ruta para cálculo individual de bono
 Route::get('/cas/persona/{idPersona}/calcular-bono', [CasController::class, 'calcularBonoPersonaIndividual'])->name('cas.calcular-bono');

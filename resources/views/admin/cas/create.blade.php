@@ -18,7 +18,7 @@
                     </div>
                 </div>
 
-                <form action="{{ route('cas.store') }}" method="POST" id="casForm">
+                <form action="{{ route('cas.store') }}" method="POST" id="casForm" enctype="multipart/form-data">
                     @csrf
                     <div class="card-body">
                         @if($errors->any())
@@ -189,9 +189,9 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="archivo_cas" class="form-label fw-semibold">Archivo CAS (PDF)</label>
-                                    <input type="text" name="archivo_cas" id="archivo_cas"
-                                           class="form-control shadow-sm rounded-3 @error('archivo_cas') is-invalid @enderror"
-                                           value="{{ old('archivo_cas') }}" placeholder="Nombre del archivo PDF" maxlength="250">
+                                    <input type="file" name="archivo_cas" id="archivo_cas"
+                                        class="form-control shadow-sm rounded-3 @error('archivo_cas') is-invalid @enderror">
+
                                     @error('archivo_cas')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror

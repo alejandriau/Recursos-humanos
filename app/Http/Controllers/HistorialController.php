@@ -9,6 +9,7 @@ use App\Models\Puesto; // FALTABA ESTA IMPORTACIÓN
 use App\Models\UnidadOrganizacional;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class HistorialController extends Controller
 {
@@ -49,12 +50,14 @@ class HistorialController extends Controller
     // Guardar nuevo historial
 public function store(Request $request)
 {
+    \Log::info('Iniciando registro de designación', $request->all());
+
     $request->validate([
-        'persona_id' => 'required|exists:persona,id', // Cambiado de 'persona' a 'personas'
-        'puesto_id' => 'required|exists:puestos,id',   // Cambiado de 'puesto' a 'puestos'
+        'persona_id' => 'required|exists:persona,id',
+        'puesto_id' => 'required|exists:puestos,id',
         'fecha_inicio' => 'required|date',
         'fecha_fin' => 'nullable|date|after_or_equal:fecha_inicio',
-        'tipo_movimiento' => 'required|in:designacion_inicial,movilidad,reasignacion,ascenso,comision,interinato,encargo_funciones,recontratacion',
+        'tipo_movimiento' => 'required|in:designacion_inicial,movilidad,ascenso,reasignacion,comision,interinato,encargo_funciones,recontratacion',
         'tipo_contrato' => 'required|in:permanente,contrato_administrativo,contrato_plazo_fijo,contrato_obra,honorarios',
         'numero_memo' => 'nullable|string|max:100',
         'fecha_memo' => 'nullable|date',
@@ -63,13 +66,20 @@ public function store(Request $request)
         'porcentaje_dedicacion' => 'nullable|integer|min:1|max:100',
         'fecha_vencimiento' => 'nullable|date|after:fecha_inicio',
         'motivo' => 'nullable|string|max:500',
-        'observaciones' => 'nullable|string|max:1000'
+        'observaciones' => 'nullable|string|max:1000',
+        'jornada_laboral' => 'nullable|in:completa,media_jornada,parcial',
+        'renovacion_automatica' => 'nullable|boolean'
     ]);
 
     DB::beginTransaction();
 
     try {
         $data = $request->except('archivo_memo');
+
+        // Convertir checkbox booleano
+        $data['renovacion_automatica'] = $request->has('renovacion_automatica') ? true : false;
+
+        \Log::info('Datos preparados:', $data);
 
         // Validación adicional para asegurar que el puesto y persona existen y están activos
         $puesto = Puesto::where('id', $request->puesto_id)
@@ -88,22 +98,96 @@ public function store(Request $request)
             throw new \Exception('La persona seleccionada no existe o no está activa.');
         }
 
+        \Log::info('Puesto y persona validados:', [
+            'puesto' => $puesto->id,
+            'persona' => $persona->id
+        ]);
+
         // Manejar archivo PDF
-        if ($request->hasFile('archivo_memo')) {
-            $archivo = $request->file('archivo_memo');
-            $nombreArchivo = 'memo_' . time() . '_' . $request->persona_id . '.' . $archivo->getClientOriginalExtension();
-            $ruta = $archivo->storeAs('memos', $nombreArchivo, 'public');
-            $data['archivo_memo'] = $ruta;
+        // Verificar/crear estructura de carpetas de la persona
+        if (!$persona->archivo) {
+            $nombre = Str::slug($persona->nombre);
+            $apellidoMat = Str::slug($persona->apellidoMat ?? 'SinApellido');
+            $fecha = now()->format('Y-m-d');
+            $nombreCarpeta = "{$persona->id}_{$nombre}_{$apellidoMat}_{$fecha}";
+            $rutaBase = "archivos/{$nombreCarpeta}";
+
+            // Crear carpeta principal y subcarpetas
+            Storage::disk('local')->makeDirectory($rutaBase);
+
+            // Actualizar persona con la ruta
+            $persona->archivo = $rutaBase;
+            $persona->save();
+            \Log::info('Carpeta creada para persona:', ['ruta' => $rutaBase]);
         }
 
-        // Si es movilidad o ascenso, concluir el registro anterior
+        // Manejar archivo PDF del memo
+        if ($request->hasFile('archivo_memo')) {
+            // Crear subcarpeta para designaciones si no existe
+            $rutaDesignaciones = $persona->archivo . '/designaciones';
+            if (!Storage::disk('local')->exists($rutaDesignaciones)) {
+                Storage::disk('local')->makeDirectory($rutaDesignaciones);
+            }
+
+            // Generar nombre descriptivo para el archivo
+            $tipoMovimientoSlug = Str::slug($request->tipo_movimiento, '_');
+            $fechaInicio = date('Ymd', strtotime($request->fecha_inicio));
+            $nombreArchivo = "MEMO_" . $persona->ci . "_" .
+                           $tipoMovimientoSlug . "_" .
+                           $fechaInicio . "_" .
+                           now()->format('His') . ".pdf";
+
+            // Guardar archivo
+            $archivo = $request->file('archivo_memo');
+            $path = $archivo->storeAs($rutaDesignaciones, $nombreArchivo, 'local');
+            $data['archivo_memo'] = $path;
+
+            \Log::info('Archivo memo guardado:', [
+                'ruta' => $path,
+                'tipo_movimiento' => $request->tipo_movimiento
+            ]);
+        }
+
+        // Si es movilidad, ascenso o reasignación, concluir el registro anterior
         if (in_array($request->tipo_movimiento, ['movilidad', 'ascenso', 'reasignacion'])) {
+            \Log::info('Procesando movimiento tipo: ' . $request->tipo_movimiento);
+
             $historialAnterior = Historial::where('persona_id', $request->persona_id)
                 ->where('estado', 'activo')
                 ->first();
 
+            \Log::info('Historial anterior encontrado:', [
+                'existe' => !is_null($historialAnterior),
+                'id' => $historialAnterior ? $historialAnterior->id : null
+            ]);
+
             if ($historialAnterior) {
-                $historialAnterior->marcarComoConcluido();
+                // Calcular fecha fin para el historial anterior (un día antes del nuevo inicio)
+                $nuevaFechaInicio = new \DateTime($request->fecha_inicio);
+                $nuevaFechaInicio->modify('-1 day');
+                $fechaFinAnterior = $nuevaFechaInicio->format('Y-m-d');
+
+                \Log::info('Actualizando historial anterior:', [
+                    'id' => $historialAnterior->id,
+                    'fecha_fin_anterior' => $fechaFinAnterior,
+                    'nueva_fecha_inicio' => $request->fecha_inicio
+                ]);
+
+                // Actualizar el historial anterior - USAR UPDATE directamente
+                $actualizado = Historial::where('id', $historialAnterior->id)
+                    ->update([
+                        'fecha_fin' => $fechaFinAnterior,
+                        'estado' => 'concluido',
+                        // Si no existe la columna, usamos 'motivo' temporalmente
+                        'motivo' => $historialAnterior->motivo . ' | Concluido por: ' . $request->tipo_movimiento
+                    ]);
+
+                if (!$actualizado) {
+                    throw new \Exception('Error al actualizar el historial anterior');
+                }
+
+                \Log::info('Historial anterior actualizado exitosamente');
+
                 $data['historial_anterior_id'] = $historialAnterior->id;
                 $data['puesto_anterior_id'] = $historialAnterior->puesto_id;
             }
@@ -122,15 +206,37 @@ public function store(Request $request)
             }
         }
 
-        Historial::create($data);
+        // Establecer estado por defecto
+        $data['estado'] = 'activo';
+
+        \Log::info('Creando nuevo historial con datos:', $data);
+
+        // Crear el nuevo registro de historial
+        $nuevoHistorial = Historial::create($data);
+
+        \Log::info('Nuevo historial creado:', [
+            'id' => $nuevoHistorial->id,
+            'persona_id' => $nuevoHistorial->persona_id,
+            'puesto_id' => $nuevoHistorial->puesto_id
+        ]);
 
         DB::commit();
 
-        return redirect()->route('puesto')
+        \Log::info('Designación registrada exitosamente');
+
+        return redirect()->route('historial')
             ->with('success', 'Designación registrada correctamente.');
 
     } catch (\Exception $e) {
         DB::rollBack();
+
+        \Log::error('Error al registrar designación:', [
+            'message' => $e->getMessage(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+            'trace' => $e->getTraceAsString()
+        ]);
+
         return redirect()->back()
             ->with('error', 'Error al registrar la designación: ' . $e->getMessage())
             ->withInput();
@@ -391,18 +497,52 @@ public function historial($id)
             ]);
 
             $data = $request->except('archivo_memo', '_token', '_method');
+            $data['renovacion_automatica'] = $request->has('renovacion_automatica') ? true : false;
 
-            // Manejar archivo PDF si se subió uno nuevo
+            // Obtener la persona relacionada
+            $persona = $historial->persona;
+
+            // Verificar/crear estructura de carpetas de la persona (igual que en store)
+            if (!$persona->archivo) {
+                $nombre = Str::slug($persona->nombre);
+                $apellidoMat = Str::slug($persona->apellidoMat ?? 'SinApellido');
+                $fecha = now()->format('Y-m-d');
+                $nombreCarpeta = "{$persona->id}_{$nombre}_{$apellidoMat}_{$fecha}";
+                $rutaBase = "archivos/{$nombreCarpeta}";
+
+                // Crear carpeta principal y subcarpetas
+                Storage::disk('local')->makeDirectory($rutaBase);
+
+                // Actualizar persona con la ruta
+                $persona->archivo = $rutaBase;
+                $persona->save();
+            }
+
+            // Manejar archivo PDF si se subió uno nuevo (igual que en store)
             if ($request->hasFile('archivo_memo')) {
-                // Eliminar archivo anterior si existe
-                if ($historial->archivo_memo && Storage::disk('public')->exists($historial->archivo_memo)) {
-                    Storage::disk('public')->delete($historial->archivo_memo);
+                // Crear subcarpeta para designaciones si no existe
+                $rutaDesignaciones = $persona->archivo . '/designaciones';
+                if (!Storage::disk('local')->exists($rutaDesignaciones)) {
+                    Storage::disk('local')->makeDirectory($rutaDesignaciones);
                 }
 
+                // Generar nombre descriptivo para el archivo
+                $tipoMovimientoSlug = Str::slug($request->tipo_movimiento, '_');
+                $fechaInicio = date('Ymd', strtotime($request->fecha_inicio));
+                $nombreArchivo = "MEMO_" . $persona->ci . "_" .
+                            $tipoMovimientoSlug . "_" .
+                            $fechaInicio . "_" .
+                            now()->format('His') . ".pdf";
+
+                // Guardar archivo
                 $archivo = $request->file('archivo_memo');
-                $nombreArchivo = 'memo_' . time() . '_' . $historial->persona_id . '.' . $archivo->getClientOriginalExtension();
-                $ruta = $archivo->storeAs('memos', $nombreArchivo, 'public');
-                $data['archivo_memo'] = $ruta;
+                $path = $archivo->storeAs($rutaDesignaciones, $nombreArchivo, 'local');
+                $data['archivo_memo'] = $path;
+
+                // Eliminar archivo anterior si existe (usando el mismo disk 'local')
+                if ($historial->archivo_memo && Storage::disk('local')->exists($historial->archivo_memo)) {
+                    Storage::disk('local')->delete($historial->archivo_memo);
+                }
             }
 
             // Si se cambia el estado a concluido, establecer fecha_fin si no existe
@@ -424,7 +564,9 @@ public function historial($id)
             }
 
             // Si es movilidad o ascenso, verificar que no tenga designaciones activas conflictivas
-            if (in_array($request->tipo_movimiento, ['movilidad', 'ascenso', 'designacion_inicial'])) {
+            if (in_array($request->estado, ['activo', 'suspended']) &&
+                in_array($request->tipo_movimiento, ['movilidad', 'ascenso', 'designacion_inicial'])) {
+
                 $designacionActiva = Historial::where('persona_id', $historial->persona_id)
                     ->where('id', '!=', $historial->id)
                     ->where('estado', 'activo')
@@ -466,4 +608,14 @@ public function historial($id)
                 ->withInput();
         }
     }
+
+    // En el modelo Historial
+public function marcarComoConcluido($fechaFin = null, $motivo = 'Movimiento a nuevo puesto')
+{
+    $this->update([
+        'fecha_fin' => $fechaFin,
+        'estado' => 'concluido',
+        'motivo_conclusion' => $motivo
+    ]);
+}
 }

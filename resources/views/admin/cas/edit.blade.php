@@ -18,7 +18,8 @@
                     </div>
                 </div>
 
-                <form action="{{ route('cas.update', $cas->id) }}" method="POST" id="casForm">
+                <!-- AÑADE enctype="multipart/form-data" al form -->
+                <form action="{{ route('cas.update', $cas->id) }}" method="POST" id="casForm" enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
                     <div class="card-body">
@@ -181,12 +182,29 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="archivo_cas" class="form-label fw-semibold">Archivo CAS (PDF)</label>
-                                    <input type="text" name="archivo_cas" id="archivo_cas"
+                                    <!-- CAMBIA input type="text" por type="file" -->
+                                    <input type="file" name="archivo_cas" id="archivo_cas"
                                            class="form-control shadow-sm rounded-3 @error('archivo_cas') is-invalid @enderror"
-                                           value="{{ old('archivo_cas', $cas->archivo_cas) }}" placeholder="Nombre del archivo PDF" maxlength="250">
+                                           accept=".pdf">
                                     @error('archivo_cas')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
+
+                                    <!-- Muestra información del archivo actual -->
+                                    @if($cas->archivo_cas)
+                                    <div class="mt-2">
+                                        <small class="text-muted">
+                                            Archivo actual:
+                                            <a href="{{ route('cas.ver-archivo', $cas->id) }}" target="_blank" class="text-primary">
+                                                <i class="fas fa-file-pdf"></i> Ver archivo actual
+                                            </a>
+                                        </small>
+                                        <br>
+                                        <small class="text-muted">
+                                            <i class="fas fa-info-circle"></i> Si no seleccionas un nuevo archivo, se mantendrá el actual.
+                                        </small>
+                                    </div>
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -222,15 +240,15 @@
                                             </div>
                                             <div class="col-md-3">
                                                 <label class="form-label fw-semibold">Monto Calculado</label>
-                                                <input type="text" class="form-control" value="Bs. {{ number_format($cas->monto_calculado, 2) }}" readonly>
+                                                <input type="text" class="form-control" value="Bs. {{ number_format($cas->monto_bono, 2) }}" readonly>
                                             </div>
                                             <div class="col-md-3">
                                                 <label class="form-label fw-semibold">Nivel de Alerta</label>
                                                 <input type="text" class="form-control" value="{{ $cas->nivel_alerta }}" readonly>
                                             </div>
                                             <div class="col-md-3">
-                                                <label class="form-label fw-semibold">Estado</label>
-                                                <input type="text" class="form-control" value="{{ $cas->estado == 1 ? 'Activo' : 'Inactivo' }}" readonly>
+                                                <label class="form-label fw-semibold">Estado CAS</label>
+                                                <input type="text" class="form-control" value="{{ ucfirst($cas->estado_cas) }}" readonly>
                                             </div>
                                         </div>
                                         @if($cas->escalaBono)
@@ -248,14 +266,15 @@
                             </div>
                         </div>
 
+                        <!-- Alertas sobre recálculo automático -->
                         <div class="row mt-4">
                             <div class="col-md-12">
-                                <div class="alert alert-info">
-                                    <h5><i class="fas fa-info-circle"></i> Información Importante</h5>
+                                <div class="alert alert-warning" id="recalculoAlert" style="display: none;">
+                                    <h5><i class="fas fa-exclamation-triangle"></i> ¡Atención!</h5>
                                     <p class="mb-0">
-                                        Al actualizar el CAS, el sistema recalculará automáticamente: <br>
-                                        - Porcentaje de bono según escala legal <br>
-                                        - Monto basado en el salario mínimo vigente <br>
+                                        <strong>Se recalculará automáticamente:</strong><br>
+                                        - Porcentaje de bono según escala legal<br>
+                                        - Monto basado en el salario mínimo vigente<br>
                                         - Nivel de alerta según fechas
                                     </p>
                                 </div>
@@ -281,6 +300,53 @@
 document.addEventListener('DOMContentLoaded', function() {
     const selectPersona = document.getElementById('id_persona');
     const inputFechaIngreso = document.getElementById('fecha_ingreso_institucion');
+    const recalculoAlert = document.getElementById('recalculoAlert');
+
+    // Campos que disparan recálculo
+    const camposRecalculo = [
+        'anios_servicio',
+        'meses_servicio',
+        'dias_servicio',
+        'fecha_calculo_antiguedad',
+        'fecha_ingreso_institucion'
+    ];
+
+    // Valores iniciales para comparación
+    const valoresIniciales = {};
+    camposRecalculo.forEach(campo => {
+        const input = document.getElementById(campo);
+        if (input) {
+            valoresIniciales[campo] = input.value;
+        }
+    });
+
+    // Función para verificar si hay cambios que requieren recálculo
+    function verificarCambiosRecalculo() {
+        let hayCambios = false;
+
+        camposRecalculo.forEach(campo => {
+            const input = document.getElementById(campo);
+            if (input && input.value !== valoresIniciales[campo]) {
+                hayCambios = true;
+            }
+        });
+
+        return hayCambios;
+    }
+
+    // Monitorear cambios en los campos
+    camposRecalculo.forEach(campo => {
+        const input = document.getElementById(campo);
+        if (input) {
+            input.addEventListener('change', function() {
+                if (verificarCambiosRecalculo()) {
+                    recalculoAlert.style.display = 'block';
+                } else {
+                    recalculoAlert.style.display = 'none';
+                }
+            });
+        }
+    });
 
     // Función para actualizar la fecha de ingreso
     function actualizarFechaIngreso(personaId = null) {
@@ -289,12 +355,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (selectedOption) {
             const fechaIngreso = selectedOption.getAttribute('data-fecha-ingreso');
-            console.log('Fecha obtenida:', fechaIngreso);
 
             if (fechaIngreso && selectedId !== '') {
                 inputFechaIngreso.value = fechaIngreso;
+                // Actualizar el valor inicial para comparación
+                valoresIniciales['fecha_ingreso_institucion'] = fechaIngreso;
             } else {
                 inputFechaIngreso.value = '';
+                valoresIniciales['fecha_ingreso_institucion'] = '';
+            }
+
+            // Verificar si hay cambios
+            if (verificarCambiosRecalculo()) {
+                recalculoAlert.style.display = 'block';
             }
         }
     }
@@ -314,6 +387,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     actualizarFechaIngreso(value);
                 } else {
                     inputFechaIngreso.value = '';
+                    valoresIniciales['fecha_ingreso_institucion'] = '';
                 }
             }
         });
@@ -321,6 +395,26 @@ document.addEventListener('DOMContentLoaded', function() {
         // Lógica sin TomSelect
         selectPersona.addEventListener('change', function() {
             actualizarFechaIngreso();
+        });
+    }
+
+    // Validación de archivo PDF
+    const archivoInput = document.getElementById('archivo_cas');
+    if (archivoInput) {
+        archivoInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const fileSize = file.size / 1024 / 1024; // MB
+                const fileType = file.type;
+
+                if (fileType !== 'application/pdf') {
+                    alert('Error: Solo se permiten archivos PDF.');
+                    e.target.value = '';
+                } else if (fileSize > 4) { // 4MB máximo
+                    alert('Error: El archivo excede el tamaño máximo de 4MB.');
+                    e.target.value = '';
+                }
+            }
         });
     }
 
@@ -361,6 +455,14 @@ document.addEventListener('DOMContentLoaded', function() {
         if (dias > 30) {
             e.preventDefault();
             alert('Error: Los días no pueden ser mayores a 30.');
+            return false;
+        }
+
+        // Validar que la persona esté seleccionada
+        const personaId = document.getElementById('id_persona').value;
+        if (!personaId || personaId === '') {
+            e.preventDefault();
+            alert('Error: Debe seleccionar una persona.');
             return false;
         }
     });
