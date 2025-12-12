@@ -45,7 +45,7 @@ public function index(Request $request)
             $query->where('motivo', $request->motivo);
         }
 
-        $bajas = $query->paginate(15);
+        $bajas = $query->paginate(10)->withQueryString();
 
         // Procesar datos para la vista
         $bajasProcesadas = $bajas->getCollection()->map(function($baja) {
@@ -88,6 +88,7 @@ public function index(Request $request)
 
         return view('admin.bajas.index', compact('bajas', 'estadisticas'));
     }
+
 public function store(Request $request)
 {
     $validated = $request->validate([

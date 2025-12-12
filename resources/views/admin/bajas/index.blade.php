@@ -248,12 +248,36 @@
             </div>
 
             <!-- Paginación -->
+            <!-- Paginación Mejorada -->
             @if($bajas instanceof \Illuminate\Pagination\LengthAwarePaginator && $bajas->hasPages())
                 <div class="d-flex justify-content-between align-items-center mt-3">
-                    <div class="text-muted">
-                        Mostrando {{ $bajas->firstItem() }} - {{ $bajas->lastItem() }} de {{ $bajas->total() }} registros
+                    <div class="text-muted small">
+                        Mostrando {{ $bajas->firstItem() }} - {{ $bajas->lastItem() }} de {{ $bajas->total() }}
                     </div>
-                    {{ $bajas->links() }}
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination pagination-sm mb-0">
+                            {{-- Botón Anterior --}}
+                            <li class="page-item {{ $bajas->onFirstPage() ? 'disabled' : '' }}">
+                                <a class="page-link" href="{{ $bajas->previousPageUrl() }}" aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>
+
+                            {{-- Números de página --}}
+                            @foreach ($bajas->getUrlRange(max(1, $bajas->currentPage() - 2), min($bajas->lastPage(), $bajas->currentPage() + 2)) as $page => $url)
+                                <li class="page-item {{ $page == $bajas->currentPage() ? 'active' : '' }}">
+                                    <a class="page-link" href="{{ $url }}">{{ $page }}</a>
+                                </li>
+                            @endforeach
+
+                            {{-- Botón Siguiente --}}
+                            <li class="page-item {{ !$bajas->hasMorePages() ? 'disabled' : '' }}">
+                                <a class="page-link" href="{{ $bajas->nextPageUrl() }}" aria-label="Next">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
                 </div>
             @endif
         </div>
