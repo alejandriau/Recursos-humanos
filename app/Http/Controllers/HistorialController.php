@@ -29,6 +29,7 @@ class HistorialController extends Controller
     return view('admin.historial.create', compact('personas', 'puesto', 'niveles'));
 }
 
+
     // Búsqueda de personas para select2
     public function buscarPersonas(Request $request)
     {
@@ -618,4 +619,16 @@ public function marcarComoConcluido($fechaFin = null, $motivo = 'Movimiento a nu
         'motivo_conclusion' => $motivo
     ]);
 }
+
+    public function destroy($id)
+    {
+        // Buscar el registro
+        $historial = Historial::findOrFail($id);
+
+        // Eliminarlo
+        $historial->delete();
+
+        // Redirigir o devolver respuesta
+        return redirect()->back()->with('success', 'Registro eliminado correctamente');
+    }
 }

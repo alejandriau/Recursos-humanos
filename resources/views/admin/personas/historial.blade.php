@@ -111,7 +111,7 @@
                                                     data-observaciones="{{ $historial->observaciones }}">
                                                     <i class="fa fa-edit"></i>
                                                 </button>
-                                                <form action="{{ route('personas.historial.destroy', [$persona->id, $historial->id]) }}"
+                                                <form action="{{ route('historial.destroy', $historial->id) }}"
                                                     method="POST"
                                                     onsubmit="return confirm('¿Está seguro de eliminar este registro del historial?')">
                                                     @csrf

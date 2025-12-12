@@ -244,7 +244,7 @@ Route::post('/admin/puestos/{puesto}/reactivar', [PuestoController::class, 'reac
         Route::get('/{historial}/descargar-persona', [HistorialController::class, 'descargarPersona'])->name('historial.descargar');
 
         Route::put('/historial/{historial}', [HistorialController::class, 'update'])->name('historial.update');
-        Route::delete('/historial/{historial}', [HistorialController::class, 'destroy'])->name('historial.destroy');
+        Route::delete('/historial/{di}/destroy', [HistorialController::class, 'destroy'])->name('historial.destroy');
 
     Route::get('/historial/estadisticas', [HistorialController::class, 'estadisticas'])->name('historial.estadisticas');
     Route::get('/persona/{persona}', [HistorialController::class, 'historialPersona'])->name('historial.persona');
@@ -333,6 +333,7 @@ Route::get('/cas/{id}/editar', [CasController::class, 'edit'])->name('cas.edit')
 Route::put('/cas/{id}', [CasController::class, 'update'])->name('cas.update');
 Route::delete('/cas/{id}', [CasController::class, 'destroy'])->name('cas.destroy');
 Route::get('/cas/{id}/ver-archivo', [CasController::class, 'verArchivo'])->name('cas.ver-archivo');
+
 
 // Ruta para cálculo individual de bono
 Route::get('/cas/persona/{idPersona}/calcular-bono', [CasController::class, 'calcularBonoPersonaIndividual'])->name('cas.calcular-bono');
