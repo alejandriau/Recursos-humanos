@@ -290,6 +290,11 @@
                                                         <i class="fas fa-user-times me-2"></i>Dar de Baja
                                                     </button>
                                                 </li>
+                                                <li>
+                                                    <a class="dropdown-item" href="{{ route('historial.create', $puesto->id) }}">
+                                                        <i class="fas fa-user-plus me-2"></i>Asignar Personal
+                                                    </a>
+                                                </li>
                                                 @endif
                                             @else
                                                 <li>
