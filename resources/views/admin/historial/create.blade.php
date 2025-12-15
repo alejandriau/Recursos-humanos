@@ -104,7 +104,7 @@
                                                     <small class="text-muted">Item: <strong>{{ $puesto->item }}</strong></small>
                                                 </div>
                                                 <div class="col-6">
-                                                    <small class="text-muted">Nivel: <strong>{{ $puesto->nivelgerarquico }}</strong></small>
+                                                    <small class="text-muted">Nivel: <strong>{{ $puesto->nivelJerarquico }}</strong></small>
                                                 </div>
                                             </div>
                                             <div class="mt-2">

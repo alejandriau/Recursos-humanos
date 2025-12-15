@@ -35,10 +35,18 @@
                         <p class="text-muted mb-2 fs-5">{{ $historial->puesto->denominacion ?? 'Sin puesto asignado' }}</p>
 
                         <div class="d-flex flex-wrap gap-3 mb-2">
-                            <span class="badge bg-success bg-opacity-10 text-white border border-success border-opacity-25">
-                                <i class="bi bi-circle-fill fs-6 me-1"></i>
-                                Activo desde {{ \Carbon\Carbon::parse($persona->fechaIngreso)->format('M Y') }}
-                            </span>
+                            {{-- ESTADO DE LA PERSONA --}}
+                            @if($persona->estado == 1)
+                                <span class="badge bg-success bg-opacity-10 text-white border border-success border-opacity-25">
+                                    <i class="bi bi-circle-fill fs-6 me-1"></i>
+                                    Activo desde {{ \Carbon\Carbon::parse($persona->fechaIngreso)->format('M Y') }}
+                                </span>
+                            @else
+                                <span class="badge bg-danger bg-opacity-10 text-white border border-danger border-opacity-25">
+                                    <i class="bi bi-x-circle-fill fs-6 me-1"></i>
+                                    Inactivo
+                                </span>
+                            @endif
 
                             @if($historial && $historial->puesto)
                             <span class="badge bg-primary bg-opacity-10 text-white border border-primary border-opacity-25">

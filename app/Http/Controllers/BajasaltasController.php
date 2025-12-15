@@ -59,7 +59,8 @@ public function index(Request $request)
             }
 
             return [
-                'id' => $baja->id,
+                'id' => $baja->id, // ID de la baja
+                'persona_id' => $baja->persona->id, // ID de la persona - ¡IMPORTANTE!
                 'nombre' => $baja->persona->nombre . ' ' . $baja->persona->apellidoPat . ' ' . $baja->persona->apellidoMat,
                 'ci' => $baja->persona->ci,
                 'foto' => $baja->persona->foto,

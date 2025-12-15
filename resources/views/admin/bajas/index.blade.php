@@ -232,6 +232,16 @@
                                                 title="Eliminar Baja">
                                             <i class="fas fa-trash"></i>
                                         </button>
+                                        <button class="btn text-dark fw-bold fs-4" type="button" id="dropdownMenu{{ $baja['id'] }}" data-bs-toggle="dropdown" aria-expanded="false">
+                                            ⋮
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenu{{ $baja['id'] }}">
+                                            <li><a class="dropdown-item" href="{{ route('personas.show', $baja['persona_id']) }}">🔍 Ver</a></li>
+                                            <li><a class="dropdown-item" href="{{ route('persona.dashboard', $baja['persona_id'])}}">📊 Documentación</a></li>
+                                            <li><a class="dropdown-item" href="{{ route('personas.historial', $baja['persona_id'])}}">
+                                                📋 Historial
+                                            </a></li>
+                                        </ul>
                                     </div>
                                 </td>
                             </tr>
