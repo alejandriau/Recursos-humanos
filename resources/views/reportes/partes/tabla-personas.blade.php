@@ -50,7 +50,7 @@
                             $telefonoLimpio = preg_replace('/\D/', '', $persona->telefono);
                             $numeroWhatsapp = '591' . $telefonoLimpio;
 
-                            $hora = now()->format('H');
+                            $hora = now()->hour;
 
                             if ($hora >= 5 && $hora < 12) {
                                 $saludo = 'Buen día';
@@ -61,17 +61,17 @@
                             }
 
                             $mensaje = urlencode(
-                                "{$saludo} {$persona->nombre}:\n\n" .
+                                "{$saludo} {$persona->nombre} {$persona->apellidoPat} {$persona->apellidoMat}:\n\n" .
                                 "Le escribe la *Unidad de Gestión de Recursos Humanos (UGRH)* del " .
                                 "*Gobierno Autónomo Departamental de Cochabamba (GADC)*.\n\n" .
                                 "Nos comunicamos para solicitar la *actualización y complementación de su documentación personal*, " .
-                                "debido a información pendiente y/o desactualizada en su archivo de Recursos Humanos.\n\n" .
+                                "debido a a que existe información pendiente y/o documentacion desactualizada en su file personal de Recursos Humanos.\n\n" .
                                 "Documentación/Información a completar:\n" .
                                 "• Certificado de Quechua\n" .
                                 "• Actualización de Certificado de Quechua\n" .
                                 "• Certificado de no Violencia\n\n" .
                                 "La documentación solicitada deberá ser presentada *hasta el viernes 19 de diciembre de 2025*.\n\n" .
-                                "*En caso de no contar con la documentación dentro del plazo establecido, su archivo será registrado con estado OBSERVADO*, " .
+                                "*En caso de no contar con la documentación dentro del plazo establecido, su file personal será registrado compo OBSERVADO*, " .
                                 "conforme a los procedimientos administrativos internos.\n\n" .
                                 "Agradecemos su colaboración y quedamos atentos para coordinar la entrega.\n\n" .
                                 "Saludos cordiales,\n" .
