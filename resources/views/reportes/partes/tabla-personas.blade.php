@@ -44,7 +44,43 @@
                 <!-- Información Profesional -->
                 <td>{{ $persona->profesion->provisionN ?? '' }}</td>
                 <td>{{ !empty($persona->profesion->fechaProvision) ? \Carbon\Carbon::parse($persona->profesion->fechaProvision)->format('d/m/Y') : '' }}</td>
-                <td>{{ $persona->telefono }}</td>
+                <td class="text-nowrap">
+                    @if($persona->telefono)
+                        @php
+                            $telefonoLimpio = preg_replace('/\D/', '', $persona->telefono);
+                            $numeroWhatsapp = '591' . $telefonoLimpio;
+
+                            $mensaje = urlencode(
+                                "Buen día {$persona->nombre}:\n\n" .
+                                "Le escribe la *Unidad de Gestión de Recursos Humanos (UGRH)* del " .
+                                "*Gobierno Autónomo Departamental de Cochabamba (GADC)*.\n\n" .
+                                "Nos comunicamos para solicitar la *actualización y complementación de su documentación personal*, " .
+                                "debido a información pendiente y/o desactualizada en su archivo de Recursos Humanos.\n\n" .
+                                "Documentación/Información a completar:\n" .
+                                "• Certificado de Quechua\n" .
+                                "• Actualización de Certificado de Quechua\n" .
+                                "• Certificado no violencia\n" .
+                                "Agradecemos su colaboración y quedamos atentos para coordinar la entrega.\n\n" .
+                                "Saludos cordiales,\nUGRH - GADC"
+                            );
+
+                        @endphp
+
+                        <span class="me-2">{{ $persona->telefono }}</span>
+
+                        <a href="https://wa.me/{{ $numeroWhatsapp }}?text={{ $mensaje }}"
+                        target="_blank"
+                        class="text-success"
+                        title="Escribir por WhatsApp"
+                        style="font-size: 1.1rem;">
+                            <i class="bi bi-whatsapp"></i>
+                        </a>
+                    @else
+                        <span class="text-muted">Sin teléfono</span>
+                    @endif
+                </td>
+
+
 
                 <!-- Estado Actual -->
                 <td>
