@@ -50,8 +50,18 @@
                             $telefonoLimpio = preg_replace('/\D/', '', $persona->telefono);
                             $numeroWhatsapp = '591' . $telefonoLimpio;
 
+                            $hora = now()->format('H');
+
+                            if ($hora >= 5 && $hora < 12) {
+                                $saludo = 'Buen día';
+                            } elseif ($hora >= 12 && $hora < 18) {
+                                $saludo = 'Buenas tardes';
+                            } else {
+                                $saludo = 'Buenas noches';
+                            }
+
                             $mensaje = urlencode(
-                                "Buen día {$persona->nombre}:\n\n" .
+                                "{$saludo} {$persona->nombre}:\n\n" .
                                 "Le escribe la *Unidad de Gestión de Recursos Humanos (UGRH)* del " .
                                 "*Gobierno Autónomo Departamental de Cochabamba (GADC)*.\n\n" .
                                 "Nos comunicamos para solicitar la *actualización y complementación de su documentación personal*, " .
@@ -59,10 +69,17 @@
                                 "Documentación/Información a completar:\n" .
                                 "• Certificado de Quechua\n" .
                                 "• Actualización de Certificado de Quechua\n" .
-                                "• Certificado no violencia\n" .
+                                "• Certificado de no Violencia\n\n" .
+                                "La documentación solicitada deberá ser presentada *hasta el viernes 19 de diciembre de 2025*.\n\n" .
+                                "*En caso de no contar con la documentación dentro del plazo establecido, su archivo será registrado con estado OBSERVADO*, " .
+                                "conforme a los procedimientos administrativos internos.\n\n" .
                                 "Agradecemos su colaboración y quedamos atentos para coordinar la entrega.\n\n" .
-                                "Saludos cordiales,\nUGRH - GADC"
+                                "Saludos cordiales,\n" .
+                                "Unidad de Gestión de Recursos Humanos\n" .
+                                "GADC"
                             );
+
+
 
                         @endphp
 
