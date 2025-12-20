@@ -50,6 +50,7 @@ use App\Http\Controllers\EmpleadoController;
 use App\Http\Controllers\CasHistorialBonosController;
 use App\Http\Controllers\ConfiguracionSalarioMinimoController;
 use App\Http\Controllers\ChatbotController;
+use App\Http\Controllers\ReportePersonasController;
 
 
 use Illuminate\Support\Facades\Route;
@@ -684,7 +685,14 @@ Route::post('/convert-txt-simple', [TxtToWordController::class, 'convertTxtToWor
 
     // API - Obtener salario vigente
     Route::get('/configuracion-salario-minimo/vigente', [ConfiguracionSalarioMinimoController::class, 'obtenerVigente'])->name('configuracion-salario-minimo.vigente');
+    // Rutas para reportes avanzados de personas
 
+        Route::get('/reportes/personas', [ReportePersonasController::class, 'index'])->name('reportes.personas');
+        Route::post('/reportes/vista-previa', [ReportePersonasController::class, 'vistaPrevia'])->name('reportes.vista-previa');
+        Route::post('/reportes/exportar/excel', [ReportePersonasController::class, 'exportarExcel'])->name('reportes.exportar.excel');
+        Route::post('/reportes/exportar/pdf', [ReportePersonasController::class, 'exportarPDF'])->name('reportes.exportar.pdf');
+        Route::post('/reportes/exportar/csv', [ReportePersonasController::class, 'exportarCSV'])->name('reportes.exportar.csv');
+        Route::get('/reportes/opciones-filtro', [ReportePersonasController::class, 'getOpcionesFiltro'])->name('reportes.opciones.filtro');
 
     Route::middleware(['auth', 'role:empleado'])->group(function () {
 

@@ -286,5 +286,15 @@ class Persona extends Model
     {
         return $query->where('ci', 'LIKE', "%{$ci}%");
     }
+    //cass
+    public function casActual()
+    {
+        return $this->belongsTo(Cas::class, 'id_persona');
+    }
+
+    public function licenciaMilitar()
+    {
+        return $this->hasOne(LicenciaMilitar::class, 'idPersona');
+    }
 
 }
