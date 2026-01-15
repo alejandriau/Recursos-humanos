@@ -8,61 +8,64 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 
-
 class CenviController extends Controller
 {
-
-
     public function index(Request $request)
     {
         $query = Cenvi::with('persona');
 
         // Filtro por nombre de persona
-        if ($request->has('nombre') && $request->nombre != '') {
+        if ($request->filled('nombre')) {
             $query->whereHas('persona', function($q) use ($request) {
-                $q->where('nombre', 'like', '%' . $request->nombre . '%');
+                $q->where('nombre', 'like', '%' . $request->nombre . '%')
+                  ->orWhere('apellidoPat', 'like', '%' . $request->nombre . '%')
+                  ->orWhere('apellidoMat', 'like', '%' . $request->nombre . '%');
             });
         }
 
-        // Filtro por fecha desde
-        if ($request->has('fecha_desde') && $request->fecha_desde != '') {
+        // Filtros de fecha
+        if ($request->filled('fecha_desde')) {
             $query->where('fecha', '>=', $request->fecha_desde);
         }
 
-        // Filtro por fecha hasta
-        if ($request->has('fecha_hasta') && $request->fecha_hasta != '') {
+        if ($request->filled('fecha_hasta')) {
             $query->where('fecha', '<=', $request->fecha_hasta);
         }
 
         // Filtro por estado
-        if ($request->has('estado') && $request->estado != '') {
+        if ($request->filled('estado')) {
             $query->where('estado', $request->estado);
         }
 
         // Filtro por vigencia
-        if ($request->has('vigencia') && $request->vigencia != '') {
+        if ($request->filled('vigencia')) {
             if ($request->vigencia == 'vigentes') {
                 $query->vigentes();
             } elseif ($request->vigencia == 'vencidos') {
                 $query->vencidos();
+            } elseif ($request->vigencia == 'por_vencer') {
+                $query->porVencer();
             }
         }
 
         // Ordenamiento
         $orderBy = $request->get('order_by', 'fecha');
         $orderDirection = $request->get('order_direction', 'desc');
-
         $query->orderBy($orderBy, $orderDirection);
 
         $cenvis = $query->paginate(50);
-
-        // Obtener todas las personas para el filtro
         $personas = Persona::where('estado', 1)->get();
 
-        return view('admin.cenvis.index', compact('cenvis', 'personas'));
+        // PASAR ESTADÍSTICAS DESDE EL CONTROLLER
+        $estadisticas = [
+            'total' => Cenvi::count(),
+            'vigentes' => Cenvi::where('estado', 1)->count(),
+            'inactivos' => Cenvi::where('estado', 0)->count(),
+        ];
+
+        return view('admin.cenvis.index', compact('cenvis', 'personas', 'estadisticas'));
     }
 
-    // Los demás métodos permanecen igual...
     public function create()
     {
         $personas = Persona::where('estado', 1)->get();
@@ -80,15 +83,13 @@ class CenviController extends Controller
 
         $data = $request->all();
 
-        // Verificar vigencia al crear
+        // Calcular estado automáticamente basado en vigencia
         $fechaEmision = Carbon::parse($data['fecha']);
-        $data['estado'] = $fechaEmision->gte(Carbon::now()->subYear()) ? 1 : 0;
+        $fechaVencimiento = $fechaEmision->copy()->addYear();
+        $data['estado'] = Carbon::now()->lt($fechaVencimiento) ? 1 : 0;
 
         if ($request->hasFile('pdfcenvi')) {
-            $file = $request->file('pdfcenvi');
-            $fileName = time() . '_' . $file->getClientOriginalName();
-            $path = $file->storeAs('cenvi_pdfs', $fileName, 'public');
-            $data['pdfcenvi'] = $path;
+            $data['pdfcenvi'] = $this->guardarArchivo($request->file('pdfcenvi'));
         }
 
         Cenvi::create($data);
@@ -99,9 +100,7 @@ class CenviController extends Controller
 
     public function show(Cenvi $cenvi)
     {
-        // Actualizar estado por si acaso
         $cenvi->actualizarEstadoPorVigencia();
-
         return view('admin.cenvis.show', compact('cenvi'));
     }
 
@@ -124,20 +123,18 @@ class CenviController extends Controller
         $data = $request->all();
 
         // Si cambia la fecha, recalcular estado automáticamente
-        if ($request->has('fecha') && $request->fecha != $cenvi->fecha->format('Y-m-d')) {
+        if ($request->fecha != $cenvi->fecha->format('Y-m-d')) {
             $fechaEmision = Carbon::parse($data['fecha']);
-            $data['estado'] = $fechaEmision->gte(Carbon::now()->subYear()) ? 1 : 0;
+            $fechaVencimiento = $fechaEmision->copy()->addYear();
+            $data['estado'] = Carbon::now()->lt($fechaVencimiento) ? 1 : 0;
         }
 
         if ($request->hasFile('pdfcenvi')) {
-            if ($cenvi->pdfcenvi && Storage::disk('public')->exists($cenvi->pdfcenvi)) {
-                Storage::disk('public')->delete($cenvi->pdfcenvi);
+            // Eliminar archivo anterior si existe
+            if ($cenvi->pdfcenvi) {
+                $this->eliminarArchivo($cenvi->pdfcenvi);
             }
-
-            $file = $request->file('pdfcenvi');
-            $fileName = time() . '_' . $file->getClientOriginalName();
-            $path = $file->storeAs('cenvi_pdfs', $fileName, 'public');
-            $data['pdfcenvi'] = $path;
+            $data['pdfcenvi'] = $this->guardarArchivo($request->file('pdfcenvi'));
         }
 
         $cenvi->update($data);
@@ -148,8 +145,8 @@ class CenviController extends Controller
 
     public function destroy(Cenvi $cenvi)
     {
-        if ($cenvi->pdfcenvi && Storage::disk('public')->exists($cenvi->pdfcenvi)) {
-            Storage::disk('public')->delete($cenvi->pdfcenvi);
+        if ($cenvi->pdfcenvi) {
+            $this->eliminarArchivo($cenvi->pdfcenvi);
         }
 
         $cenvi->delete();
@@ -165,5 +162,21 @@ class CenviController extends Controller
         }
 
         return Storage::disk('public')->download($cenvi->pdfcenvi);
+    }
+
+    /**
+     * Métodos auxiliares para manejo de archivos
+     */
+    private function guardarArchivo($file)
+    {
+        $fileName = time() . '_' . uniqid() . '_' . $file->getClientOriginalName();
+        return $file->storeAs('cenvi_pdfs', $fileName, 'public');
+    }
+
+    private function eliminarArchivo($path)
+    {
+        if (Storage::disk('public')->exists($path)) {
+            Storage::disk('public')->delete($path);
+        }
     }
 }

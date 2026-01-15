@@ -51,6 +51,7 @@ use App\Http\Controllers\CasHistorialBonosController;
 use App\Http\Controllers\ConfiguracionSalarioMinimoController;
 use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\ReportePersonasController;
+use App\Http\Controllers\DocumentoAlertaController;
 
 
 use Illuminate\Support\Facades\Route;
@@ -78,8 +79,9 @@ Route::middleware([
     });
 
     Route::get('/personas/show/{id}', [PersonaController::class, 'show'])->name('personas.show');
-        Route::get('/personas/{id}/expediente', [PersonaController::class, 'generarExpediente'])->name('personas.expediente');
+    Route::get('/personas/{id}/expediente', [PersonaController::class, 'generarExpediente'])->name('personas.expediente');
     Route::get('/personas/{id}/expediente/ver', [PersonaController::class, 'verExpediente'])->name('personas.expediente.ver');
+    Route::get('/personas/{persona}/activar', [PersonaController::class, 'activarEstado'])->name('personas.activar');
 
 
 // Rutas de reportes
@@ -324,6 +326,7 @@ Route::get('bajasaltas/{id}/descargar-pdf', [BajasaltasController::class, 'desca
     Route::get('/certificados/edit/{certificado}', [CertificadoController::class, 'edit'])->name('certificados.edit');
     Route::put('/certificados/update/{certificado}', [CertificadoController::class, 'update'])->name('certificados.update');
     Route::delete('/certificados/{certificado}', [CertificadoController::class, 'destroy'])->name('certificados.destroy');
+    Route::get('/certificados/reporte-vencimientos', [CertificadoController::class, 'reporteVencimientos'])->name('certificados.reporte-vencimientos');
     //lisa de cas
 // Rutas para CAS
 Route::get('/cas', [CasController::class, 'index'])->name('cas.index');
@@ -626,8 +629,6 @@ Route::post('/convert-txt-simple', [TxtToWordController::class, 'convertTxtToWor
 
     // routes/web.php
 
-
-
 // Rutas para administradores
 
     Route::get('/admin/asistencias', [AsistenciaAdminController::class, 'index'])->name('admin.asistencias.index');
@@ -688,12 +689,15 @@ Route::post('/convert-txt-simple', [TxtToWordController::class, 'convertTxtToWor
     // Rutas para reportes avanzados de personas
 
         Route::get('/reportes/personas', [ReportePersonasController::class, 'index'])->name('reportes.personas');
-        Route::post('/reportes/vista-previa', [ReportePersonasController::class, 'vistaPrevia'])->name('reportes.vista-previa');
-        Route::post('/reportes/exportar/excel', [ReportePersonasController::class, 'exportarExcel'])->name('reportes.exportar.excel');
-        Route::post('/reportes/exportar/pdf', [ReportePersonasController::class, 'exportarPDF'])->name('reportes.exportar.pdf');
-        Route::post('/reportes/exportar/csv', [ReportePersonasController::class, 'exportarCSV'])->name('reportes.exportar.csv');
-        Route::get('/reportes/opciones-filtro', [ReportePersonasController::class, 'getOpcionesFiltro'])->name('reportes.opciones.filtro');
-
+        Route::post('/reportes/personas/vista-previa', [ReportePersonasController::class, 'vistaPrevia'])->name('reportes.personas.vista-previa');
+        Route::post('/reportes/personas/exportar/excel', [ReportePersonasController::class, 'exportarExcel'])->name('reportes.personas.exportar.excel');
+        Route::post('/reportes/personas/exportar/pdf', [ReportePersonasController::class, 'exportarPDF'])->name('reportes.personas.exportar.pdf');
+        Route::post('/reportes/personas/exportar/csv', [ReportePersonasController::class, 'exportarCSV'])->name('reportes.personas.exportar.csv');
+        Route::get('/reportes/personas/opciones-filtro', [ReportePersonasController::class, 'getOpcionesFiltro'])->name('reportes.personas.opciones.filtro');
+                //Envio de whatsapp
+        Route::get('/documentacion/alertas', [DocumentoAlertaController::class, 'index'])->name('alertas.index');
+        Route::get('/alertas/enviar-todos', [DocumentoAlertaController::class, 'enviarATodos'])->name('alertas.enviar-todos');
+        Route::get('/alertas/enviar/{id}', [DocumentoAlertaController::class, 'enviarIndividual'])->name('alertas.enviar-individual');
     Route::middleware(['auth', 'role:empleado'])->group(function () {
 
         // Dashboard
@@ -723,6 +727,7 @@ Route::post('/convert-txt-simple', [TxtToWordController::class, 'convertTxtToWor
         // Historial Laboral
         Route::get('/empleado/historial', [HistorialController::class, 'index'])->name('empleado.historial.index');
         Route::get('/empleado/historial/{historial}', [HistorialController::class, 'show'])->name('empleado.historial.show');
+
 
         // Redirección por defecto
         Route::get('/empleado', function () {

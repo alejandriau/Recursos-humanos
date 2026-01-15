@@ -30,22 +30,25 @@
 
                 <!-- Haber -->
                 <!--<td>
-                    @if($persona->puestoActual && $persona->puestoActual->puesto)
-                        {{ number_format($persona->puestoActual->puesto->haber ?? 0, 2, ',', '.') }}
-                    @else
-                        <span class="text-muted">0,00</span>
-                    @endif
+                    @if ($persona->puestoActual && $persona->puestoActual->puesto)
+{{ number_format($persona->puestoActual->puesto->haber ?? 0, 2, ',', '.') }}
+@else
+<span class="text-muted">0,00</span>
+@endif
                 </td>-->
 
                 <!-- Fechas -->
-                <td>{{ !empty($persona->fechaIngreso) ? \Carbon\Carbon::parse($persona->fechaIngreso)->format('d/m/Y') : '' }}</td>
-                <td>{{ !empty($persona->fechaNacimiento) ? \Carbon\Carbon::parse($persona->fechaNacimiento)->format('d/m/Y') : '' }}</td>
+                <td>{{ !empty($persona->fechaIngreso) ? \Carbon\Carbon::parse($persona->fechaIngreso)->format('d/m/Y') : '' }}
+                </td>
+                <td>{{ !empty($persona->fechaNacimiento) ? \Carbon\Carbon::parse($persona->fechaNacimiento)->format('d/m/Y') : '' }}
+                </td>
 
                 <!-- Información Profesional -->
                 <td>{{ $persona->profesion->provisionN ?? '' }}</td>
-                <td>{{ !empty($persona->profesion->fechaProvision) ? \Carbon\Carbon::parse($persona->profesion->fechaProvision)->format('d/m/Y') : '' }}</td>
+                <td>{{ !empty($persona->profesion->fechaProvision) ? \Carbon\Carbon::parse($persona->profesion->fechaProvision)->format('d/m/Y') : '' }}
+                </td>
                 <td class="text-nowrap">
-                    @if($persona->telefono)
+                    @if ($persona->telefono)
                         @php
                             $telefonoLimpio = preg_replace('/\D/', '', $persona->telefono);
                             $numeroWhatsapp = '591' . $telefonoLimpio;
@@ -62,34 +65,29 @@
 
                             $mensaje = urlencode(
                                 "{$saludo} {$persona->nombre} {$persona->apellidoPat} {$persona->apellidoMat}:\n\n" .
-                                "Le escribe la *Unidad de Gestión de Recursos Humanos (UGRH)* del " .
-                                "*Gobierno Autónomo Departamental de Cochabamba (GADC)*.\n\n" .
-                                "Nos comunicamos para solicitar la *actualización y complementación de su documentación personal*, " .
-                                "debido a a que existe información pendiente y/o documentacion desactualizada en su file personal de Recursos Humanos.\n\n" .
-                                "Documentación/Información a completar:\n" .
-                                "• Certificado de Quechua\n" .
-                                "• Actualización de Certificado de Quechua\n" .
-                                "• Certificado de no Violencia\n\n" .
-                                "La documentación solicitada deberá ser presentada *hasta el viernes 19 de diciembre de 2025*.\n\n" .
-                                "*En caso de no contar con la documentación dentro del plazo establecido, su file personal será registrado compo OBSERVADO*, " .
-                                "conforme a los procedimientos administrativos internos.\n\n" .
-                                "Agradecemos su colaboración y quedamos atentos para coordinar la entrega.\n\n" .
-                                "Saludos cordiales,\n" .
-                                "Unidad de Gestión de Recursos Humanos\n" .
-                                "GADC"
+                                    'Le escribe la *Unidad de Gestión de Recursos Humanos (UGRH)* del ' .
+                                    "*Gobierno Autónomo Departamental de Cochabamba (GADC)*.\n\n" .
+                                    'Nos comunicamos para solicitar la *presentación del Certificado de Años de Servicio – CAS*, ' .
+                                    'documento indispensable para el reconocimiento de su antigüedad laboral, ' .
+                                    "debido a que dicho documento no se encuentra registrado o actualizado en su file personal.\n\n" .
+                                    "Documentación requerida:\n" .
+                                    "• Certificado de Años de Servicio – CAS\n\n" .
+                                    "La documentación solicitada tenia para ser presentada *hasta el viernes 09 de enero de 2026*.\n\n" .
+                                    '*En caso de no presentar la documentación dentro del plazo establecido, no se reconocerá su antigüedad laboral*, ' .
+                                    'procediéndose a su *retiro de planilla* y a la *emisión de un Memo de Llamada de Atención*, ' .
+                                    "conforme a la normativa y procedimientos administrativos vigentes.\n\n" .
+                                    "Agradecemos su colaboración y quedamos atentos para coordinar la entrega de la documentación.\n\n" .
+                                    "Saludos cordiales,\n" .
+                                    "Unidad de Gestión de Recursos Humanos\n" .
+                                    'GADC',
                             );
-
-
 
                         @endphp
 
                         <span class="me-2">{{ $persona->telefono }}</span>
 
-                        <a href="https://wa.me/{{ $numeroWhatsapp }}?text={{ $mensaje }}"
-                        target="_blank"
-                        class="text-success"
-                        title="Escribir por WhatsApp"
-                        style="font-size: 1.1rem;">
+                        <a href="https://wa.me/{{ $numeroWhatsapp }}?text={{ $mensaje }}" target="_blank"
+                            class="text-success" title="Escribir por WhatsApp" style="font-size: 1.1rem;">
                             <i class="bi bi-whatsapp"></i>
                         </a>
                     @else
@@ -101,13 +99,15 @@
 
                 <!-- Estado Actual -->
                 <td>
-                    @if($persona->puestoActual)
-                        @if($persona->puestoActual->estado == 'activo')
-                            <span class="badge bg-success" title="Desde {{ \Carbon\Carbon::parse($persona->fechaIngreso)->format('d/m/Y') }}">
+                    @if ($persona->puestoActual)
+                        @if ($persona->puestoActual->estado == 'activo')
+                            <span class="badge bg-success"
+                                title="Desde {{ \Carbon\Carbon::parse($persona->fechaIngreso)->format('d/m/Y') }}">
                                 Activo
                             </span>
                         @elseif($persona->puestoActual->estado == 'concluido')
-                            <span class="badge bg-secondary" title="Finalizó: {{ $persona->puestoActual->fecha_fin ? $persona->puestoActual->fecha_fin->format('d/m/Y') : 'N/A' }}">
+                            <span class="badge bg-secondary"
+                                title="Finalizó: {{ $persona->puestoActual->fecha_fin ? $persona->puestoActual->fecha_fin->format('d/m/Y') : 'N/A' }}">
                                 Concluido
                             </span>
                         @else
@@ -121,41 +121,50 @@
                 <!-- Acciones -->
                 <td>
                     <div class="dropdown">
-                        <button class="btn text-dark fw-bold fs-4" type="button" id="dropdownMenu{{ $persona->id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                        <button class="btn text-dark fw-bold fs-4" type="button" id="dropdownMenu{{ $persona->id }}"
+                            data-bs-toggle="dropdown" aria-expanded="false">
                             ⋮
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenu{{ $persona->id }}">
-                            <li><a class="dropdown-item" href="{{ route('personas.show', $persona->id) }}">🔍 Ver</a></li>
-                            <li><a class="dropdown-item" href="{{ route('personas.edit', $persona->id) }}">✏️ Editar</a></li>
+                            <li><a class="dropdown-item" href="{{ route('personas.show', $persona->id) }}">🔍 Ver</a>
+                            </li>
+                            <li><a class="dropdown-item" href="{{ route('personas.edit', $persona->id) }}">✏️
+                                    Editar</a></li>
                             <li>
-                                <form action="{{ route('personas.destroy', $persona->id) }}" method="POST" onsubmit="return confirm('¿Estás seguro de desactivar a esta persona?');">
+                                <form action="{{ route('personas.destroy', $persona->id) }}" method="POST"
+                                    onsubmit="return confirm('¿Estás seguro de desactivar a esta persona?');">
                                     @csrf
                                     @method('PATCH')
                                     <button type="submit" class="dropdown-item text-danger">🗑️ Desactivar</button>
                                 </form>
                             </li>
-                            <li><a class="dropdown-item" href="{{ route('persona.dashboard', $persona->id)}}">📊 Documentación</a></li>
-                            <li><a class="dropdown-item" href="{{ route('personas.historial', $persona->id)}}">
-                                📋 Historial
-                                @if($persona->historials->count() > 0)
-                                    <span class="badge bg-primary">{{ $persona->historials->count() }}</span>
-                                @endif
-                            </a></li>
+                            <li><a class="dropdown-item" href="{{ route('persona.dashboard', $persona->id) }}">📊
+                                    Documentación</a></li>
+                            <li><a class="dropdown-item" href="{{ route('personas.historial', $persona->id) }}">
+                                    📋 Historial
+                                    @if ($persona->historials->count() > 0)
+                                        <span class="badge bg-primary">{{ $persona->historials->count() }}</span>
+                                    @endif
+                                </a></li>
 
                             <!-- Información rápida del historial -->
-                            @if($persona->historials->count() > 0)
-                                <li><hr class="dropdown-divider"></li>
+                            @if ($persona->historials->count() > 0)
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
                                 <li class="dropdown-header text-primary">Últimos puestos:</li>
-                                @foreach($persona->historials->sortByDesc('fecha_inicio')->take(2) as $historial)
+                                @foreach ($persona->historials->sortByDesc('fecha_inicio')->take(2) as $historial)
                                     <li>
-                                        <a class="dropdown-item text-wrap small" href="#" title="{{ $historial->puesto->denominacion ?? 'N/A' }}">
+                                        <a class="dropdown-item text-wrap small" href="#"
+                                            title="{{ $historial->puesto->denominacion ?? 'N/A' }}">
                                             <div>
                                                 <strong>{{ $historial->puesto->item ?? 'N/A' }}</strong>
                                                 <br>
                                                 <small class="text-muted">
                                                     {{ \Carbon\Carbon::parse($historial->fecha_inicio)->format('d/m/Y') }}
-                                                    @if($historial->fecha_fin)
-                                                        - {{ \Carbon\Carbon::parse($historial->fecha_fin)->format('d/m/Y') }}
+                                                    @if ($historial->fecha_fin)
+                                                        -
+                                                        {{ \Carbon\Carbon::parse($historial->fecha_fin)->format('d/m/Y') }}
                                                     @else
                                                         - Actual
                                                     @endif
@@ -180,33 +189,34 @@
     </tbody>
 </table>
 
-@if($personas->count() > 0)
-<div class="d-flex justify-content-between align-items-center mt-3">
-    <!-- Información de registros -->
-    <div class="text-muted">
-        Mostrando {{ $personas->firstItem() }} a {{ $personas->lastItem() }} de {{ $personas->total() }} registros
-        @php
-            $conPuesto = 0;
-            $sinPuesto = 0;
-            foreach($personas as $persona) {
-                if($persona->puestoActual) {
-                    $conPuesto++;
-                } else {
-                    $sinPuesto++;
+@if ($personas->count() > 0)
+    <div class="d-flex justify-content-between align-items-center mt-3">
+        <!-- Información de registros -->
+        <div class="text-muted">
+            Mostrando {{ $personas->firstItem() }} a {{ $personas->lastItem() }} de {{ $personas->total() }}
+            registros
+            @php
+                $conPuesto = 0;
+                $sinPuesto = 0;
+                foreach ($personas as $persona) {
+                    if ($persona->puestoActual) {
+                        $conPuesto++;
+                    } else {
+                        $sinPuesto++;
+                    }
                 }
-            }
-        @endphp
-        • Con puesto: {{ $conPuesto }} • Sin puesto: {{ $sinPuesto }}
-    </div>
+            @endphp
+            • Con puesto: {{ $conPuesto }} • Sin puesto: {{ $sinPuesto }}
+        </div>
 
-    <!-- Paginación -->
-    <div class="d-flex justify-content-center">
-        {{ $personas->onEachSide(1)->links() }}
-    </div>
+        <!-- Paginación -->
+        <div class="d-flex justify-content-center">
+            {{ $personas->onEachSide(1)->links() }}
+        </div>
 
-    <!-- Información de página -->
-    <div class="text-muted">
-        Página {{ $personas->currentPage() }} de {{ $personas->lastPage() }}
+        <!-- Información de página -->
+        <div class="text-muted">
+            Página {{ $personas->currentPage() }} de {{ $personas->lastPage() }}
+        </div>
     </div>
-</div>
 @endif

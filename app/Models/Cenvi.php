@@ -12,7 +12,6 @@ class Cenvi extends Model
 
     protected $table = 'cenvi';
     protected $primaryKey = 'id';
-    public $timestamps = false;
 
     protected $fillable = [
         'fecha',
@@ -29,53 +28,108 @@ class Cenvi extends Model
         'FechaActualizacion' => 'datetime'
     ];
 
-    protected $dates = [
-        'fecha',
-        'fechaRegistro',
-        'FechaActualizacion'
-    ];
-
-    // Relación con Persona
+    /**
+     * Relación con Persona
+     */
     public function persona()
     {
         return $this->belongsTo(Persona::class, 'idPersona');
     }
 
-    // Scope para documentos vigentes
-    public function scopeVigentes($query)
-    {
-        return $query->where('fecha', '>=', Carbon::now()->subYear());
-    }
-
-    // Scope para documentos vencidos
-    public function scopeVencidos($query)
-    {
-        return $query->where('fecha', '<', Carbon::now()->subYear());
-    }
-
-    // Método para verificar si está vigente
+    /**
+     * Verificar si el certificado está vigente
+     * (tiene menos de 1 año desde la fecha de emisión)
+     */
     public function getEstaVigenteAttribute()
     {
-        return $this->fecha->gte(Carbon::now()->subYear());
+        $fechaVencimiento = $this->fecha->copy()->addYear();
+        return Carbon::now()->lt($fechaVencimiento); // lt = less than (menor que)
     }
 
-    // Método para días restantes de vigencia
+    /**
+     * Calcular días restantes de vigencia
+     */
     public function getDiasRestantesAttribute()
     {
-        $fechaVencimiento = $this->fecha->addYear();
-        return Carbon::now()->diffInDays($fechaVencimiento, false);
+        if (!$this->esta_vigente) {
+            return 0;
+        }
+
+        $fechaVencimiento = $this->fecha->copy()->addYear();
+        return Carbon::now()->diffInDays($fechaVencimiento, false); // false = incluye signo negativo
     }
 
-    // Método para actualizar estado según vigencia
+    /**
+     * Actualizar estado automáticamente según vigencia
+     */
     public function actualizarEstadoPorVigencia()
     {
         $nuevoEstado = $this->esta_vigente ? 1 : 0;
 
         if ($this->estado != $nuevoEstado) {
-            $this->estado = $nuevoEstado;
-            $this->save();
+            $this->update(['estado' => $nuevoEstado]);
         }
 
-        return $this;
+        return $nuevoEstado;
+    }
+
+    /**
+     * Scope para certificados vigentes
+     */
+    public function scopeVigentes($query)
+    {
+        return $query->where('fecha', '>=', Carbon::now()->subYear());
+    }
+
+    /**
+     * Scope para certificados vencidos
+     */
+    public function scopeVencidos($query)
+    {
+        return $query->where('fecha', '<', Carbon::now()->subYear());
+    }
+
+    /**
+     * Obtener la fecha de vencimiento
+     */
+    public function getFechaVencimientoAttribute()
+    {
+        return $this->fecha->copy()->addYear();
+    }
+
+    /**
+     * Verificar si está por vencer (menos de 30 días)
+     */
+    public function getPorVencerAttribute()
+    {
+        return $this->esta_vigente && $this->dias_restantes <= 30;
+    }
+
+    /**
+     * Scope para certificados por vencer
+     */
+    public function scopePorVencer($query)
+    {
+        $fechaLimite = Carbon::now()->addDays(30);
+        $fechaMinima = Carbon::now()->subYear();
+
+        return $query->where('fecha', '>=', $fechaMinima)
+                     ->where('fecha', '<=', $fechaLimite->subYear());
+    }
+        // Verificar si el CENVI está vencido (1 año de validez)
+    public function isVencido()
+    {
+        if (!$this->fecha) return false;
+
+        $fechaVencimiento = Carbon::parse($this->fecha)->addYear();
+        return Carbon::now()->greaterThan($fechaVencimiento);
+    }
+
+    public function diasParaVencer()
+    {
+        if (!$this->fecha) return null;
+
+        $fechaVencimiento = Carbon::parse($this->fecha)->addYear();
+        return Carbon::now()->diffInDays($fechaVencimiento, false);
     }
 }

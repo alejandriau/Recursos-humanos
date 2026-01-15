@@ -108,4 +108,13 @@ class CedulaIdentidad extends Model
 
         return $this;
     }
+
+
+    // Verificar si la cédula está vencida
+    public function isVencida()
+    {
+        if (!$this->fechaVencimiento) return false;
+
+        return Carbon::now()->greaterThan(Carbon::parse($this->fechaVencimiento));
+    }
 }

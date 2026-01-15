@@ -239,8 +239,15 @@
                                             <li><a class="dropdown-item" href="{{ route('personas.show', $baja['persona_id']) }}">🔍 Ver</a></li>
                                             <li><a class="dropdown-item" href="{{ route('persona.dashboard', $baja['persona_id'])}}">📊 Documentación</a></li>
                                             <li><a class="dropdown-item" href="{{ route('personas.historial', $baja['persona_id'])}}">
-                                                📋 Historial
+                                                📋 Historiall
                                             </a></li>
+                                            <li>
+                                                <a href="#" class="dropdown-item btn-reactivar"
+                                                data-persona-id="{{ $baja['persona_id'] }}"
+                                                data-persona-nombre="{{ $baja['nombre'] }}">
+                                                    <i class="fas fa-user-check me-1"></i>Dar de Alta
+                                                </a>
+                                            </li>
                                         </ul>
                                     </div>
                                 </td>
@@ -609,6 +616,41 @@
             }
         });
     });
+    // SweetAlert2 para reactivar
+    document.querySelectorAll('.btn-reactivar').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+
+            const personaId = this.dataset.personaId;
+            const personaNombre = this.dataset.personaNombre;
+
+            Swal.fire({
+                title: `¿Activar a ${personaNombre}?`,
+                text: 'La persona volverá a estar activa en el sistema',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, activar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = `/personas/${personaId}/activar`;
+
+                }
+            });
+        });
+    });
 </script>
+@if(session('success'))
+<script>
+    Swal.fire({
+        position: "top-end",
+        icon: "success",
+        title: "{{ session('success') }}",
+        showConfirmButton: false,
+        timer: 1500
+    });
+</script>
+@endif
+
 
 @endsection

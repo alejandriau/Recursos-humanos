@@ -352,7 +352,13 @@ public function show($id)
 }
 
 
+public function activarEstado(Persona $persona)
+{
+    $persona->update(['estado' => 1]);
 
+    return redirect()->back()->with('success', '✅ Persona activada correctamente');
+
+}
 
 
 

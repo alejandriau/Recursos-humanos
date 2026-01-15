@@ -5,31 +5,71 @@ namespace App\Exports;
 use App\Models\Persona;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
-use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
-use Maatwebsite\Excel\Concerns\WithColumnWidths;
-use Maatwebsite\Excel\Concerns\WithTitle;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\WithColumnFormatting;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
+use Illuminate\Http\Request;
+use Carbon\Carbon;
 
-class ReportePersonalizadoExport implements FromCollection, WithHeadings, WithMapping, WithStyles, WithColumnWidths, WithTitle
+class ReportePersonalizadoExport implements FromCollection, WithHeadings, WithStyles, ShouldAutoSize, WithColumnFormatting
 {
     protected $columnas;
     protected $filtros;
+    protected $nombresColumnas;
 
-    public function __construct($columnas = [], $filtros = [])
+    public function __construct(array $columnas, array $filtros)
     {
         $this->columnas = $columnas;
         $this->filtros = $filtros;
+        $this->nombresColumnas = $this->getNombresColumnas();
     }
 
     public function collection()
     {
+        // Obtener datos directamente sin depender del controlador
+        $personas = $this->obtenerPersonasFiltradas();
+
+        // Filtrar solo las columnas seleccionadas
+        return $personas->map(function($persona) {
+            $row = [];
+            foreach ($this->columnas as $columna) {
+                $row[$columna] = $persona[$columna] ?? '';
+            }
+            return $row;
+        });
+    }
+
+    public function headings(): array
+    {
+        $headings = [];
+        foreach ($this->columnas as $columna) {
+            $headings[] = $this->nombresColumnas[$columna] ?? $columna;
+        }
+
+        return $headings;
+    }
+
+    private function obtenerPersonasFiltradas()
+    {
+        // Simular un request para usar la misma lógica del controlador
+        $request = new Request($this->filtros);
+
         $query = Persona::where('persona.estado', 1)
+            ->select('persona.*')
             ->with([
                 'historialActivo.puesto.unidadOrganizacional',
                 'casActual',
-                'profesiones',
-                'certificados'
+                'profesiones' => function($q) {
+                    $q->where('estado', 1);
+                },
+                'certificados' => function($q) {
+                    $q->where('estado', 1);
+                },
+                'licenciaMilitar' => function($q) {
+                    $q->where('estado', 1);
+                }
             ]);
 
         // Aplicar filtros
@@ -45,8 +85,26 @@ class ReportePersonalizadoExport implements FromCollection, WithHeadings, WithMa
             });
         }
 
+        if (isset($this->filtros['nivel_jerarquico'])) {
+            $query->whereHas('historialActivo.puesto', function($q) {
+                $q->where('nivelJerarquico', $this->filtros['nivel_jerarquico']);
+            });
+        }
+
+        if (isset($this->filtros['es_jefatura'])) {
+            $query->whereHas('historialActivo.puesto', function($q) {
+                $q->where('esJefatura', $this->filtros['es_jefatura'] == 'si');
+            });
+        }
+
         if (isset($this->filtros['sexo'])) {
             $query->where('sexo', $this->filtros['sexo']);
+        }
+
+        if (isset($this->filtros['estado_cas'])) {
+            $query->whereHas('casActual', function($q) {
+                $q->where('estado_cas', $this->filtros['estado_cas']);
+            });
         }
 
         if (isset($this->filtros['busqueda'])) {
@@ -58,154 +116,184 @@ class ReportePersonalizadoExport implements FromCollection, WithHeadings, WithMa
             });
         }
 
-        return $query->get();
-    }
-
-    public function headings(): array
-    {
-        $titulos = [
-            'ci' => 'CI / DOCUMENTO',
-            'nombre_completo' => 'NOMBRE COMPLETO',
-            'fecha_nacimiento' => 'FECHA NACIMIENTO',
-            'edad' => 'EDAD',
-            'sexo' => 'SEXO',
-            'telefono' => 'TELÉFONO',
-            'puesto' => 'PUESTO ACTUAL',
-            'unidad' => 'UNIDAD ORGANIZACIONAL',
-            'nivel_jerarquico' => 'NIVEL JERÁRQUICO',
-            'salario' => 'SALARIO (Bs.)',
-            'tipo_contrato' => 'TIPO CONTRATO',
-            'fecha_ingreso' => 'FECHA INGRESO',
-            'estado_laboral' => 'ESTADO LABORAL',
-            'es_jefatura' => 'ES JEFATURA',
-            'antiguedad_anios' => 'AÑOS SERVICIO',
-            'antiguedad_meses' => 'MESES SERVICIO',
-            'bono_antiguedad' => 'BONO ANTIGÜEDAD',
-            'estado_cas' => 'ESTADO CAS',
-            'fecha_emision_cas' => 'FECHA EMISIÓN CAS',
-            'profesiones' => 'PROFESIONES',
-            'universidades' => 'UNIVERSIDADES',
-            'registros_profesionales' => 'REGISTROS PROF.',
-            'total_certificados' => 'TOTAL CERTIFICADOS',
-            'licencia_militar' => 'LICENCIA MILITAR',
-            'fecha_registro' => 'FECHA REGISTRO',
-            'ultima_actualizacion' => 'ÚLTIMA ACTUALIZACIÓN',
-            'estado_persona' => 'ESTADO PERSONA',
-        ];
-
-        $encabezados = [];
-        foreach ($this->columnas as $columna) {
-            $encabezados[] = $titulos[$columna] ?? strtoupper(str_replace('_', ' ', $columna));
+        // Ordenar
+        if (isset($this->filtros['ordenar_por'])) {
+            $orden = $this->filtros['ordenar_direccion'] ?? 'asc';
+            $query->orderBy($this->filtros['ordenar_por'], $orden);
+        } else {
+            $query->orderBy('apellidoPat')->orderBy('nombre');
         }
 
-        return $encabezados;
-    }
-
-    public function map($persona): array
-    {
-        $datos = $this->formatearDatos($persona);
-        $fila = [];
-
-        foreach ($this->columnas as $columna) {
-            $fila[] = $datos[$columna] ?? '';
+        // Límite de registros
+        if (isset($this->filtros['limite']) && $this->filtros['limite'] > 0) {
+            $query->limit($this->filtros['limite']);
         }
 
-        return $fila;
+        return $query->get()->map(function($persona) {
+            return $this->formatearDatosPersona($persona);
+        });
     }
 
-    private function formatearDatos($persona)
+    private function formatearDatosPersona($persona)
     {
-        $puesto = $persona->historialActivo->puesto ?? null;
+        // Obtener datos con verificaciones de null
+        $historial = $persona->historialActivo ?? null;
+        $puesto = $historial->puesto ?? null;
         $unidad = $puesto->unidadOrganizacional ?? null;
-        $cas = $persona->casActual;
+        $cas = $persona->casActual ?? null;
+
+        // Manejar fechas con null safety
+        $fechaNacimiento = $persona->fechaNacimiento ?? null;
+        $fechaIngreso = $historial->fecha_inicio ?? null;
+        $fechaEmisionCas = $cas->fecha_emision_cas ?? null;
 
         return [
-            'ci' => $persona->ci,
-            'nombre_completo' => $persona->nombre . ' ' . $persona->apellidoPat . ' ' . ($persona->apellidoMat ?? ''),
-            'fecha_nacimiento' => $persona->fechaNacimiento ? $persona->fechaNacimiento->format('d/m/Y') : '',
-            'edad' => $persona->fechaNacimiento ? now()->diffInYears($persona->fechaNacimiento) : '',
-            'sexo' => $persona->sexo,
-            'telefono' => $persona->telefono,
-            'puesto' => $puesto->denominacion ?? '',
-            'unidad' => $unidad->nombre ?? '',
+            // Datos básicos (siempre disponibles)
+            'id' => $persona->id,
+            'ci' => $persona->ci ?? '',
+            'nombre_completo' => ($persona->nombre ?? '') . ' ' .
+                               ($persona->apellidoPat ?? '') . ' ' .
+                               ($persona->apellidoMat ?? ''),
+            'nombre' => $persona->nombre ?? '',
+            'apellido_paterno' => $persona->apellidoPat ?? '',
+            'apellido_materno' => $persona->apellidoMat ?? '',
+            'fecha_nacimiento' => $fechaNacimiento ? $fechaNacimiento->format('d/m/Y') : '',
+            'edad' => $fechaNacimiento ? Carbon::parse($fechaNacimiento)->age: '',
+            'sexo' => $persona->sexo ?? '',
+            'telefono' => $persona->telefono ?? '',
+
+            // Datos laborales (pueden ser null)
+            'puesto' => $puesto->denominacion ?? 'Sin asignar',
+            'unidad' => $unidad->nombre ?? 'Sin unidad',
             'nivel_jerarquico' => $puesto->nivelJerarquico ?? '',
-            'salario' => $puesto ? number_format($puesto->haber, 2) : '',
+            'salario' => $puesto ? number_format($puesto->haber, 2) : '0.00',
             'tipo_contrato' => $puesto->tipoContrato ?? '',
-            'fecha_ingreso' => $persona->historialActivo->fecha_inicio ? $persona->historialActivo->fecha_inicio->format('d/m/Y') : '',
-            'estado_laboral' => $persona->historialActivo->estado ?? '',
-            'es_jefatura' => $puesto ? ($puesto->esJefatura ? 'Sí' : 'No') : '',
+            'fecha_ingreso' => $fechaIngreso ? $fechaIngreso->format('d/m/Y') : '',
+            'estado_laboral' => $historial ? ($historial->estado ?? '') : 'Sin historial',
+            'es_jefatura' => $puesto ? ($puesto->esJefatura ? 'Sí' : 'No') : 'No',
+
+            // CAS (puede ser null)
             'antiguedad_anios' => $cas->anios_servicio ?? '',
             'antiguedad_meses' => $cas->meses_servicio ?? '',
-            'bono_antiguedad' => $cas ? number_format($cas->monto_bono, 2) : '',
+            'bono_antiguedad' => $cas ? number_format($cas->monto_bono, 2) : '0.00',
             'estado_cas' => $cas->estado_cas ?? '',
-            'fecha_emision_cas' => $cas && $cas->fecha_emision_cas ? $cas->fecha_emision_cas->format('d/m/Y') : '',
-            'profesiones' => $persona->profesiones->pluck('universidad')->implode(', '),
+            'fecha_emision_cas' => $fechaEmisionCas ? $fechaEmisionCas->format('d/m/Y') : '',
+
+            // Formación
+            'profesiones' => $persona->profesiones->pluck('provisionN')->implode(', '),
             'universidades' => $persona->profesiones->pluck('universidad')->unique()->implode(', '),
             'registros_profesionales' => $persona->profesiones->pluck('registro')->filter()->implode(', '),
             'total_certificados' => $persona->certificados->count(),
             'licencia_militar' => $persona->licenciaMilitar->codigo ?? '',
-            'fecha_registro' => $persona->fechaRegistro ? $persona->fechaRegistro->format('d/m/Y H:i') : '',
-            'ultima_actualizacion' => $persona->fechaActualizacion ? $persona->fechaActualizacion->format('d/m/Y H:i') : '',
-            'estado_persona' => $persona->estado == 1 ? 'Activo' : 'Inactivo',
+        ];
+    }
+
+    private function getNombresColumnas()
+    {
+        return [
+            'ci' => 'CI / Documento',
+            'nombre_completo' => 'Nombre Completo',
+            'nombre' => 'Nombre',
+            'apellido_paterno' => 'Apellido Paterno',
+            'apellido_materno' => 'Apellido Materno',
+            'fecha_nacimiento' => 'Fecha Nacimiento',
+            'edad' => 'Edad',
+            'sexo' => 'Sexo',
+            'telefono' => 'Teléfono',
+            'puesto' => 'Puesto',
+            'unidad' => 'Unidad Organizacional',
+            'nivel_jerarquico' => 'Nivel Jerárquico',
+            'salario' => 'Salario (Bs.)',
+            'tipo_contrato' => 'Tipo de Contrato',
+            'fecha_ingreso' => 'Fecha de Ingreso',
+            'estado_laboral' => 'Estado Laboral',
+            'es_jefatura' => 'Es Jefatura',
+            'antiguedad_anios' => 'Años de Servicio',
+            'antiguedad_meses' => 'Meses de Servicio',
+            'bono_antiguedad' => 'Bono Antigüedad (Bs.)',
+            'estado_cas' => 'Estado CAS',
+            'fecha_emision_cas' => 'Fecha Emisión CAS',
+            'profesiones' => 'Profesiones',
+            'universidades' => 'Universidades',
+            'registros_profesionales' => 'Registros Profesionales',
+            'total_certificados' => 'Total Certificados',
+            'licencia_militar' => 'Licencia Militar',
         ];
     }
 
     public function styles(Worksheet $sheet)
     {
-        return [
-            // Estilo para encabezados
-            1 => [
-                'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
-                'fill' => [
-                    'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
-                    'startColor' => ['rgb' => '2C3E50']
+        // Estilo para el encabezado
+        $sheet->getStyle('A1:' . $sheet->getHighestColumn() . '1')->applyFromArray([
+            'font' => [
+                'bold' => true,
+                'color' => ['rgb' => 'FFFFFF'],
+            ],
+            'fill' => [
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '2c3e50'],
+            ],
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                    'color' => ['rgb' => '000000'],
                 ],
-                'alignment' => ['vertical' => 'center', 'horizontal' => 'center']
             ],
+            'alignment' => [
+                'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
+                'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
+            ],
+        ]);
 
-            // Estilo para filas alternas
-            'A2:Z1000' => [
-                'alignment' => ['vertical' => 'center']
-            ],
-        ];
+        // Estilo para las celdas
+        $lastColumn = $sheet->getHighestColumn();
+        $lastRow = $sheet->getHighestRow();
+
+        if ($lastRow > 1) {
+            $sheet->getStyle('A2:' . $lastColumn . $lastRow)
+                ->getBorders()
+                ->getAllBorders()
+                ->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
+        }
+
+        // Alternar colores de filas
+        for ($row = 2; $row <= $lastRow; $row++) {
+            if ($row % 2 == 0) {
+                $sheet->getStyle("A{$row}:" . $lastColumn . $row)
+                    ->getFill()
+                    ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                    ->getStartColor()
+                    ->setARGB('F8F9FA');
+            }
+        }
+
+        // Ajustar altura de filas
+        $sheet->getDefaultRowDimension()->setRowHeight(20);
+
+        return [];
     }
 
-    public function columnWidths(): array
+    public function columnFormats(): array
     {
-        $anchuras = [
-            'A' => 15, // CI
-            'B' => 30, // Nombre completo
-            'C' => 15, // Fecha nacimiento
-            'D' => 10, // Edad
-            'E' => 12, // Sexo
-            'F' => 15, // Teléfono
-            'G' => 35, // Puesto
-            'H' => 25, // Unidad
-            'I' => 20, // Nivel jerárquico
-            'J' => 15, // Salario
-            'K' => 15, // Tipo contrato
-            'L' => 15, // Fecha ingreso
-            'M' => 15, // Estado laboral
-            'N' => 12, // Es jefatura
-            'O' => 15, // Años servicio
-            'P' => 15, // Meses servicio
-            'Q' => 18, // Bono antigüedad
-            'R' => 15, // Estado CAS
-            'S' => 18, // Fecha emisión CAS
-            'T' => 30, // Profesiones
-            'U' => 25, // Universidades
-            'V' => 20, // Registros prof.
-            'W' => 18, // Total certificados
-            'X' => 20, // Licencia militar
-            'Y' => 20, // Fecha registro
-            'Z' => 22, // Última actualización
-        ];
+        $formats = [];
+        $columnaIndex = 0;
 
-        return $anchuras;
-    }
+        foreach ($this->columnas as $columna) {
+            $columnLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($columnaIndex + 1);
 
-    public function title(): string
-    {
-        return 'Reporte de Personal';
+            // Formato para columnas numéricas
+            if (in_array($columna, ['salario', 'bono_antiguedad'])) {
+                $formats[$columnLetter] = NumberFormat::FORMAT_NUMBER_COMMA_SEPARATED2;
+            }
+
+            // Formato para fechas
+            if (in_array($columna, ['fecha_nacimiento', 'fecha_ingreso', 'fecha_emision_cas'])) {
+                $formats[$columnLetter] = 'dd/mm/yyyy';
+            }
+
+            $columnaIndex++;
+        }
+
+        return $formats;
     }
 }

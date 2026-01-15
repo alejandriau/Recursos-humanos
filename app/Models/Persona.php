@@ -78,9 +78,20 @@ class Persona extends Model
     {
         return $this->hasMany(Cajacordes::class, 'idPersona');
     }
+
+    // Agregar esta relación
     public function cenvis()
     {
-        return $this->hasMany(Cenvi::class, 'idPersona');
+        return $this->hasMany(Cenvi::class, 'idPersona')
+                    ->where('estado', 1)
+                    ->orderBy('fecha', 'desc');
+    }
+
+    public function cenviMasReciente()
+    {
+        return $this->hasOne(Cenvi::class, 'idPersona')
+                    ->where('estado', 1)
+                    ->latest('fecha');
     }
 
 
@@ -296,5 +307,11 @@ class Persona extends Model
     {
         return $this->hasOne(LicenciaMilitar::class, 'idPersona');
     }
+
+    public function cedula()
+    {
+        return $this->hasOne(cedulaIdentidad::class, 'idPersona');
+    }
+
 
 }

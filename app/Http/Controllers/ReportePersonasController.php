@@ -9,6 +9,7 @@ use App\Exports\ReportePersonalizadoExport;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 
 class ReportePersonasController extends Controller
 {
@@ -102,37 +103,66 @@ class ReportePersonasController extends Controller
         );
     }
 
-    /**
-     * Exportar a PDF
-     */
-    public function exportarPDF(Request $request)
-    {
-        $request->validate([
-            'columnas' => 'required|array|min:1',
-        ]);
+/**
+ * Exportar a PDF
+ */
+public function exportarPDF(Request $request)
+{
+    $request->validate([
+        'columnas' => 'required|array|min:1',
+    ]);
 
-        $personas = $this->obtenerPersonasFiltradas($request);
-        $columnasSeleccionadas = $request->columnas;
-        $filtrosAplicados = $this->obtenerFiltrosAplicados($request);
+    $personas = $this->obtenerPersonasFiltradas($request);
+    $columnasSeleccionadas = $request->columnas;
+    $filtrosAplicados = $this->obtenerFiltrosAplicados($request);
 
-        $nombresColumnas = $this->getNombresColumnas();
-        $columnasMostrar = [];
-        foreach ($columnasSeleccionadas as $columna) {
-            $columnasMostrar[$columna] = $nombresColumnas[$columna] ?? $columna;
-        }
-
-        $pdf = Pdf::loadView('reportes.pdf.personas', [
-            'personas' => $personas,
-            'columnas' => $columnasMostrar,
-            'filtros' => $filtrosAplicados,
-            'total' => $personas->count(),
-            'fechaReporte' => now()->format('d/m/Y H:i'),
-        ]);
-
-        $nombreArchivo = 'reporte_personal_' . date('Y-m-d_H-i') . '.pdf';
-
-        return $pdf->download($nombreArchivo);
+    $nombresColumnas = $this->getNombresColumnas();
+    $columnasMostrar = [];
+    foreach ($columnasSeleccionadas as $columna) {
+        $columnasMostrar[$columna] = $nombresColumnas[$columna] ?? $columna;
     }
+
+    // Determinar el tamaño del papel basado en el número de columnas
+    $numColumnas = count($columnasSeleccionadas);
+
+    if ($numColumnas > 15) {
+        // Muchas columnas -> usar Oficio
+        $tamanoPapel = 'legal';
+        $orientacion = 'landscape';
+        $margen = 3;
+    } elseif ($numColumnas > 10) {
+        // Columnas moderadas -> usar A4 horizontal
+        $tamanoPapel = 'a4';
+        $orientacion = 'landscape';
+        $margen = 5;
+    } else {
+        // Pocas columnas -> A4 vertical
+        $tamanoPapel = 'a4';
+        $orientacion = 'portrait';
+        $margen = 10;
+    }
+
+    $pdf = Pdf::loadView('reportes.pdf.personas', [
+        'personas' => $personas,
+        'columnas' => $columnasMostrar,
+        'filtros' => $filtrosAplicados,
+        'total' => $personas->count(),
+        'fechaReporte' => now()->format('d/m/Y H:i'),
+        'numColumnas' => $numColumnas,
+        'tamanoPapel' => $tamanoPapel,
+    ])
+    ->setPaper($tamanoPapel, $orientacion)
+    ->setOption('margin-top', $margen)
+    ->setOption('margin-bottom', $margen)
+    ->setOption('margin-left', $margen)
+    ->setOption('margin-right', $margen)
+    ->setOption('enable-font-subsetting', true)
+    ->setOption('dpi', 150);
+
+    $nombreArchivo = 'reporte_personal_' . date('Y-m-d_H-i') . '.pdf';
+
+    return $pdf->download($nombreArchivo);
+}
 
     /**
      * Exportar a CSV
@@ -265,7 +295,7 @@ class ReportePersonasController extends Controller
             'apellido_paterno' => $persona->apellidoPat ?? '',
             'apellido_materno' => $persona->apellidoMat ?? '',
             'fecha_nacimiento' => $fechaNacimiento ? $fechaNacimiento->format('d/m/Y') : '',
-            'edad' => $fechaNacimiento ? now()->diffInYears($fechaNacimiento) : '',
+            'edad' => $fechaNacimiento ? Carbon::parse($fechaNacimiento)->age: '',
             'sexo' => $persona->sexo ?? '',
             'telefono' => $persona->telefono ?? '',
 
@@ -287,7 +317,7 @@ class ReportePersonasController extends Controller
             'fecha_emision_cas' => $fechaEmisionCas ? $fechaEmisionCas->format('d/m/Y') : '',
 
             // Formación
-            'profesiones' => $persona->profesiones->pluck('universidad')->implode(', '),
+            'profesiones' => $persona->profesiones->pluck('provisionN')->implode(', '),
             'universidades' => $persona->profesiones->pluck('universidad')->unique()->implode(', '),
             'registros_profesionales' => $persona->profesiones->pluck('registro')->filter()->implode(', '),
             'total_certificados' => $persona->certificados->count(),
@@ -328,6 +358,13 @@ class ReportePersonasController extends Controller
             'registros_profesionales' => 'Registros Profesionales',
             'total_certificados' => 'Total Certificados',
             'licencia_militar' => 'Licencia Militar',
+            'ultima_fecha_cenvi' => 'Última Fecha CENVI',
+            'ultima_observacion_cenvi' => 'Última Observación CENVI',
+            'total_cenvis' => 'Total CENVIs',
+            'cenvis_detalle' => 'Detalle CENVIs',
+            'rango_fechas_cenvi' => 'Rango Fechas CENVI',
+            'pdf_cenvi_url' => 'PDF CENVI',
+
         ];
     }
 
@@ -361,6 +398,13 @@ class ReportePersonasController extends Controller
 
         if ($request->filled('busqueda')) {
             $filtros[] = 'Búsqueda: "' . $request->busqueda . '"';
+        }
+        if ($request->filled('fecha_cenvi_desde')) {
+        $filtros[] = 'CENVI desde: ' . date('d/m/Y', strtotime($request->fecha_cenvi_desde));
+        }
+
+        if ($request->filled('fecha_cenvi_hasta')) {
+            $filtros[] = 'CENVI hasta: ' . date('d/m/Y', strtotime($request->fecha_cenvi_hasta));
         }
 
         return $filtros;
