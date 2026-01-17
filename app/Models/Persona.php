@@ -310,7 +310,7 @@ class Persona extends Model
 
     public function cedula()
     {
-        return $this->hasOne(cedulaIdentidad::class, 'idPersona');
+        return $this->hasOne(CedulaIdentidad::class, 'idPersona');
     }
 
 
