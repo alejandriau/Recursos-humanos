@@ -89,12 +89,12 @@ public function store(Request $request)
 {
     $request->validate([
         'nombre' => 'required|string|max:255',
-        'tipo' => 'nullable|string|max:100',
+        'tipo' => 'nullable|string|max:255',
         'categoria' => 'required|in:quechua,ley_1178,politicas_publicas,responsabilidad_funcion_publica,otros',
         'fecha' => 'nullable|date',
         'instituto' => 'nullable|string|max:255',
         'pdfcerts' => 'nullable|file|mimes:pdf|max:2048',
-        'idPersona' => 'required|exists:personas,id',
+        'idPersona' => 'required|exists:persona,id',
     ]);
 
     try {
@@ -182,7 +182,7 @@ public function update(Request $request, Certificado $certificado)
         'fecha' => 'nullable|date',
         'instituto' => 'nullable|string|max:80',
         'pdfcerts' => 'nullable|file|mimes:pdf|max:10240',
-        'idPersona' => 'required|integer|exists:personas,id',
+        'idPersona' => 'required|integer|exists:persona,id',
         'eliminar_pdf' => 'nullable|boolean'
     ]);
 

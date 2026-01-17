@@ -124,11 +124,11 @@
 
                         if (!$persona->cedula) {
                             $cedulaEstado = 'falta';
-                            $cedulaMensaje = 'FALTA Cédula';
+                            $cedulaMensaje = 'FALTA Cédula Identidad';
                         } elseif ($persona->cedula->fechaVencimiento) {
                             if (\Carbon\Carbon::now()->greaterThan(\Carbon\Carbon::parse($persona->cedula->fechaVencimiento))) {
                                 $cedulaEstado = 'vencido';
-                                $cedulaMensaje = 'Cédula VENCIDA desde ' . \Carbon\Carbon::parse($persona->cedula->fechaVencimiento)->format('d/m/Y');
+                                $cedulaMensaje = 'Cédula Identidad VENCIDA desde ' . \Carbon\Carbon::parse($persona->cedula->fechaVencimiento)->format('d/m/Y');
                             }
                         }
 
@@ -157,39 +157,80 @@
 
                             // Construir mensaje personalizado
                             $problemas = [];
-                            if ($cenviEstado == 'vencido') $problemas[] = $cenviMensaje;
-                            if ($cenviEstado == 'falta') $problemas[] = $cenviMensaje;
-                            if ($quechuaEstado == 'vencido') $problemas[] = $quechuaMensaje;
-                            if ($quechuaEstado == 'falta') $problemas[] = $quechuaMensaje;
-                            if ($cedulaEstado == 'vencido') $problemas[] = $cedulaMensaje;
-                            if ($cedulaEstado == 'falta') $problemas[] = $cedulaMensaje;
+                            $documentosFaltantes = [];
+                            $documentosVencidos = [];
+                            
+                            if ($cenviEstado == 'vencido') {
+                                $problemas[] = $cenviMensaje;
+                                $documentosVencidos[] = 'Certificado de No Violencia (CENVI)';
+                            }
+                            if ($cenviEstado == 'falta') {
+                                $problemas[] = $cenviMensaje;
+                                $documentosFaltantes[] = 'Certificado de No Violencia (CENVI)';
+                            }
+                            if ($quechuaEstado == 'vencido') {
+                                $problemas[] = $quechuaMensaje;
+                                $documentosVencidos[] = 'Certificado de Idioma Quechua';
+                            }
+                            if ($quechuaEstado == 'falta') {
+                                $problemas[] = $quechuaMensaje;
+                                $documentosFaltantes[] = 'Certificado de Idioma Quechua';
+                            }
+                            if ($cedulaEstado == 'vencido') {
+                                $problemas[] = $cedulaMensaje;
+                                $documentosVencidos[] = 'Cédula de Identidad';
+                            }
+                            if ($cedulaEstado == 'falta') {
+                                $problemas[] = $cedulaMensaje;
+                                $documentosFaltantes[] = 'Cédula de Identidad';
+                            }
 
-                            $mensaje = "{$saludo} {$persona->nombre} {$persona->apellidoPat}:\n\n";
+                            $mensaje = "{$saludo} {$persona->nombre} {$persona->apellidoPat} {$persona->apellidoMat}:\n\n";
                             $mensaje .= "Le escribe la *Unidad de Gestión de Recursos Humanos (UGRH)* del ";
                             $mensaje .= "*Gobierno Autónomo Departamental de Cochabamba (GADC)*.\n\n";
-
+                            
+                            $mensaje .= "*ALERTA DE DOCUMENTACIÓN PERSONAL*\n\n";
+                            
                             if (!empty($problemas)) {
-                                $mensaje .= "*ALERTA DE DOCUMENTOS:*\n";
                                 foreach ($problemas as $problema) {
-                                    $mensaje .= "❌ {$problema}\n";
+                                    $mensaje .= "🔴 {$problema}\n";
                                 }
                                 $mensaje .= "\n";
                             }
 
-                            $mensaje .= "Por favor, regularice su documentación personal lo antes posible.\n\n";
-                            $mensaje .= "Documentación requerida:\n";
-                            if ($cenviEstado == 'falta') $mensaje .= "• Certificado de Años de Servicio (CENVI)\n";
-                            if ($quechuaEstado == 'falta') $mensaje .= "• Certificado de Idioma Quechua\n";
-                            if ($cedulaEstado == 'falta') $mensaje .= "• Cédula de Identidad\n";
-
-                            if ($cenviEstado == 'vencido' || $quechuaEstado == 'vencido' || $cedulaEstado == 'vencido') {
-                                $mensaje .= "\n*Los documentos vencidos deben ser renovados inmediatamente.*\n";
+                            $mensaje .= "📋 *INFORMACIÓN DETALLADA:*\n\n";
+                            
+                            if (!empty($documentosVencidos)) {
+                                $mensaje .= "⚠️ *DOCUMENTOS POR RENOVAR:*\n";
+                                foreach ($documentosVencidos as $doc) {
+                                    $mensaje .= "• {$doc}\n";
+                                }
+                                $mensaje .= "\n";
+                            }
+                            
+                            if (!empty($documentosFaltantes)) {
+                                $mensaje .= "📄 *DOCUMENTOS REQUERIDOS:*\n";
+                                foreach ($documentosFaltantes as $doc) {
+                                    $mensaje .= "• {$doc}\n";
+                                }
+                                $mensaje .= "\n";
                             }
 
-                            $mensaje .= "\nAgradecemos su colaboración y quedamos atentos para coordinar.\n\n";
+                            $mensaje .= "📅 *PLAZO DE ENTREGA:*\n";
+                            $mensaje .= "La documentación solicitada debe ser presentada *hasta el Martes 20 de enero de 2026.*\n\n";
+
+                            $mensaje .= "📌 *PROCEDIMIENTO:*\n";
+                            $mensaje .= "1. Renovar/obtener los documentos indicados\n";
+                            $mensaje .= "2. Presentar copias físicas en la Unidad de Gestión de Recursos Humanos\n";
+                            $mensaje .= "3. La documentación será registrada y archivada en su file personal\n\n";
+
+                            $mensaje .= "La documentación es obligatoria para mantener su file personal actualizado y regular, conforme a los procedimientos administrativos internos.\n\n";
+                            
+                            $mensaje .= "Agradecemos su pronta atención a esta solicitud y quedamos a su disposición para cualquier consulta o coordinación relacionada.\n\n";
+                            
                             $mensaje .= "Saludos cordiales,\n";
                             $mensaje .= "Unidad de Gestión de Recursos Humanos\n";
-                            $mensaje .= "GADC";
+                            $mensaje .= "Gobierno Autónomo Departamental de Cochabamba (GADC)";
 
                             $whatsappLink = "https://wa.me/{$numeroWhatsapp}?text=" . urlencode($mensaje);
                         }

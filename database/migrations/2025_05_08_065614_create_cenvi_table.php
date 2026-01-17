@@ -6,26 +6,29 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('cenvi', function (Blueprint $table) {
-            $table->integer('id', true);
+            $table->bigIncrements('id');
+
             $table->date('fecha');
+
             $table->string('observacion', 100)->nullable();
-            $table->string('pdfcenvi', 250)->nullable();
-            $table->integer('idPersona')->index('fk_cenvi_idx');
+
+            $table->string('pdf_cenvi', 250)->nullable();
+
+            $table->integer('persona_id');
+            $table->foreign('persona_id')
+                ->references('id')
+                ->on('persona')
+                ->onDelete('cascade');
+
             $table->tinyInteger('estado')->default(1);
-            $table->timestamp('fechaRegistro')->useCurrent();
-            $table->timestamp('FechaActualizacion')->useCurrentOnUpdate()->nullable()->useCurrent();
+
+            $table->timestamps(); // created_at y updated_at
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('cenvi');

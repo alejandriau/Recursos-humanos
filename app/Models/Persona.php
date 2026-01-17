@@ -82,14 +82,14 @@ class Persona extends Model
     // Agregar esta relación
     public function cenvis()
     {
-        return $this->hasMany(Cenvi::class, 'idPersona')
+        return $this->hasMany(Cenvi::class, 'persona_id')
                     ->where('estado', 1)
                     ->orderBy('fecha', 'desc');
     }
 
     public function cenviMasReciente()
     {
-        return $this->hasOne(Cenvi::class, 'idPersona')
+        return $this->hasOne(Cenvi::class, 'persona_id')
                     ->where('estado', 1)
                     ->latest('fecha');
     }

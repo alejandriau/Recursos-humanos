@@ -52,10 +52,10 @@
             </div>
 
             <div class="mb-3">
-                <label for="pdfcenvi" class="form-label">Archivo PDF</label>
-                <input type="file" class="form-control @error('pdfcenvi') is-invalid @enderror"
-                       id="pdfcenvi" name="pdfcenvi" accept=".pdf">
-                @error('pdfcenvi')
+                <label for="pdf_cenvi" class="form-label">Archivo PDF</label>
+                <input type="file" class="form-control @error('pdf_cenvi') is-invalid @enderror"
+                       id="pdf_cenvi" name="pdf_cenvi" accept=".pdf">
+                @error('pdf_cenvi')
                     <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
                 <div class="form-text">Máximo 2MB, solo archivos PDF</div>
