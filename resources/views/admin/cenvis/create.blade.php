@@ -27,7 +27,7 @@
                     <div class="mb-3">
                         <label for="idPersona" class="form-label">Persona *</label>
                         <select class="form-select @error('idPersona') is-invalid @enderror"
-                                id="idPersona" name="idPersona" required>
+                                id="idPersona" name="persona_id" required>
                             <option value="">Seleccionar Persona</option>
                             @foreach($personas as $persona)
                                 <option value="{{ $persona->id }}" {{ old('idPersona') == $persona->id ? 'selected' : '' }}>

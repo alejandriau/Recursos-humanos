@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\Bajasaltas;
+
 use App\Http\Controllers\PersonaController;
 use App\Http\Controllers\ReporteController;
 use App\Http\Controllers\PasivounoController;

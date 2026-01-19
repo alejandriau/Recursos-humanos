@@ -105,8 +105,17 @@
     <!-- Header compacto -->
     <header class="dashboard-header">
         <div class="container">
-            <h1 class="h3 fw-bold mb-2">Gestión de Personas y Documentación</h1>
-            <p class="mb-0 opacity-90">Administre información personal y documentos en un solo lugar</p>
+            <div class="row">
+                <div class="col-md-6">
+                    <h1 class="h3 fw-bold mb-2">Gestión de Personas y Documentación</h1>
+                    <p class="mb-0 opacity-90">Administre información personal y documentos en un solo lugar</p>
+                </div>
+<div class="col-md-6 d-flex justify-content-end align-items-end">
+    <a href="{{ route('alertas.index') }}" class="btn btn-dark rounded-pill px-4 shadow-sm">
+        Doc. vence
+    </a>
+</div>
+            </div>
         </div>
     </header>
 

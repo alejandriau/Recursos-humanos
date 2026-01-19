@@ -93,6 +93,17 @@ class CedulaIdentidadController extends Controller
             $data['estado'] = Carbon::parse($request->fechaVencimiento)->gte(Carbon::now());
         }
 
+        // **NUEVO: Buscar y desactivar cédula anterior de la misma persona**
+        // Buscar todas las cédulas activas de esta persona
+        $cedulasAnteriores = CedulaIdentidad::where('idPersona', $request->idPersona)
+            ->where('estado', 1) // Solo las que están activas
+            ->get();
+
+        // Desactivar todas las cédulas anteriores
+        foreach ($cedulasAnteriores as $cedulaAnterior) {
+            $cedulaAnterior->update(['estado' => 0]);
+        }
+
         if ($request->hasFile('pdfcedula')) {
             $file = $request->file('pdfcedula');
             $fileName = time() . '_' . $file->getClientOriginalName();

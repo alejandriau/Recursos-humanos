@@ -107,7 +107,28 @@ public function store(Request $request)
             $persona->save();
         }
 
-        // Crear certificado
+        // LÓGICA PARA CERTIFICADOS QUECHUA: Desactivar certificados anteriores
+        if ($request->categoria === 'quechua') {
+            // Buscar todos los certificados de quechua activos para esta persona
+            $certificadosQuechuaAnteriores = Certificado::where('idPersona', $request->idPersona)
+                ->where('categoria', 'quechua')
+                ->where('estado', 1)
+                ->get();
+
+            // Marcar como inactivos todos los certificados de quechua anteriores
+            foreach ($certificadosQuechuaAnteriores as $certificadoAnterior) {
+                $certificadoAnterior->estado = 0;
+                $certificadoAnterior->save();
+
+                \Log::info('Certificado de quechua anterior desactivado:', [
+                    'id' => $certificadoAnterior->id,
+                    'persona_id' => $request->idPersona,
+                    'nombre' => $certificadoAnterior->nombre
+                ]);
+            }
+        }
+
+        // Crear nuevo certificado
         $certificado = new Certificado();
         $certificado->nombre = $request->nombre;
         $certificado->tipo = $request->tipo;
@@ -115,6 +136,7 @@ public function store(Request $request)
         $certificado->fecha = $request->fecha;
         $certificado->instituto = $request->instituto;
         $certificado->idPersona = $request->idPersona;
+        $certificado->estado = 1; // Siempre activo al crear
 
         // Calcular fecha de vencimiento si es certificado de quechua
         if ($request->categoria === 'quechua' && $request->fecha) {
@@ -158,7 +180,8 @@ public function store(Request $request)
             'id' => $certificado->id,
             'persona_id' => $persona->id,
             'categoria' => $request->categoria,
-            'ruta_pdf' => $certificado->pdfcerts
+            'ruta_pdf' => $certificado->pdfcerts,
+            'certificados_desactivados' => isset($certificadosQuechuaAnteriores) ? $certificadosQuechuaAnteriores->count() : 0
         ]);
 
         return redirect()->route('certificados.index')->with('success', 'Certificado guardado correctamente.');
@@ -188,6 +211,26 @@ public function update(Request $request, Certificado $certificado)
 
     try {
         $persona = Persona::findOrFail($data['idPersona']);
+
+        // LÓGICA PARA CERTIFICADOS QUECHUA: Si se está cambiando a quechua
+        if ($data['categoria'] === 'quechua' && $certificado->categoria !== 'quechua') {
+            // Buscar y desactivar certificados de quechua anteriores de esta persona
+            $certificadosQuechuaAnteriores = Certificado::where('idPersona', $data['idPersona'])
+                ->where('categoria', 'quechua')
+                ->where('estado', 1)
+                ->where('id', '!=', $certificado->id) // Excluir el actual
+                ->get();
+
+            foreach ($certificadosQuechuaAnteriores as $certificadoAnterior) {
+                $certificadoAnterior->estado = 0;
+                $certificadoAnterior->save();
+
+                \Log::info('Certificado de quechua anterior desactivado en actualización:', [
+                    'id' => $certificadoAnterior->id,
+                    'persona_id' => $data['idPersona']
+                ]);
+            }
+        }
 
         // Calcular fecha de vencimiento
         if ($data['categoria'] === 'quechua' && $data['fecha']) {
@@ -242,11 +285,13 @@ public function update(Request $request, Certificado $certificado)
             unset($data['pdfcerts']);
         }
 
+        // Actualizar el certificado
         $certificado->update($data);
 
         \Log::info('Certificado actualizado:', [
             'id' => $certificado->id,
-            'categoria' => $data['categoria']
+            'categoria' => $data['categoria'],
+            'certificados_desactivados' => isset($certificadosQuechuaAnteriores) ? $certificadosQuechuaAnteriores->count() : 0
         ]);
 
         return redirect()->route('certificados.index')->with('success', 'Certificado actualizado correctamente.');

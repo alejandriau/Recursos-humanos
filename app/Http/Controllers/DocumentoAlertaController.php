@@ -11,8 +11,18 @@ class DocumentoAlertaController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Persona::with(['cenvis', 'certificados', 'cedula'])
-            ->where('estado', 1);
+        // MODIFICACIÓN: Cargar solo cédulas con estado = 1 también
+        $query = Persona::with([
+            'cenvis' => function($query) {
+                $query->where('estado', 1);
+            },
+            'certificados' => function($query) {
+                $query->where('estado', 1);
+            },
+            'cedula' => function($query) {
+                $query->where('estado', 1); // SOLO cédulas activas
+            }
+        ])->where('estado', 1);
 
         // BÚSQUEDA POR NOMBRE O APELLIDO
         if ($request->has('buscar') && !empty($request->buscar)) {
@@ -28,6 +38,11 @@ class DocumentoAlertaController extends Controller
 
         $personas = $query->get()
             ->map(function ($persona) {
+                // Ya solo tenemos documentos activos
+                $persona->ultimoCenvi = $this->getUltimoCenvi($persona);
+                $persona->ultimoQuechua = $this->getUltimoQuechua($persona);
+                $persona->ultimoCedula = $this->getUltimaCedulaActiva($persona); // Nueva función
+
                 // Calcular toda la información necesaria para cada persona
                 $persona->tieneVencidos = $this->tieneDocumentosVencidos($persona);
                 $persona->documentosVencidos = $this->obtenerDocumentosVencidos($persona);
@@ -85,208 +100,352 @@ class DocumentoAlertaController extends Controller
             'busqueda'
         ));
     }
-        // NUEVO: Verificar si faltan registros
+
+    // Obtener el último CENVI (ya vienen filtrados con estado = 1)
+    private function getUltimoCenvi($persona)
+    {
+        if ($persona->cenvis->isEmpty()) {
+            return null;
+        }
+
+        // Ordenar por fecha descendente y tomar el primero (más reciente)
+        return $persona->cenvis->sortByDesc('fecha')->first();
+    }
+
+    // Obtener el último certificado de Quechua (ya vienen filtrados con estado = 1)
+    private function getUltimoQuechua($persona)
+    {
+        // Filtrar certificados Quechua de los ya activos
+        $certificadosQuechua = $persona->certificados->filter(function($cert) {
+            return $this->esQuechua($cert);
+        });
+
+        if ($certificadosQuechua->isEmpty()) {
+            return null;
+        }
+
+        // Ordenar por fecha descendente y tomar el primero (más reciente)
+        return $certificadosQuechua->sortByDesc('fecha')->first();
+    }
+
+    // NUEVO: Obtener la cédula activa (estado = 1)
+    private function getUltimaCedulaActiva($persona)
+    {
+        // Como ya cargamos solo cédulas con estado = 1, podemos devolverla directamente
+        // Pero primero verificamos que exista
+        if (!$persona->cedula) {
+            return null;
+        }
+
+        // Verificar que realmente tenga estado = 1 (por si acaso)
+        if (isset($persona->cedula->estado) && $persona->cedula->estado != 1) {
+            return null;
+        }
+
+        return $persona->cedula;
+    }
+
+    // NUEVO: Verificar si faltan registros ACTIVOS
     private function faltanRegistros($persona)
     {
-        // Si no tiene ningún CENVI registrado
-        $sinCenvi = $persona->cenvis->isEmpty();
+        // Si no tiene ningún CENVI ACTIVO registrado
+        $sinCenviActivo = $persona->cenvis->isEmpty();
 
-        // Si no tiene ningún certificado de quechua registrado
-        $sinQuechua = $persona->certificados->filter(function($cert) {
+        // Si no tiene ningún certificado de quechua ACTIVO registrado
+        $sinQuechuaActivo = $persona->certificados->filter(function($cert) {
             return $this->esQuechua($cert);
         })->isEmpty();
 
-        // Si no tiene cédula registrada
-        $sinCedula = !$persona->cedula;
+        // Si no tiene cédula ACTIVA registrada
+        $sinCedulaActiva = !$this->getUltimaCedulaActiva($persona);
 
-        // Considerar que falta si no tiene al menos uno de estos registros
-        return $sinCenvi || $sinQuechua || $sinCedula;
+        // Considerar que falta si no tiene al menos uno de estos registros ACTIVOS
+        return $sinCenviActivo || $sinQuechuaActivo || $sinCedulaActiva;
     }
-        // Métodos privados para calcular información
 
-    /*private function tieneDocumentosVencidos($persona)
+    private function tieneDocumentosVencidos($persona)
     {
-        // CENVI vencido
-        foreach ($persona->cenvis as $cenvi) {
-            if ($cenvi->fecha && Carbon::now()->greaterThan(Carbon::parse($cenvi->fecha)->addYear())) {
-                return true;
-            }
+        // Si falta registro ACTIVO, considerar como "pendiente" pero no vencido
+        if ($this->faltanRegistros($persona)) {
+            return false; // Los que faltan van en categoría aparte
         }
 
-        // Certificado quechua vencido
-        foreach ($persona->certificados as $certificado) {
-            if ($this->esQuechua($certificado) &&
-                $certificado->fecha &&
-                Carbon::now()->greaterThan(Carbon::parse($certificado->fecha)->addYears(3))) {
-                return true;
-            }
+        // Verificar último CENVI ACTIVO vencido
+        $ultimoCenvi = $this->getUltimoCenvi($persona);
+        if ($ultimoCenvi && $ultimoCenvi->fecha &&
+            Carbon::now()->greaterThan(Carbon::parse($ultimoCenvi->fecha)->addYear())) {
+            return true;
         }
 
-        // Cédula vencida
-        if ($persona->cedula &&
-            $persona->cedula->fechaVencimiento &&
-            Carbon::now()->greaterThan(Carbon::parse($persona->cedula->fechaVencimiento))) {
+        // Verificar último certificado quechua ACTIVO vencido
+        $ultimoQuechua = $this->getUltimoQuechua($persona);
+        if ($ultimoQuechua && $ultimoQuechua->fecha &&
+            Carbon::now()->greaterThan($this->getFechaVencimientoCertificado($ultimoQuechua))) {
+            return true;
+        }
+
+        // Verificar cédula ACTIVA vencida
+        $ultimaCedula = $this->getUltimaCedulaActiva($persona);
+        if ($ultimaCedula &&
+            $ultimaCedula->fechaVencimiento &&
+            Carbon::now()->greaterThan(Carbon::parse($ultimaCedula->fechaVencimiento))) {
             return true;
         }
 
         return false;
-    }*/
+    }
 
     private function obtenerDocumentosVencidos($persona)
     {
         $documentos = [];
 
-        foreach ($persona->cenvis as $cenvi) {
-            if ($cenvi->fecha && Carbon::now()->greaterThan(Carbon::parse($cenvi->fecha)->addYear())) {
-                $documentos[] = [
-                    'tipo' => 'CENVI',
-                    'fecha_vencimiento' => Carbon::parse($cenvi->fecha)->addYear()->format('d/m/Y')
-                ];
-            }
+        // Verificar último CENVI ACTIVO
+        $ultimoCenvi = $this->getUltimoCenvi($persona);
+        if ($ultimoCenvi && $ultimoCenvi->fecha &&
+            Carbon::now()->greaterThan(Carbon::parse($ultimoCenvi->fecha)->addYear())) {
+            $documentos[] = [
+                'tipo' => 'CENVI',
+                'fecha_vencimiento' => Carbon::parse($ultimoCenvi->fecha)->addYear()->format('d/m/Y'),
+                'fecha_registro' => $ultimoCenvi->fecha->format('d/m/Y'),
+                'estado_registro' => $ultimoCenvi->estado
+            ];
         }
 
-        foreach ($persona->certificados as $certificado) {
-            if ($this->esQuechua($certificado) &&
-                $certificado->fecha &&
-                Carbon::now()->greaterThan(Carbon::parse($certificado->fecha)->addYears(3))) {
-                $documentos[] = [
-                    'tipo' => 'Certificado Quechua',
-                    'fecha_vencimiento' => Carbon::parse($certificado->fecha)->addYears(3)->format('d/m/Y')
-                ];
-            }
+        // Verificar último certificado quechua ACTIVO
+        $ultimoQuechua = $this->getUltimoQuechua($persona);
+        if ($ultimoQuechua && $ultimoQuechua->fecha &&
+            Carbon::now()->greaterThan($this->getFechaVencimientoCertificado($ultimoQuechua))) {
+            $documentos[] = [
+                'tipo' => 'Certificado Quechua',
+                'fecha_vencimiento' => $this->getFechaVencimientoCertificado($ultimoQuechua)->format('d/m/Y'),
+                'fecha_registro' => $ultimoQuechua->fecha->format('d/m/Y'),
+                'estado_registro' => $ultimoQuechua->estado,
+                'nombre' => $ultimoQuechua->nombre
+            ];
         }
 
-        if ($persona->cedula &&
-            $persona->cedula->fechaVencimiento &&
-            Carbon::now()->greaterThan(Carbon::parse($persona->cedula->fechaVencimiento))) {
+        // Verificar cédula ACTIVA
+        $ultimaCedula = $this->getUltimaCedulaActiva($persona);
+        if ($ultimaCedula &&
+            $ultimaCedula->fechaVencimiento &&
+            Carbon::now()->greaterThan(Carbon::parse($ultimaCedula->fechaVencimiento))) {
             $documentos[] = [
                 'tipo' => 'Cédula de Identidad',
-                'fecha_vencimiento' => Carbon::parse($persona->cedula->fechaVencimiento)->format('d/m/Y')
+                'fecha_vencimiento' => Carbon::parse($ultimaCedula->fechaVencimiento)->format('d/m/Y'),
+                'fecha_emision' => $ultimaCedula->fechaEmision ?
+                    Carbon::parse($ultimaCedula->fechaEmision)->format('d/m/Y') : 'No registrada',
+                'estado_registro' => $ultimaCedula->estado
             ];
         }
 
         return $documentos;
     }
 
-    /*private function getInfoCenvi($persona)
+    private function getInfoCenvi($persona)
     {
-        if ($persona->cenvis->isEmpty()) {
+        $ultimoCenvi = $this->getUltimoCenvi($persona);
+
+        if (!$ultimoCenvi) {
             return [
                 'tiene' => false,
-                'estado' => 'sin-datos',
-                'texto' => 'Sin CENVI'
+                'estado' => 'falta',
+                'texto' => 'Falta',
+                'claseColor' => 'bg-red-100 text-red-800',
+                'icono' => 'fa-exclamation-circle',
+                'total_registros' => $persona->cenvis->count()
             ];
         }
 
-        $infoCenvi = [];
-        foreach ($persona->cenvis as $cenvi) {
-            if ($cenvi->fecha) {
-                $vencimiento = Carbon::parse($cenvi->fecha)->addYear();
-                $dias = Carbon::now()->diffInDays($vencimiento, false);
-                $estaVencido = $dias < 0;
-                $porVencer = $dias >= 0 && $dias <= 30;
+        if (!$ultimoCenvi->fecha) {
+            return [
+                'tiene' => true,
+                'estado' => 'sin-fecha',
+                'texto' => 'Sin fecha',
+                'claseColor' => 'bg-gray-100 text-gray-800',
+                'icono' => 'fa-question',
+                'total_registros' => $persona->cenvis->count()
+            ];
+        }
 
-                $infoCenvi[] = [
-                    'fecha' => $cenvi->fecha->format('d/m/Y'),
-                    'vencimiento' => $vencimiento->format('d/m/Y'),
-                    'dias' => $dias,
-                    'estaVencido' => $estaVencido,
-                    'porVencer' => $porVencer,
-                    'claseColor' => $estaVencido ? 'bg-red-100 text-red-800' :
-                                    ($porVencer ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'),
-                    'icono' => $estaVencido ? 'fa-exclamation-triangle' :
-                               ($porVencer ? 'fa-clock' : 'fa-check'),
-                    'textoEstado' => $estaVencido ? 'Vencido' :
-                                     ($porVencer ? $dias . ' días' : 'OK')
-                ];
-            }
+        $vencimiento = Carbon::parse($ultimoCenvi->fecha)->addYear();
+        $dias = Carbon::now()->diffInDays($vencimiento, false);
+        $estaVencido = $dias < 0;
+        $porVencer = $dias >= 0 && $dias <= 30;
+
+        $claseColor = 'bg-green-100 text-green-800';
+        $icono = 'fa-check';
+        $textoEstado = 'OK';
+
+        if ($estaVencido) {
+            $claseColor = 'bg-red-100 text-red-800';
+            $icono = 'fa-exclamation-triangle';
+            $textoEstado = 'Vencido';
+        } elseif ($porVencer) {
+            $claseColor = 'bg-yellow-100 text-yellow-800';
+            $icono = 'fa-clock';
+            $textoEstado = $dias . ' días';
         }
 
         return [
             'tiene' => true,
-            'datos' => $infoCenvi
+            'ultimo_registro' => [
+                'fecha' => $ultimoCenvi->fecha->format('d/m/Y'),
+                'vencimiento' => $vencimiento->format('d/m/Y'),
+                'dias' => $dias,
+                'estaVencido' => $estaVencido,
+                'porVencer' => $porVencer,
+                'estado' => $ultimoCenvi->estado
+            ],
+            'claseColor' => $claseColor,
+            'icono' => $icono,
+            'textoEstado' => $textoEstado,
+            'total_registros' => $persona->cenvis->count(),
+            'es_ultimo' => true,
+            'es_activo' => true
         ];
-    }*/
+    }
 
-    /*private function getInfoQuechua($persona)
+    private function getInfoQuechua($persona)
     {
-        // Buscar certificados de quechua por nombre o categoría
-        $certificadoQuechua = $persona->certificados->first(function($cert) {
-            return $this->esQuechua($cert);
-        });
+        $ultimoQuechua = $this->getUltimoQuechua($persona);
 
-        if (!$certificadoQuechua) {
+        if (!$ultimoQuechua) {
             return [
                 'tiene' => false,
-                'estado' => 'sin-datos',
-                'texto' => 'Sin certificado'
+                'estado' => 'falta',
+                'texto' => 'Falta',
+                'claseColor' => 'bg-red-100 text-red-800',
+                'icono' => 'fa-exclamation-circle',
+                'total_registros' => $persona->certificados->filter(function($cert) {
+                    return $this->esQuechua($cert);
+                })->count()
             ];
         }
 
-        // Usar fecha_vencimiento si existe, sino calcular a 3 años
-        if ($certificadoQuechua->fecha_vencimiento) {
-            $vencimiento = Carbon::parse($certificadoQuechua->fecha_vencimiento);
-        } elseif ($certificadoQuechua->fecha) {
-            $vencimiento = Carbon::parse($certificadoQuechua->fecha)->addYears(3);
-        } else {
+        $fechaVencimiento = $this->getFechaVencimientoCertificado($ultimoQuechua);
+
+        if (!$fechaVencimiento) {
             return [
-                'tiene' => false,
+                'tiene' => true,
                 'estado' => 'sin-fecha',
-                'texto' => 'Sin fecha'
+                'texto' => 'Sin fecha',
+                'claseColor' => 'bg-gray-100 text-gray-800',
+                'icono' => 'fa-question',
+                'total_registros' => $persona->certificados->filter(function($cert) {
+                    return $this->esQuechua($cert);
+                })->count()
             ];
         }
 
-        $dias = Carbon::now()->diffInDays($vencimiento, false);
+        $dias = Carbon::now()->diffInDays($fechaVencimiento, false);
         $estaVencido = $dias < 0;
         $porVencer = $dias >= 0 && $dias <= 60;
 
+        $claseColor = 'bg-green-100 text-green-800';
+        $icono = 'fa-check';
+        $textoEstado = 'OK';
+
+        if ($estaVencido) {
+            $claseColor = 'bg-red-100 text-red-800';
+            $icono = 'fa-exclamation-triangle';
+            $textoEstado = 'Vencido';
+        } elseif ($porVencer) {
+            $claseColor = 'bg-yellow-100 text-yellow-800';
+            $icono = 'fa-clock';
+            $textoEstado = $dias . ' días';
+        }
+
         return [
             'tiene' => true,
-            'fecha' => $certificadoQuechua->fecha ?
-                    $certificadoQuechua->fecha->format('d/m/Y') : 'Sin fecha',
-            'vencimiento' => $vencimiento->format('d/m/Y'),
-            'dias' => $dias,
-            'estaVencido' => $estaVencido,
-            'porVencer' => $porVencer,
-            'claseColor' => $estaVencido ? 'bg-red-100 text-red-800' :
-                            ($porVencer ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'),
-            'icono' => $estaVencido ? 'fa-exclamation-triangle' :
-                    ($porVencer ? 'fa-clock' : 'fa-check'),
-            'textoEstado' => $estaVencido ? 'Vencido' :
-                            ($porVencer ? $dias . ' días' : 'OK'),
-            'nombre' => $certificadoQuechua->nombre,
-            'categoria' => $certificadoQuechua->categoria
+            'ultimo_registro' => [
+                'fecha' => $ultimoQuechua->fecha ?
+                    $ultimoQuechua->fecha->format('d/m/Y') : 'Sin fecha',
+                'vencimiento' => $fechaVencimiento->format('d/m/Y'),
+                'dias' => $dias,
+                'estaVencido' => $estaVencido,
+                'porVencer' => $porVencer,
+                'nombre' => $ultimoQuechua->nombre,
+                'categoria' => $ultimoQuechua->categoria,
+                'estado' => $ultimoQuechua->estado
+            ],
+            'claseColor' => $claseColor,
+            'icono' => $icono,
+            'textoEstado' => $textoEstado,
+            'total_registros' => $persona->certificados->filter(function($cert) {
+                return $this->esQuechua($cert);
+            })->count(),
+            'es_ultimo' => true,
+            'es_activo' => true
         ];
-    }*/
+    }
 
-    /*private function getInfoCedula($persona)
+    private function getInfoCedula($persona)
     {
-        if (!$persona->cedula || !$persona->cedula->fechaVencimiento) {
+        $ultimaCedula = $this->getUltimaCedulaActiva($persona);
+
+        if (!$ultimaCedula) {
+            // Podrías cargar todas las cédulas para mostrar estadísticas
+            // $todasCedulas = $persona->cedulas()->get(); // Si tienes relación cedulas (plural)
+            // Pero asumiendo que solo hay una relación one-to-one
+
             return [
                 'tiene' => false,
-                'estado' => 'sin-datos',
-                'texto' => 'Sin fecha'
+                'estado' => 'falta',
+                'texto' => 'Falta',
+                'claseColor' => 'bg-red-100 text-red-800',
+                'icono' => 'fa-exclamation-circle',
+                'mensaje' => 'No hay cédula activa (estado = 1)'
             ];
         }
 
-        $dias = Carbon::now()->diffInDays(Carbon::parse($persona->cedula->fechaVencimiento), false);
+        if (!$ultimaCedula->fechaVencimiento) {
+            return [
+                'tiene' => true,
+                'estado' => 'sin-fecha',
+                'texto' => 'Sin fecha',
+                'claseColor' => 'bg-gray-100 text-gray-800',
+                'icono' => 'fa-question',
+                'fecha_registro' => $ultimaCedula->fechaRegistro ?
+                    $ultimaCedula->fechaRegistro->format('d/m/Y') : 'No registrada'
+            ];
+        }
+
+        $dias = Carbon::now()->diffInDays(Carbon::parse($ultimaCedula->fechaVencimiento), false);
         $estaVencido = $dias < 0;
         $porVencer = $dias >= 0 && $dias <= 90;
 
+        $claseColor = 'bg-green-100 text-green-800';
+        $icono = 'fa-check';
+        $textoEstado = 'OK';
+
+        if ($estaVencido) {
+            $claseColor = 'bg-red-100 text-red-800';
+            $icono = 'fa-exclamation-triangle';
+            $textoEstado = 'Vencida';
+        } elseif ($porVencer) {
+            $claseColor = 'bg-yellow-100 text-yellow-800';
+            $icono = 'fa-clock';
+            $textoEstado = $dias . ' días';
+        }
+
         return [
             'tiene' => true,
-            'fecha' => Carbon::parse($persona->cedula->fechaVencimiento)->format('d/m/Y'),
-            'dias' => $dias,
-            'estaVencido' => $estaVencido,
-            'porVencer' => $porVencer,
-            'claseColor' => $estaVencido ? 'bg-red-100 text-red-800' :
-                            ($porVencer ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'),
-            'icono' => $estaVencido ? 'fa-exclamation-triangle' :
-                       ($porVencer ? 'fa-clock' : 'fa-check'),
-            'textoEstado' => $estaVencido ? 'Vencida' :
-                             ($porVencer ? $dias . ' días' : 'OK')
+            'ultimo_registro' => [
+                'fecha' => Carbon::parse($ultimaCedula->fechaVencimiento)->format('d/m/Y'),
+                'dias' => $dias,
+                'estaVencido' => $estaVencido,
+                'porVencer' => $porVencer,
+                'estado' => $ultimaCedula->estado,
+                'ci' => $ultimaCedula->ci,
+                'expedido' => $ultimaCedula->expedido
+            ],
+            'claseColor' => $claseColor,
+            'icono' => $icono,
+            'textoEstado' => $textoEstado,
+            'es_ultimo' => true,
+            'es_activo' => true
         ];
-    }*/
+    }
 
     private function esQuechua($certificado)
     {
@@ -300,30 +459,56 @@ class DocumentoAlertaController extends Controller
 
     private function tienePorVencer($persona)
     {
-        // Verificar si algún documento está por vencer
-        if ($persona->infoCenvi['tiene']) {
-            foreach ($persona->infoCenvi['datos'] ?? [] as $cenvi) {
-                if ($cenvi['porVencer']) return true;
-            }
+        // Verificar si algún documento está por vencer basado en el último registro ACTIVO
+        if ($persona->infoCenvi['tiene'] && isset($persona->infoCenvi['ultimo_registro'])) {
+            if ($persona->infoCenvi['ultimo_registro']['porVencer']) return true;
         }
 
-        if ($persona->infoQuechua['tiene'] && $persona->infoQuechua['porVencer']) {
+        if ($persona->infoQuechua['tiene'] && isset($persona->infoQuechua['ultimo_registro']) &&
+            $persona->infoQuechua['ultimo_registro']['porVencer']) {
             return true;
         }
 
-        if ($persona->infoCedula['tiene'] && $persona->infoCedula['porVencer']) {
+        if ($persona->infoCedula['tiene'] && isset($persona->infoCedula['ultimo_registro']) &&
+            $persona->infoCedula['ultimo_registro']['porVencer']) {
             return true;
         }
 
         return false;
     }
 
+    // Método auxiliar para calcular fecha de vencimiento
+    private function getFechaVencimientoCertificado($certificado)
+    {
+        if ($certificado->fecha_vencimiento) {
+            return Carbon::parse($certificado->fecha_vencimiento);
+        }
+
+        if ($certificado->fecha) {
+            return Carbon::parse($certificado->fecha)->addYears(3);
+        }
+
+        return null;
+    }
+
+    // Los métodos de envío de mensajes también necesitan actualizarse
     public function enviarATodos()
     {
-        $personas = Persona::with(['cenvis', 'certificados', 'cedula'])
-            ->where('estado', 1)
-            ->whereNotNull('telefono')
-            ->get();
+        // Cargar solo documentos activos aquí también
+        $personas = Persona::with([
+            'cenvis' => function($query) {
+                $query->where('estado', 1);
+            },
+            'certificados' => function($query) {
+                $query->where('estado', 1);
+            },
+            'cedula' => function($query) {
+                $query->where('estado', 1); // SOLO cédulas activas
+            }
+        ])
+        ->where('estado', 1)
+        ->whereNotNull('telefono')
+        ->get();
 
         $enviados = 0;
         $errores = [];
@@ -350,9 +535,19 @@ class DocumentoAlertaController extends Controller
 
     public function enviarIndividual($personaId)
     {
-        $persona = Persona::with(['cenvis', 'certificados', 'cedula'])
-            ->where('id', $personaId)
-            ->first();
+        $persona = Persona::with([
+            'cenvis' => function($query) {
+                $query->where('estado', 1);
+            },
+            'certificados' => function($query) {
+                $query->where('estado', 1);
+            },
+            'cedula' => function($query) {
+                $query->where('estado', 1); // SOLO cédulas activas
+            }
+        ])
+        ->where('id', $personaId)
+        ->first();
 
         if (!$persona) {
             return back()->with('error', 'Persona no encontrada');
@@ -381,31 +576,28 @@ class DocumentoAlertaController extends Controller
     {
         $vencidos = [];
 
-        // Verificar CENVI (1 año)
-        foreach ($persona->cenvis as $cenvi) {
-            if ($cenvi->fecha) {
-                $vencimiento = Carbon::parse($cenvi->fecha)->addYear();
-                if (Carbon::now()->greaterThan($vencimiento)) {
-                    $vencidos[] = "CENVI - Vencido el " . $vencimiento->format('d/m/Y');
-                }
+        // Verificar último CENVI ACTIVO
+        $ultimoCenvi = $this->getUltimoCenvi($persona);
+        if ($ultimoCenvi && $ultimoCenvi->fecha) {
+            $vencimiento = Carbon::parse($ultimoCenvi->fecha)->addYear();
+            if (Carbon::now()->greaterThan($vencimiento)) {
+                $vencidos[] = "CENVI - Vencido el " . $vencimiento->format('d/m/Y');
             }
         }
 
-        // Verificar certificados de quechua (3 años)
-        foreach ($persona->certificados as $certificado) {
-            $esQuechua = stripos($certificado->nombre, 'quechua') !== false;
-
-            if ($esQuechua && $certificado->fecha) {
-                $vencimiento = Carbon::parse($certificado->fecha)->addYears(3);
-                if (Carbon::now()->greaterThan($vencimiento)) {
-                    $vencidos[] = "Certificado Quechua - Vencido el " . $vencimiento->format('d/m/Y');
-                }
+        // Verificar último certificado de quechua ACTIVO
+        $ultimoQuechua = $this->getUltimoQuechua($persona);
+        if ($ultimoQuechua && $ultimoQuechua->fecha) {
+            $vencimiento = $this->getFechaVencimientoCertificado($ultimoQuechua);
+            if ($vencimiento && Carbon::now()->greaterThan($vencimiento)) {
+                $vencidos[] = "Certificado Quechua - Vencido el " . $vencimiento->format('d/m/Y');
             }
         }
 
-        // Verificar cédula
-        if ($persona->cedula && $persona->cedula->fechaVencimiento) {
-            $vencimiento = Carbon::parse($persona->cedula->fechaVencimiento);
+        // Verificar cédula ACTIVA
+        $ultimaCedula = $this->getUltimaCedulaActiva($persona);
+        if ($ultimaCedula && $ultimaCedula->fechaVencimiento) {
+            $vencimiento = Carbon::parse($ultimaCedula->fechaVencimiento);
             if (Carbon::now()->greaterThan($vencimiento)) {
                 $vencidos[] = "Cédula de Identidad - Vencida el " . $vencimiento->format('d/m/Y');
             }
@@ -460,274 +652,5 @@ class DocumentoAlertaController extends Controller
         }
 
         return $telefono;
-    }
-
-    // Función helper para verificar si tiene documentos vencidos
-    /*public static function tieneDocumentosVencidos($persona)
-    {
-        $vencidos = false;
-
-        // Verificar CENVI
-        foreach ($persona->cenvis as $cenvi) {
-            if ($cenvi->fecha) {
-                $vencimiento = Carbon::parse($cenvi->fecha)->addYear();
-                if (Carbon::now()->greaterThan($vencimiento)) {
-                    $vencidos = true;
-                    break;
-                }
-            }
-        }
-
-        // Verificar certificados quechua
-        foreach ($persona->certificados as $certificado) {
-            $esQuechua = stripos($certificado->nombre, 'quechua') !== false;
-            if ($esQuechua && $certificado->fecha) {
-                $vencimiento = Carbon::parse($certificado->fecha)->addYears(3);
-                if (Carbon::now()->greaterThan($vencimiento)) {
-                    $vencidos = true;
-                    break;
-                }
-            }
-        }
-
-        // Verificar cédula
-        if ($persona->cedula && $persona->cedula->fechaVencimiento) {
-            if (Carbon::now()->greaterThan(Carbon::parse($persona->cedula->fechaVencimiento))) {
-                $vencidos = true;
-            }
-        }
-
-        return $vencidos;
-    }*/
-
-        private function tieneDocumentosVencidos($persona)
-    {
-        // Si falta registro, considerar como "pendiente" pero no vencido
-        if ($this->faltanRegistros($persona)) {
-            return false; // Los que faltan van en categoría aparte
-        }
-
-        // CENVI vencido
-        foreach ($persona->cenvis as $cenvi) {
-            if ($cenvi->fecha && Carbon::now()->greaterThan(Carbon::parse($cenvi->fecha)->addYear())) {
-                return true;
-            }
-        }
-
-        // Certificado quechua vencido
-        foreach ($persona->certificados as $certificado) {
-            if ($this->esQuechua($certificado) &&
-                $certificado->fecha &&
-                Carbon::now()->greaterThan($this->getFechaVencimientoCertificado($certificado))) {
-                return true;
-            }
-        }
-
-        // Cédula vencida
-        if ($persona->cedula &&
-            $persona->cedula->fechaVencimiento &&
-            Carbon::now()->greaterThan(Carbon::parse($persona->cedula->fechaVencimiento))) {
-            return true;
-        }
-
-        return false;
-    }
-
-    private function getInfoCenvi($persona)
-    {
-        if ($persona->cenvis->isEmpty()) {
-            return [
-                'tiene' => false,
-                'estado' => 'falta',
-                'texto' => 'Falta',
-                'claseColor' => 'bg-red-100 text-red-800',
-                'icono' => 'fa-exclamation-circle'
-            ];
-        }
-
-        $infoCenvi = [];
-        $hayVencido = false;
-        $hayPorVencer = false;
-
-        foreach ($persona->cenvis as $cenvi) {
-            if ($cenvi->fecha) {
-                $vencimiento = Carbon::parse($cenvi->fecha)->addYear();
-                $dias = Carbon::now()->diffInDays($vencimiento, false);
-                $estaVencido = $dias < 0;
-                $porVencer = $dias >= 0 && $dias <= 30;
-
-                if ($estaVencido) $hayVencido = true;
-                if ($porVencer) $hayPorVencer = true;
-
-                $infoCenvi[] = [
-                    'fecha' => $cenvi->fecha->format('d/m/Y'),
-                    'vencimiento' => $vencimiento->format('d/m/Y'),
-                    'dias' => $dias,
-                    'estaVencido' => $estaVencido,
-                    'porVencer' => $porVencer
-                ];
-            }
-        }
-
-        // Determinar color
-        $claseColor = 'bg-green-100 text-green-800';
-        $icono = 'fa-check';
-        $textoEstado = 'OK';
-
-        if ($hayVencido) {
-            $claseColor = 'bg-red-100 text-red-800';
-            $icono = 'fa-exclamation-triangle';
-            $textoEstado = 'Vencido';
-        } elseif ($hayPorVencer) {
-            $claseColor = 'bg-yellow-100 text-yellow-800';
-            $icono = 'fa-clock';
-
-            // Encontrar el que vence más pronto
-            $cenviMasCercano = collect($infoCenvi)
-                ->where('dias', '>=', 0)
-                ->sortBy('dias')
-                ->first();
-
-            $textoEstado = $cenviMasCercano ? $cenviMasCercano['dias'] . ' días' : 'Por Vencer';
-        }
-
-        return [
-            'tiene' => true,
-            'datos' => $infoCenvi,
-            'claseColor' => $claseColor,
-            'icono' => $icono,
-            'textoEstado' => $textoEstado
-        ];
-    }
-
-    private function getInfoQuechua($persona)
-    {
-        // Filtrar certificados de quechua
-        $certificadosQuechua = $persona->certificados->filter(function($cert) {
-            return $this->esQuechua($cert);
-        });
-
-        if ($certificadosQuechua->isEmpty()) {
-            return [
-                'tiene' => false,
-                'estado' => 'falta',
-                'texto' => 'Falta',
-                'claseColor' => 'bg-red-100 text-red-800',
-                'icono' => 'fa-exclamation-circle'
-            ];
-        }
-
-        // Tomar el más reciente para mostrar
-        $certificadoMasReciente = $certificadosQuechua->sortByDesc('fecha')->first();
-
-        // Calcular vencimiento
-        $fechaVencimiento = $this->getFechaVencimientoCertificado($certificadoMasReciente);
-
-        if (!$fechaVencimiento) {
-            return [
-                'tiene' => false,
-                'estado' => 'sin-fecha',
-                'texto' => 'Sin fecha',
-                'claseColor' => 'bg-gray-100 text-gray-800',
-                'icono' => 'fa-question'
-            ];
-        }
-
-        $dias = Carbon::now()->diffInDays($fechaVencimiento, false);
-        $estaVencido = $dias < 0;
-        $porVencer = $dias >= 0 && $dias <= 60;
-
-        $claseColor = 'bg-green-100 text-green-800';
-        $icono = 'fa-check';
-        $textoEstado = 'OK';
-
-        if ($estaVencido) {
-            $claseColor = 'bg-red-100 text-red-800';
-            $icono = 'fa-exclamation-triangle';
-            $textoEstado = 'Vencido';
-        } elseif ($porVencer) {
-            $claseColor = 'bg-yellow-100 text-yellow-800';
-            $icono = 'fa-clock';
-            $textoEstado = $dias . ' días';
-        }
-
-        return [
-            'tiene' => true,
-            'fecha' => $certificadoMasReciente->fecha ?
-                       $certificadoMasReciente->fecha->format('d/m/Y') : 'Sin fecha',
-            'vencimiento' => $fechaVencimiento->format('d/m/Y'),
-            'dias' => $dias,
-            'estaVencido' => $estaVencido,
-            'porVencer' => $porVencer,
-            'claseColor' => $claseColor,
-            'icono' => $icono,
-            'textoEstado' => $textoEstado
-        ];
-    }
-
-    private function getInfoCedula($persona)
-    {
-        if (!$persona->cedula) {
-            return [
-                'tiene' => false,
-                'estado' => 'falta',
-                'texto' => 'Falta',
-                'claseColor' => 'bg-red-100 text-red-800',
-                'icono' => 'fa-exclamation-circle'
-            ];
-        }
-
-        if (!$persona->cedula->fechaVencimiento) {
-            return [
-                'tiene' => true,
-                'estado' => 'sin-fecha',
-                'texto' => 'Sin fecha',
-                'claseColor' => 'bg-gray-100 text-gray-800',
-                'icono' => 'fa-question'
-            ];
-        }
-
-        $dias = Carbon::now()->diffInDays(Carbon::parse($persona->cedula->fechaVencimiento), false);
-        $estaVencido = $dias < 0;
-        $porVencer = $dias >= 0 && $dias <= 90;
-
-        $claseColor = 'bg-green-100 text-green-800';
-        $icono = 'fa-check';
-        $textoEstado = 'OK';
-
-        if ($estaVencido) {
-            $claseColor = 'bg-red-100 text-red-800';
-            $icono = 'fa-exclamation-triangle';
-            $textoEstado = 'Vencida';
-        } elseif ($porVencer) {
-            $claseColor = 'bg-yellow-100 text-yellow-800';
-            $icono = 'fa-clock';
-            $textoEstado = $dias . ' días';
-        }
-
-        return [
-            'tiene' => true,
-            'fecha' => Carbon::parse($persona->cedula->fechaVencimiento)->format('d/m/Y'),
-            'dias' => $dias,
-            'estaVencido' => $estaVencido,
-            'porVencer' => $porVencer,
-            'claseColor' => $claseColor,
-            'icono' => $icono,
-            'textoEstado' => $textoEstado
-        ];
-    }
-
-    // Método auxiliar para calcular fecha de vencimiento
-    private function getFechaVencimientoCertificado($certificado)
-    {
-        if ($certificado->fecha_vencimiento) {
-            return Carbon::parse($certificado->fecha_vencimiento);
-        }
-
-        if ($certificado->fecha) {
-            return Carbon::parse($certificado->fecha)->addYears(3);
-        }
-
-        return null;
     }
 }

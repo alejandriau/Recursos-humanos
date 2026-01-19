@@ -53,12 +53,14 @@ class CenviController extends Controller
             'vigentes'   => Cenvi::vigentes()->count(),
             'vencidos'   => Cenvi::vencidos()->count(),
             'por_vencer' => Cenvi::porVencer()->count(),
+            'inactivos'  => Cenvi::where('estado', 0)->count(),
         ];
 
         return view('admin.cenvis.index', compact(
             'cenvis',
             'personas',
             'estadisticas'
+
         ));
     }
 
@@ -74,7 +76,7 @@ class CenviController extends Controller
             'fecha'        => 'required|date',
             'observacion'  => 'nullable|string|max:100',
             'pdf_cenvi'    => 'nullable|file|mimes:pdf|max:2048',
-            'persona_id'   => 'required|exists:personas,id',
+            'persona_id'   => 'required|exists:persona,id',
         ]);
 
         if ($request->hasFile('pdf_cenvi')) {
@@ -106,7 +108,7 @@ class CenviController extends Controller
             'fecha'        => 'required|date',
             'observacion'  => 'nullable|string|max:100',
             'pdf_cenvi'    => 'nullable|file|mimes:pdf|max:2048',
-            'persona_id'   => 'required|exists:personas,id',
+            'persona_id'   => 'required|exists:persona,id',
         ]);
 
         if ($request->hasFile('pdf_cenvi')) {
