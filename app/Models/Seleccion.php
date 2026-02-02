@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use App\Models\pasivodos;
+use App\Models\Pasivodos;
 
 class Seleccion extends Model
 {
