@@ -267,7 +267,7 @@ public function reportepasivos(Request $request)
         }
 
         // Mostrar vista de selección de letras
-        $letras = PasivoDos::where('estado', 1)
+        $letras = Pasivodos::where('estado', 1)
             ->whereNotNull('letra')
             ->where('letra', '!=', '')
             ->distinct()
@@ -284,7 +284,7 @@ public function reportepasivos(Request $request)
 
     public function exportPdfPorLetra($letra)
     {
-        $datos = PasivoDos::where('estado', 1)
+        $datos = Pasivodos::where('estado', 1)
             ->where('letra', strtoupper($letra))
             ->orderBy('codigo')
             ->get();

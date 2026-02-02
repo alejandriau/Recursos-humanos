@@ -11,7 +11,7 @@ use App\Http\Controllers\PuestoController;
 use App\Http\Controllers\GerarquiaController;
 use App\Http\Controllers\HistorialController;
 use App\Http\Controllers\ArchivoController;
-use App\Http\Controllers\bajasaltasController;
+use App\Http\Controllers\BajasaltasController;
 use App\Http\Controllers\ProfesionController;
 use App\Http\Controllers\CertificadoController;
 use App\Http\Controllers\UserController;
