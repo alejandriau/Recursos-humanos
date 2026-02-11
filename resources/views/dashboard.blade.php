@@ -339,6 +339,14 @@
                         </a>
                     </li>
                     @endcan
+                    @can('ver configuracion')
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ route('documentos.index') }}">
+                            <i class="fas fa-folder"></i>
+                            <span>Doc. Respaldo</span>
+                        </a>
+                    </li>
+                    @endcan
                     @role('admin')
                         <a href="{{ route('admin.vacaciones.index') }}" class="nav-link">
                             <i class="fas fa-umbrella-beach me-2"></i>Vacaciones

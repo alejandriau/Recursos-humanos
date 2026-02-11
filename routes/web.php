@@ -118,6 +118,7 @@ Route::prefix('reportes')->group(function () {
     Route::put('/pasivodos/{id}', [PasivodosController::class, 'update'])->name('pasivodos.actualizar')->middleware('permission:editar_pasivos_dos');
     Route::post('/pasivodos/eliminar/{id}', [PasivodosController::class, 'destroy'])->name('pasivodos.eliminar')->middleware('permission:eliminar_pasivos_dos');
     // ==================================================================
+
     //archivos
     Route::get('/archivos', [ArchivosController::class, 'index'])->name('archivos');
     Route::post('/archivos/store/{id}', [ArchivosController::class, 'store'])->name('archivos.store');
@@ -698,6 +699,45 @@ Route::post('/convert-txt-simple', [TxtToWordController::class, 'convertTxtToWor
         Route::get('/documentacion/alertas', [DocumentoAlertaController::class, 'index'])->name('alertas.index');
         Route::get('/alertas/enviar-todos', [DocumentoAlertaController::class, 'enviarATodos'])->name('alertas.enviar-todos');
         Route::get('/alertas/enviar/{id}', [DocumentoAlertaController::class, 'enviarIndividual'])->name('alertas.enviar-individual');
+        
+        //archovos word excel y demas 
+
+        Route::get('/documentos/index', [ArchivoController::class, 'index'])->name('documentos.index');
+
+        // ========== GESTIÓN DE documentos ==========
+        // Mostrar formulario de subida
+        Route::get('/documentos/subir', [ArchivoController::class, 'create'])->name('documentos.create');
+        // Procesar subida (POST)
+        Route::post('/documentos', [ArchivoController::class, 'store'])->name('documentos.store');
+        // Subida múltiple
+        Route::post('/documentos/subida-multiple', [ArchivoController::class, 'storeMultiple'])->name('documentos.store.multiple');
+        // Mostrar detalles de un archivo
+        Route::get('/documentos/{id}/verdoc', [ArchivoController::class, 'show'])->name('documentos.show');
+        // Vista previa
+        Route::get('/documentos/{id}/preview', [ArchivoController::class, 'preview'])->name('documentos.preview');
+        // Descargar archivo
+        Route::get('/documentos/{id}/descargar', [ArchivoController::class, 'download'])->name('documentos.download');
+        // Editar metadatos
+        Route::get('/documentos/{id}/editar', [ArchivoController::class, 'edit'])->name('documentos.edit');
+        Route::put('/documentos/{id}', [ArchivoController::class, 'update'])->name('documentos.update');
+        // Eliminar archivo
+        Route::delete('/documentos/{id}', [ArchivoController::class, 'destroy'])->name('documentos.destroy');
+        //Route::get('/documentos/{id}/modal-data/ver', [ArchivoController::class, 'getModalData'])->name('documentos.modal-data');
+        Route::get('/documentos/{id}/modal-data', [ArchivoController::class, 'getModalData'])->name('documentos.modal-data');
+
+        Route::get('/documentos/{id}/contenido-preview', [ArchivoController::class, 'verContenidoPreview'])->name('documentos.contenido-preview');
+        Route::get('/documentos/{id}/ver-archivo', [ArchivoController::class, 'verArchivo'])->name('documentos.ver-archivo');
+
+
+
+        Route::delete('/documentos/estadisticas', [ArchivoController::class, 'destroy'])
+            ->name('documentos.estadisticas');
+        // ========== BÚSQUEDA Y FILTROS ==========
+        // Búsqueda avanzada
+        Route::get('/documentos/buscar/avanzada', [ArchivoController::class, 'busquedaAvanzada'])
+            ->name('documentos.busqueda.avanzada');
+
+
     Route::middleware(['auth', 'role:empleado'])->group(function () {
 
         // Dashboard
