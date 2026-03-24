@@ -16,10 +16,13 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
 
     <!-- Icon Font Stylesheet -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.10.0/css/all.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
 
 
 
@@ -29,7 +32,7 @@
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.1.0/js/select2.min.js"></script>
 
-
+<meta name="csrf-token" content="{{ csrf_token() }}">
     <!-- Customized Bootstrap Stylesheet -->
     <link href="<?php echo asset('dashmin'); ?>/css/bootstrap.min.css" rel="stylesheet">
 
@@ -347,6 +350,11 @@
                         </a>
                     </li>
                     @endcan
+                    @role('archivo')
+                        <a href="{{ route('prestamos.index') }}" class="nav-link">
+                            <i class="fas fa-hand-holding-heart"></i>Prestamos
+                        </a>
+                    @endrole
                     @role('admin')
                         <a href="{{ route('admin.vacaciones.index') }}" class="nav-link">
                             <i class="fas fa-umbrella-beach me-2"></i>Vacaciones
@@ -355,6 +363,7 @@
                             <i class="fas fa-clock me-2"></i>Asistencias
                         </a>
                     @endrole
+
 @role('empleado')
 <!-- Menu Específico para Empleados -->
 <li class="nav-item">

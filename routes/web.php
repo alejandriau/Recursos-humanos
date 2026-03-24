@@ -52,6 +52,10 @@ use App\Http\Controllers\ConfiguracionSalarioMinimoController;
 use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\ReportePersonasController;
 use App\Http\Controllers\DocumentoAlertaController;
+use App\Http\Controllers\PrestamoController;
+use App\Http\Controllers\ValidacionPerfilController;
+use App\Http\Controllers\PerfilPuestoController;
+use App\Http\Controllers\CatalogoController;
 
 
 use Illuminate\Support\Facades\Route;
@@ -84,17 +88,17 @@ Route::middleware([
     Route::get('/personas/{persona}/activar', [PersonaController::class, 'activarEstado'])->name('personas.activar');
 
 
-// Rutas de reportes
-Route::prefix('reportes')->group(function () {
-    //Route::get('/', [ReporteController::class, 'index'])->name('reportes.index');
-    Route::get('/buscar', [ReporteController::class, 'buscar'])->name('reportes.buscar');
-    Route::get('/tipo', [ReporteController::class, 'tipo'])->name('reportes.tipo');
-    Route::post('/filtros-avanzados', [ReporteController::class, 'filtrosAvanzados'])->name('reportes.filtros-avanzados');
-    Route::get('/personal-pdf', [ReporteController::class, 'personalPDF'])->name('reportes.personal');
-    Route::get('/personal-excel', [ReporteController::class, 'personalXLS'])->name('reportes.excel');
-        Route::get('/{id}/historial', [PersonaController::class, 'historial'])->name('personas.historial');
-        Route::get('/{id}/destroy', [PersonaController::class, 'destroy'])->name('personas.historial.destroy');
-});
+    // Rutas de reportes
+    Route::prefix('reportes')->group(function () {
+        //Route::get('/', [ReporteController::class, 'index'])->name('reportes.index');
+        Route::get('/buscar', [ReporteController::class, 'buscar'])->name('reportes.buscar');
+        Route::get('/tipo', [ReporteController::class, 'tipo'])->name('reportes.tipo');
+        Route::post('/filtros-avanzados', [ReporteController::class, 'filtrosAvanzados'])->name('reportes.filtros-avanzados');
+        Route::get('/personal-pdf', [ReporteController::class, 'personalPDF'])->name('reportes.personal');
+        Route::get('/personal-excel', [ReporteController::class, 'personalXLS'])->name('reportes.excel');
+            Route::get('/{id}/historial', [PersonaController::class, 'historial'])->name('personas.historial');
+            Route::get('/{id}/destroy', [PersonaController::class, 'destroy'])->name('personas.historial.destroy');
+    });
 
     Route::get('/reportes/buscar', [ReporteController::class, 'buscar'])->name('reportes.buscar');
     Route::get('/reportes/tipo', [ReporteController::class, 'tipo'])->name('reportes.tipo');
@@ -103,7 +107,7 @@ Route::prefix('reportes')->group(function () {
     Route::get('/reportes/excel', [ReporteController::class, 'personalXLS'])->name('reportes.excel');
     //pasivos uno
     Route::get('/pasivouno', [PasivounoController::class, 'index'])->name('pasivouno');
-    Route::get('/pasivouno/buscar', [PasivounoController::class, 'buscar'])->name('pasivouno.buscar');
+
 
     // pasivo dos ======================================================
     Route::get('/pasivodos', [PasivodosController::class, 'index'])->name('pasivodos.index')->middleware('permission:ver_pasivos_dos');
@@ -116,7 +120,7 @@ Route::prefix('reportes')->group(function () {
     // Rutas de operaciones CRUD
     Route::post('/pasivodos/guardar', [PasivodosController::class, 'store'])->name('pasivodos.guardar')->middleware('permission:crear_pasivos_dos');
     Route::put('/pasivodos/{id}', [PasivodosController::class, 'update'])->name('pasivodos.actualizar')->middleware('permission:editar_pasivos_dos');
-    Route::post('/pasivodos/eliminar/{id}', [PasivodosController::class, 'destroy'])->name('pasivodos.eliminar')->middleware('permission:eliminar_pasivos_dos');
+    Route::delete('/pasivodos/eliminar/{id}', [PasivodosController::class, 'destroy'])->name('pasivodos.eliminar')->middleware('permission:eliminar_pasivos_dos');
     // ==================================================================
 
     //archivos
@@ -127,6 +131,14 @@ Route::prefix('reportes')->group(function () {
     // selecciones
     Route::delete('/seleccion/eliminar', [SeleccionController::class, 'destroy'])->name('seleccion.eliminar');
     Route::delete('/seleccion/eliminar-todo', [SeleccionController::class, 'destroyAll'])->name('seleccion.eliminar.todo');
+
+    //prestamos 
+    // Rutas para préstamos
+    Route::get('/prestamos/mis-prestamos', [PrestamoController::class, 'misPrestamos'])->name('prestamos.mis-prestamos');
+    Route::post('/prestamos', [PrestamoController::class, 'store'])->name('prestamos.store');
+    Route::get('/admin/prestamos/{id}', [PrestamoController::class, 'show'])->name('prestamos.show');
+    Route::put('/prestamos/{id}/entregar', [PrestamoController::class, 'entregar'])->name('prestamos.entregar');
+    Route::delete('prestamos/{id}', [PrestamoController::class, 'cancelar'])->name('prestamos.cancelar');
 
     //puestos
     Route::post('/puesto/store', [PuestoController::class, 'store'])->name('puesto.store');
@@ -139,85 +151,85 @@ Route::prefix('reportes')->group(function () {
 
 
 
-// Listar unidades
-Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
-Route::get('/unidades', [UnidadOrganizacionalController::class, 'index'])->name('unidades.index');
+    // Listar unidades
+    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/unidades', [UnidadOrganizacionalController::class, 'index'])->name('unidades.index');
 
-// Mostrar formulario de creación
-Route::get('/unidades/crear', [UnidadOrganizacionalController::class, 'create'])->name('unidades.create');
+    // Mostrar formulario de creación
+    Route::get('/unidades/crear', [UnidadOrganizacionalController::class, 'create'])->name('unidades.create');
 
-// Guardar nueva unidad
-Route::post('/unidades', [UnidadOrganizacionalController::class, 'store'])->name('unidades.store');
+    // Guardar nueva unidad
+    Route::post('/unidades', [UnidadOrganizacionalController::class, 'store'])->name('unidades.store');
 
-// Mostrar detalles de unidad
-Route::get('/unidades/{unidad}', [UnidadOrganizacionalController::class, 'show'])->name('unidades.show');
+    // Mostrar detalles de unidad
+    Route::get('/unidades/{unidad}', [UnidadOrganizacionalController::class, 'show'])->name('unidades.show');
 
-// Mostrar formulario de edición
-Route::get('/unidades/{unidad}/editar', [UnidadOrganizacionalController::class, 'edit'])->name('unidades.edit');
+    // Mostrar formulario de edición
+    Route::get('/unidades/{unidad}/editar', [UnidadOrganizacionalController::class, 'edit'])->name('unidades.edit');
 
-// Actualizar unidad
-Route::put('/unidades/{unidad}', [UnidadOrganizacionalController::class, 'update'])->name('unidades.update');
+    // Actualizar unidad
+    Route::put('/unidades/{unidad}', [UnidadOrganizacionalController::class, 'update'])->name('unidades.update');
 
-// Eliminar unidad
-Route::delete('/unidades/{unidad}', [UnidadOrganizacionalController::class, 'destroy'])->name('unidades.destroy');
+    // Eliminar unidad
+    Route::delete('/unidades/{unidad}', [UnidadOrganizacionalController::class, 'destroy'])->name('unidades.destroy');
 
-// Organigrama
-Route::get('/organigrama', [UnidadOrganizacionalController::class, 'arbolOrganizacional'])->name('unidades.arbol');
+    // Organigrama
+    Route::get('/organigrama', [UnidadOrganizacionalController::class, 'arbolOrganizacional'])->name('unidades.arbol');
 
-// Estructura completa de unidad
-Route::get('/unidades/{unidad}/estructura', [UnidadOrganizacionalController::class, 'estructura'])->name('unidades.estructura');
+    // Estructura completa de unidad
+    Route::get('/unidades/{unidad}/estructura', [UnidadOrganizacionalController::class, 'estructura'])->name('unidades.estructura');
 
-// Desactivar unidad
-Route::post('/unidades/{unidad}/desactivar', [UnidadOrganizacionalController::class, 'desactivar'])->name('unidades.desactivar');
+    // Desactivar unidad
+    Route::post('/unidades/{unidad}/desactivar', [UnidadOrganizacionalController::class, 'desactivar'])->name('unidades.desactivar');
 
-// Reactivar unidad
-Route::post('/unidades/{unidad}/reactivar', [UnidadOrganizacionalController::class, 'reactivar'])->name('unidades.reactivar');
+    // Reactivar unidad
+    Route::post('/unidades/{unidad}/reactivar', [UnidadOrganizacionalController::class, 'reactivar'])->name('unidades.reactivar');
 
-// =============================================
-// RUTAS ADMIN DE PUESTOS
-// =============================================
+    // =============================================
+    // RUTAS ADMIN DE PUESTOS
+    // =============================================
 
-// Listar puestos
-Route::get('/admin/puestos', [PuestoController::class, 'index'])->name('puestos.index');
+    // Listar puestos
+    Route::get('/admin/puestos', [PuestoController::class, 'index'])->name('puestos.index');
 
-// Mostrar formulario de creación
-Route::get('/admin/puestos/crear', [PuestoController::class, 'create'])->name('puestos.create');
+    // Mostrar formulario de creación
+    Route::get('/admin/puestos/crear', [PuestoController::class, 'create'])->name('puestos.create');
 
-// Guardar nuevo puesto
-Route::post('/admin/puestos', [PuestoController::class, 'store'])->name('puestos.store');
+    // Guardar nuevo puesto
+    Route::post('/admin/puestos', [PuestoController::class, 'store'])->name('puestos.store');
 
-// Mostrar detalles de puesto
-Route::get('/admin/puestos/{puesto}', [PuestoController::class, 'show'])->name('puestos.show');
+    // Mostrar detalles de puesto
+    Route::get('/admin/puestos/{puesto}', [PuestoController::class, 'show'])->name('puestos.show');
 
-// Mostrar formulario de edición
-Route::get('/admin/puestos/{puesto}/editar', [PuestoController::class, 'edit'])->name('puestos.edit');
+    // Mostrar formulario de edición
+    Route::get('/admin/puestos/{puesto}/editar', [PuestoController::class, 'edit'])->name('puestos.edit');
 
-// Actualizar puesto
-Route::put('/admin/puestos/{puesto}', [PuestoController::class, 'update'])->name('puestos.update');
+    // Actualizar puesto
+    Route::put('/admin/puestos/{puesto}', [PuestoController::class, 'update'])->name('puestos.update');
 
-// Eliminar puesto
-Route::delete('/admin/puestos/{puesto}', [PuestoController::class, 'destroy'])->name('puestos.destroy');
+    // Eliminar puesto
+    Route::delete('/admin/puestos/{puesto}', [PuestoController::class, 'destroy'])->name('puestos.destroy');
 
-// Puestos vacantes
-Route::get('/admin/puestos/vacantes', [PuestoController::class, 'vacantes'])->name('puestos.vacantes');
+    // Puestos vacantes
+    Route::get('/admin/puestos/vacantes', [PuestoController::class, 'vacantes'])->name('puestos.vacantes');
 
-// Jefaturas
-Route::get('/admin/puestos/jefaturas', [PuestoController::class, 'jefaturas'])->name('puestos.jefaturas');
+    // Jefaturas
+    Route::get('/admin/puestos/jefaturas', [PuestoController::class, 'jefaturas'])->name('puestos.jefaturas');
 
-// Estadísticas de puestos
-Route::get('/admin/puestos/estadisticas', [PuestoController::class, 'estadisticas'])->name('puestos.estadisticas');
+    // Estadísticas de puestos
+    Route::get('/admin/puestos/estadisticas', [PuestoController::class, 'estadisticas'])->name('puestos.estadisticas');
 
-// Asignar jefatura
-Route::post('/admin/puestos/{puesto}/asignar-jefatura', [PuestoController::class, 'asignarJefatura'])->name('puestos.asignar-jefatura');
+    // Asignar jefatura
+    Route::post('/admin/puestos/{puesto}/asignar-jefatura', [PuestoController::class, 'asignarJefatura'])->name('puestos.asignar-jefatura');
 
-// Quitar jefatura
-Route::post('/admin/puestos/{puesto}/quitar-jefatura', [PuestoController::class, 'quitarJefatura'])->name('puestos.quitar-jefatura');
+    // Quitar jefatura
+    Route::post('/admin/puestos/{puesto}/quitar-jefatura', [PuestoController::class, 'quitarJefatura'])->name('puestos.quitar-jefatura');
 
-// Desactivar puesto
-Route::post('/admin/puestos/{puesto}/desactivar', [PuestoController::class, 'desactivar'])->name('puestos.desactivar');
+    // Desactivar puesto
+    Route::post('/admin/puestos/{puesto}/desactivar', [PuestoController::class, 'desactivar'])->name('puestos.desactivar');
 
-// Reactivar puesto
-Route::post('/admin/puestos/{puesto}/reactivar', [PuestoController::class, 'reactivar'])->name('puestos.reactivar');
+    // Reactivar puesto
+    Route::post('/admin/puestos/{puesto}/reactivar', [PuestoController::class, 'reactivar'])->name('puestos.reactivar');
 
 
 
@@ -290,7 +302,7 @@ Route::post('/admin/puestos/{puesto}/reactivar', [PuestoController::class, 'reac
     Route::post('/altasbajas/store', [BajasaltasController::class, 'store'])->name('altasbajas.store');
     Route::get('/altasbajas/buscar', [PersonaController::class, 'buscar'])->name('altasbajas.buscar');
     Route::get('bajasaltas/{id}/ver-pdf', [BajasaltasController::class, 'verPdf'])->name('bajasaltas.ver-pdf');
-Route::get('bajasaltas/{id}/descargar-pdf', [BajasaltasController::class, 'descargarPdf'])->name('bajasaltas.descargar-pdf');
+    Route::get('bajasaltas/{id}/descargar-pdf', [BajasaltasController::class, 'descargarPdf'])->name('bajasaltas.descargar-pdf');
 
     Route::get('/bajasaltas/{id}', [BajasaltasController::class, 'show'])->name('bajasaltas.show');
 
@@ -316,9 +328,11 @@ Route::get('bajasaltas/{id}/descargar-pdf', [BajasaltasController::class, 'desca
 
     Route::get('profesion/index', [ProfesionController::class, 'index'])->name('profesion.index');
     Route::get('profesion/create/{persona}', [ProfesionController::class, 'create'])->name('profesion.create');
+    Route::get('profesion/show/{persona}', [ProfesionController::class, 'show'])->name('profesion.show');
     Route::post('profesion/store/{persona}', [ProfesionController::class, 'store'])->name('profesion.store');
     Route::get('profesion/{profesion}/edit', [ProfesionController::class, 'edit'])->name('profesion.edit');
     Route::put('profesion/update/{profesion}', [ProfesionController::class, 'update'])->name('profesion.update');
+    Route::delete('profesion/destroy/{profesion}', [ProfesionController::class, 'destroy'])->name('profesion.destroy');
     //certificados
         // Lista de certificados
     Route::get('certificados', [CertificadoController::class, 'index'])->name('certificados.index');
@@ -329,36 +343,36 @@ Route::get('bajasaltas/{id}/descargar-pdf', [BajasaltasController::class, 'desca
     Route::delete('/certificados/{certificado}', [CertificadoController::class, 'destroy'])->name('certificados.destroy');
     Route::get('/certificados/reporte-vencimientos', [CertificadoController::class, 'reporteVencimientos'])->name('certificados.reporte-vencimientos');
     //lisa de cas
-// Rutas para CAS
-Route::get('/cas', [CasController::class, 'index'])->name('cas.index');
-Route::get('/cas/crear', [CasController::class, 'create'])->name('cas.create');
-Route::post('/cas', [CasController::class, 'store'])->name('cas.store');
-Route::get('/cas/{id}', [CasController::class, 'show'])->name('cas.show');
-Route::get('/cas/{id}/editar', [CasController::class, 'edit'])->name('cas.edit');
-Route::put('/cas/{id}', [CasController::class, 'update'])->name('cas.update');
-Route::delete('/cas/{id}', [CasController::class, 'destroy'])->name('cas.destroy');
-Route::get('/cas/{id}/ver-archivo', [CasController::class, 'verArchivo'])->name('cas.ver-archivo');
+    // Rutas para CAS
+    Route::get('/cas', [CasController::class, 'index'])->name('cas.index');
+    Route::get('/cas/crear', [CasController::class, 'create'])->name('cas.create');
+    Route::post('/cas', [CasController::class, 'store'])->name('cas.store');
+    Route::get('/cas/{id}', [CasController::class, 'show'])->name('cas.show');
+    Route::get('/cas/{id}/editar', [CasController::class, 'edit'])->name('cas.edit');
+    Route::put('/cas/{id}', [CasController::class, 'update'])->name('cas.update');
+    Route::delete('/cas/{id}', [CasController::class, 'destroy'])->name('cas.destroy');
+    Route::get('/cas/{id}/ver-archivo', [CasController::class, 'verArchivo'])->name('cas.ver-archivo');
 
 
-// Ruta para cálculo individual de bono
-Route::get('/cas/persona/{idPersona}/calcular-bono', [CasController::class, 'calcularBonoPersonaIndividual'])->name('cas.calcular-bono');
+    // Ruta para cálculo individual de bono
+    Route::get('/cas/persona/{idPersona}/calcular-bono', [CasController::class, 'calcularBonoPersonaIndividual'])->name('cas.calcular-bono');
 
-// Ruta para crear CAS con persona pre-seleccionada
-Route::get('/cas/create/{idPersona}', [CasController::class, 'create'])->name('cas.create.persona');
+    // Ruta para crear CAS con persona pre-seleccionada
+    Route::get('/cas/create/{idPersona}', [CasController::class, 'create'])->name('cas.create.persona');
 
-// Rutas adicionales para CAS
-//oute::get('/cas/{idPersona}/calcular-bono', [CasController::class, 'calcularBono'])->name('cas.calcular-bono');
-Route::post('/cas/actualizar-alertas', [CasController::class, 'actualizarAlertas'])->name('cas.actualizar-alertas');
+    // Rutas adicionales para CAS
+    //oute::get('/cas/{idPersona}/calcular-bono', [CasController::class, 'calcularBono'])->name('cas.calcular-bono');
+    Route::post('/cas/actualizar-alertas', [CasController::class, 'actualizarAlertas'])->name('cas.actualizar-alertas');
 
-// Rutas para escalas de bono
-Route::get('/escalas-bono', [EscalaBonoController::class, 'index'])->name('escalas-bono.index');
-Route::get('/escalas-bono/{id}', [EscalaBonoController::class, 'show'])->name('escalas-bono.show');
+    // Rutas para escalas de bono
+    Route::get('/escalas-bono', [EscalaBonoController::class, 'index'])->name('escalas-bono.index');
+    Route::get('/escalas-bono/{id}', [EscalaBonoController::class, 'show'])->name('escalas-bono.show');
 
-// Rutas para salario mínimo
-Route::get('/salario-minimo', [SalarioMinimoController::class, 'index'])->name('salario-minimo.index');
-Route::get('/salario-minimo/crear', [SalarioMinimoController::class, 'create'])->name('salario-minimo.create');
-Route::post('/salario-minimo', [SalarioMinimoController::class, 'store'])->name('salario-minimo.store');
-Route::get('/salario-minimo/vigente', [SalarioMinimoController::class, 'obtenerVigente'])->name('salario-minimo.vigente');
+    // Rutas para salario mínimo
+    Route::get('/salario-minimo', [SalarioMinimoController::class, 'index'])->name('salario-minimo.index');
+    Route::get('/salario-minimo/crear', [SalarioMinimoController::class, 'create'])->name('salario-minimo.create');
+    Route::post('/salario-minimo', [SalarioMinimoController::class, 'store'])->name('salario-minimo.store');
+    Route::get('/salario-minimo/vigente', [SalarioMinimoController::class, 'obtenerVigente'])->name('salario-minimo.vigente');
     //usuarios
 
 
@@ -463,7 +477,7 @@ Route::get('/salario-minimo/vigente', [SalarioMinimoController::class, 'obtenerV
     Route::get('/mapa/general', [CroquiController::class, 'mapa'])->name('croquis.mapa');
     Route::get('/api/datos', [CroquiController::class, 'getCroquisData'])->name('croquis.api.datos');
     // Agregar esta ruta dentro del grupo de croquis
-Route::post('/geocode', [CroquiController::class, 'geocode'])->name('geocode');
+    Route::post('/geocode', [CroquiController::class, 'geocode'])->name('geocode');
 
     //cedula identidad
     Route::get('/cedulas', [CedulaIdentidadController::class, 'index'])->name('cedulas.index');
@@ -574,10 +588,10 @@ Route::post('/geocode', [CroquiController::class, 'geocode'])->name('geocode');
 
 
 
-Route::get('/convert/index', [TxtToWordController::class, 'showForm'])->name('convert.form');
-Route::post('/convert/word', [TxtToWordController::class, 'convertTxtToWord'])->name('convert.word');
-Route::post('/convert/wordsize7', [TxtToWordController::class, 'convertTxtToWordSize7'])->name('convert.size7');
-Route::post('/convert-txt-simple', [TxtToWordController::class, 'convertTxtToWordSimple'])->name('convert.txt-simple');
+    Route::get('/convert/index', [TxtToWordController::class, 'showForm'])->name('convert.form');
+    Route::post('/convert/word', [TxtToWordController::class, 'convertTxtToWord'])->name('convert.word');
+    Route::post('/convert/wordsize7', [TxtToWordController::class, 'convertTxtToWordSize7'])->name('convert.size7');
+    Route::post('/convert-txt-simple', [TxtToWordController::class, 'convertTxtToWordSimple'])->name('convert.txt-simple');
 
 //auditoria
     Route::get('/audit-logs/index', [AuditLogsController::class, 'index'])->name('audit-logs.index');
@@ -592,30 +606,40 @@ Route::post('/convert-txt-simple', [TxtToWordController::class, 'convertTxtToWor
     Route::get('/audit-logs/{auditLog}/auditoria', [AuditLogsController::class, 'show'])->name('audit-logs.show');
 
     //reportes finales ==============================
-    Route::prefix('reportes')->name('reportes.')->group(function () {
-    Route::get('/dashboard', [ReporteController::class, 'dashboard'])->name('dashboard');
-    Route::get('/censo-laboral', [ReporteController::class, 'censoLaboral'])->name('censo-laboral');
-    Route::get('/distribucion-unidades', [ReporteController::class, 'distribucionUnidades'])->name('distribucion-unidades');
-    Route::get('/rotacion-personal', [ReporteController::class, 'rotacionPersonal'])->name('rotacion-personal');
-    Route::get('/estado-documentacion', [ReporteController::class, 'estadoDocumentacion'])->name('estado-documentacion');
-    Route::get('/dashboard/pdfs', [ReporteController::class, 'exportarDashboardPDF'])->name('dashboard-pdfs');
+    Route::get('/reportes/dashboard', [ReporteController::class, 'dashboard'])->name('reportes.dashboard');
+    Route::get('/reportes/censo-laboral', [ReporteController::class, 'censoLaboral'])->name('reportes.censo-laboral');
+    Route::get('/reportes/distribucion-unidades', [ReporteController::class, 'distribucionUnidades'])->name('reportes.distribucion-unidades');
+    Route::get('/reportes/rotacion-personal', [ReporteController::class, 'rotacionPersonal'])->name('reportes.rotacion-personal');
+    Route::get('/reportes/estado-documentacion', [ReporteController::class, 'estadoDocumentacion'])->name('reportes.estado-documentacion');
+    Route::get('/reportes/dashboard/pdfs', [ReporteController::class, 'exportarDashboardPDF'])->name('reportes.dashboard-pdfs');
 
     //reportes para pasivo laboral
 
     // Pasivo Uno
-    Route::get('/pasivouno/pdf', [PasivoUnoController::class, 'exportPdf'])->name('pasivouno.pdf');
-    Route::get('/pasivouno/pdf/{letra}', [PasivoUnoController::class, 'exportPdfPorLetra'])->name('pasivouno.pdf.letra');
-    Route::get('/pasivouno/excel', [PasivoUnoController::class, 'exportExcel'])->name('pasivouno.excel');
+    Route::get('/reportes/pasivouno/pdf', [PasivoUnoController::class, 'exportPdf'])->name('reportes.pasivouno.pdf');
+    Route::get('/reportes/pasivouno/pdf/{letra}', [PasivoUnoController::class, 'exportPdfPorLetra'])->name('reportes.pasivouno.pdf.letra');
+    Route::get('/reportes/pasivouno/excel', [PasivoUnoController::class, 'exportExcel'])->name('reportes.pasivouno.excel');
+
+    Route::get('/pasivouno', [PasivoUnoController::class, 'index'])->name('pasivouno.index');
+    Route::get('/pasivouno/ultimo', [PasivoUnoController::class, 'ultimo'])->name('pasivouno.ultimo');
+    Route::get('/pasivouno/letra', [PasivoUnoController::class, 'letra'])->name('pasivouno.letra');
+    Route::get('/pasivouno/buscar', [PasivoUnoController::class, 'buscar'])->name('pasivouno.buscar');
+    Route::get('/pasivouno/traer', [PasivoUnoController::class, 'traer'])->name('pasivouno.traer');
+    Route::get('/pasivouno/pdf', [PasivoUnoController::class, 'reportepasivos'])->name('pasivouno.pdf');
+
+    // Rutas de operaciones CRUD
+    Route::post('/pasivouno/guardar', [PasivoUnoController::class, 'store'])->name('pasivouno.guardar');
+    Route::put('/pasivouno/{id}', [PasivoUnoController::class, 'update'])->name('pasivouno.actualizar');
+    Route::delete('/pasivouno/eliminar/{id}', [PasivoUnoController::class, 'destroy'])->name('pasivouno.eliminar');
 
     // Pasivo Dos
-    Route::get('/pasivodos/pdf', [PasivoDosController::class, 'exportPdf'])->name('pasivodos.pdf');
-    Route::get('/pasivodos/pdf/{letra}', [PasivoDosController::class, 'exportPdfPorLetra'])->name('pasivodos.pdf.letra');
-    Route::get('/pasivodos/excel', [PasivoDosController::class, 'exportExcel'])->name('pasivodos.excel');
-
-    });
+    Route::get('/reportes/pasivouno/pdf', [PasivoUnoController::class, 'exportPdf'])->name('reportes.pasivouno.pdf');
+    Route::get('/reportes/pasivouno/pdf/{letra}', [PasivoUnoController::class, 'exportPdfPorLetra'])->name('reportes.pasivouno.pdf.letra');
+    Route::get('/reportes/pasivouno/excel', [PasivoUnoController::class, 'exportExcel'])->name('reportes.pasivouno.excel');
 
 
 
+//------------------------------------------------------------------------------------
 
     // routes/web.php
 
@@ -730,12 +754,87 @@ Route::post('/convert-txt-simple', [TxtToWordController::class, 'convertTxtToWor
 
 
 
-        Route::delete('/documentos/estadisticas', [ArchivoController::class, 'destroy'])
-            ->name('documentos.estadisticas');
+        Route::delete('/documentos/estadisticas', [ArchivoController::class, 'destroy'])->name('documentos.estadisticas');
         // ========== BÚSQUEDA Y FILTROS ==========
         // Búsqueda avanzada
-        Route::get('/documentos/buscar/avanzada', [ArchivoController::class, 'busquedaAvanzada'])
-            ->name('documentos.busqueda.avanzada');
+        Route::get('/documentos/buscar/avanzada', [ArchivoController::class, 'busquedaAvanzada'])->name('documentos.busqueda.avanzada');
+    //Route::middleware(['auth', 'role:archivo'])->group(function () {
+        Route::get('/prestamos/index', [PrestamoController::class, 'index'])->name('prestamos.index');
+        //Route::get('/prestamos/{id}', [PrestamoController::class, 'show'])->name('prestamos.show');
+        Route::post('/admin/prestamos/{id}/aprobar', [PrestamoController::class, 'aprobar'])->name('prestamos.aprobar');
+        Route::post('/admin/prestamos/{id}/rechazar', [PrestamoController::class, 'rechazar'])->name('prestamos.rechazar');
+        Route::post('/admin/prestamos/{id}/entregar', [PrestamoController::class, 'entregar'])->name('prestamos.entregar');
+        Route::post('/admin/prestamos/{id}/devolver', [PrestamoController::class, 'devolver'])->name('prestamos.devolver');
+        Route::get('/admin/prestamos/reporte', [PrestamoController::class, 'reporte'])->name('prestamos.reporte');
+        Route::get('/admin/prestamos/vencidos', [PrestamoController::class, 'vencidos'])->name('prestamos.vencidos');
+        Route::post('/admin/prestamos/manual', [PrestamoController::class, 'storeManual'])->name('prestamos.manual');
+
+
+        
+    //});
+
+    ///nuevs rutas de perfil profesion y mas----------------------------------------------------------------------------------------------------------------------
+Route::prefix('validacion')->name('validacion.')->group(function () {
+    Route::get('/index', [ValidacionPerfilController::class, 'index'])->name('index');
+    Route::post('/validar', [ValidacionPerfilController::class, 'validar'])->name('validar');
+    Route::post('/validar-multiple', [ValidacionPerfilController::class, 'validarMultiple'])->name('validar-multiple');
+    Route::get('/historial', [ValidacionPerfilController::class, 'historial'])->name('historial');
+    Route::get('/reporte', [ValidacionPerfilController::class, 'reporte'])->name('reporte');
+    Route::post('/api/validar', [ValidacionPerfilController::class, 'apiValidar'])->name('api.validar');
+});
+
+// Perfil de Puestos
+// Rutas para Perfil de Puestos
+Route::prefix('perfil-puesto')->group(function () {
+    Route::get('/index', [PerfilPuestoController::class, 'index'])->name('perfil-puesto.index');
+    Route::get('/{idPuesto}/edit', [PerfilPuestoController::class, 'edit'])->name('perfil-puesto.edit');
+    Route::post('/{idPuesto}', [PerfilPuestoController::class, 'storeOrUpdate'])->name('perfil-puesto.store-or-update');
+    Route::get('/{idPuesto}', [PerfilPuestoController::class, 'show'])->name('perfil-puesto.show');
+    Route::delete('/{idPuesto}', [PerfilPuestoController::class, 'destroy'])->name('perfil-puesto.destroy');
+    Route::post('/{idPuesto}/validar-candidato', [PerfilPuestoController::class, 'validarCandidato'])->name('perfil-puesto.validar-candidato');
+    Route::get('/carreras-por-area/{areaId}', [PerfilPuestoController::class, 'getCarrerasPorArea'])->name('perfil-puesto.carreras-por-area');
+    Route::get('/api/{idPuesto}', [PerfilPuestoController::class, 'apiShow'])->name('perfil-puesto.api-show');
+});
+
+// Profesiones de Personas
+Route::prefix('personas/{idPersona}/profesiones')->name('personas.profesiones.')->group(function () {
+    Route::get('/', [ProfesionController::class, 'index'])->name('index');
+    Route::get('/create', [ProfesionController::class, 'create'])->name('create');
+    Route::post('/', [ProfesionController::class, 'store'])->name('store');
+    Route::get('/{idProfesion}/edit', [ProfesionController::class, 'edit'])->name('edit');
+    Route::put('/{idProfesion}', [ProfesionController::class, 'update'])->name('update');
+    Route::delete('/{idProfesion}', [ProfesionController::class, 'destroy'])->name('destroy');
+});
+
+// Catálogos
+Route::prefix('catalogos')->name('catalogos.')->group(function () {
+    // Áreas de Conocimiento
+    Route::get('/areas', [CatalogoController::class, 'areasIndex'])->name('areas');
+
+    
+    // Niveles Académicos
+    Route::get('/niveles', [CatalogoController::class, 'nivelesIndex'])->name('niveles');
+
+    
+    // Carreras
+    Route::get('/carreras', [CatalogoController::class, 'carrerasIndex'])->name('carreras');
+});
+    Route::post('/api/niveles', [CatalogoController::class, 'nivelesStore'])->name('api.niveles.store');
+    Route::put('/api/niveles/{id}', [CatalogoController::class, 'nivelesUpdate'])->name('api.niveles.update');
+    Route::delete('/api/niveles/{id}', [CatalogoController::class, 'nivelesDestroy'])->name('api.niveles.destroy');
+
+    Route::post('/api/areas', [CatalogoController::class, 'store'])->name('api.areas.store');
+    Route::put('/api/areas/{id}', [CatalogoController::class, 'areasUpdate'])->name('api.areas.update');
+    Route::delete('/api/areas/{id}', [CatalogoController::class, 'areasDestroy'])->name('api.areas.destroy');
+
+    Route::post('/api/carreras', [CatalogoController::class, 'carrerasStore'])->name('api.carreras.store');
+    Route::put('/api/carreras/{id}', [CatalogoController::class, 'carrerasUpdate'])->name('api.carreras.update');
+    Route::delete('/api/carreras/{id}', [CatalogoController::class, 'carrerasDestroy'])->name('api.carreras.destroy');
+    Route::get('/api/carreras/por-area/{idArea}', [CatalogoController::class, 'carrerasPorArea'])->name('api.carreras.por-area');
+    Route::get('/api/carreras/por-nivel/{idNivel}', [CatalogoController::class, 'carrerasPorNivel'])->name('api.carreras.por-nivel');
+
+    ///fin nuevas rutas de perfil profesion y mas----------------------------------------------------------------------------------------------------------------------
+
 
 
     Route::middleware(['auth', 'role:empleado'])->group(function () {

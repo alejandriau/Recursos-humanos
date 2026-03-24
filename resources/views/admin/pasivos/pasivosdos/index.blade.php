@@ -126,138 +126,360 @@
             </div>
             @endcan
         </div>
+        
 
-        @can('generar_pdf_pasivos_dos')
-        <div class="" id="tabla-imprimir">
-            <form action="{{ url('pasivodos/pdf') }}" method="GET">
-                @csrf
-                <table id="example" class="table table-striped table-bordered" style="width:100%">
-                    <thead>
-                        <tr>
-                            <th>CODIGO</th>
-                            <th>NOMBRE COMPLETO</th>
-                            <th>OBSERVACIONES</th>
-                            @can('eliminar_seleccion_pasivos_dos')
-                            <th>Acciones</th>
-                            @endcan
-                        </tr>
-                    </thead >
-                    <tbody id="tablaBody">
-                        @if ($selecciones->count() > 0)
-                            @foreach ($selecciones as $seleccion)
-                                <tr>
-                                    <td><input type="hidden" name="idreporte[]" value="{{$seleccion->pasivodos->id}}">{{ $seleccion->pasivodos->letra ?? '' }} {{ $seleccion->pasivodos->codigo ?? '' }}</td>
-                                    <td>{{ $seleccion->pasivodos->nombrecompleto ?? ''}}</td>
-                                    <td>{{ $seleccion->pasivodos->observacion ?? ''}}</td>
-                                    @can('eliminar_seleccion_pasivos_dos')
-                                    <td>
-                                        <button type="button" class="btn btn-danger btn-eliminar" data-id="{{ $seleccion->id }}">X</button>
-                                    </td>
-                                    @endcan
-                                </tr>
-                            @endforeach
-                        @endif
-                    </tbody>
-                </table>
-
-                @if ($selecciones->count() > 0)
-                <div class="d-flex gap-2 mt-3">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-file-pdf me-2"></i>Generar PDF
-                    </button>
-
+@can('generar_pdf_pasivos_dos')
+<div class="" id="tabla-imprimir">
+    <form action="{{ url('pasivodos/pdf') }}" method="GET">
+        @csrf
+        <table id="example" class="table table-striped table-bordered" style="width:100%">
+            <thead>
+                <tr>
+                    <th>CODIGO</th>
+                    <th>NOMBRE COMPLETO</th>
+                    <th>OBSERVACIONES</th>
                     @can('eliminar_seleccion_pasivos_dos')
-                    <button type="button" class="btn btn-danger" id="btnEliminarTodo">
-                        <i class="fas fa-trash me-2"></i>Eliminar Todo
-                    </button>
+                    <th>Acciones</th>
                     @endcan
-                </div>
-                @endif
-            </form>
-        </div>
-        @endcan
-
-        <div class="table-responsive">
-            <table id="example" class="table table-striped table-bordered" style="width:100%">
-                <thead>
-                    <tr>
-                        <th>CODIGO</th>
-                        <th style="min-width: 400px;">NOMBRE COMPLETO</th>
-                        <th class="obser-tabla">OBSERVACIONES</th>
-                        @can('editar_pasivos_dos')
-                        <th class="obser-tabla">EDITAR</th>
-                        @endcan
-                        @can('eliminar_pasivos_dos')
-                        <th class="obser-tabla">ELIMINAR</th>
-                        @endcan
-                        @can('seleccionar_pasivos_dos')
-                        <th class="obser-tabla">SOLICITAR</th>
-                        @endcan
-                    </tr>
-                </thead>
-                <tbody id="table-body">
-                    @foreach ($resultados as $row)
+                </tr>
+            </thead >
+            <tbody id="tablaBody">
+                @if ($selecciones->count() > 0)
+                    @foreach ($selecciones as $seleccion)
                         <tr>
-                            @can('editar_pasivos_dos')
-                            <form method="POST" action="{{ route('pasivodos.actualizar', $row->id) }}">
-                                @csrf
-                                @method('PUT')
+                            <td>
+                                <input type="hidden" name="idreporte[]" value="{{ $seleccion->carpeta->id ?? '' }}">
+                                <input type="hidden" name="carpeta_type[]" value="{{ $seleccion->carpeta_type }}">
+                                {{ $seleccion->carpeta->letra ?? '' }} {{ $seleccion->carpeta->codigo ?? '' }}
+                            </td>
+                            <td>{{ $seleccion->carpeta->nombrecompleto ?? '' }}</td>
+                            <td>{{ $seleccion->carpeta->observacion ?? '' }}</td>
+                            @can('eliminar_seleccion_pasivos_dos')
+                            <td>
+                                <button type="button" class="btn btn-danger btn-eliminar" data-id="{{ $seleccion->id }}">X</button>
+                            </td>
                             @endcan
-                                <td class="pasivocod">{{ $row->letra }} {{ $row->codigo }}</td>
-                                <td style="background-color: {{ empty($row->nombrecompleto) ? '#e11d36' : 'transparent' }}">
-                                    @can('editar_pasivos_dos')
-                                    <input type="text"
-                                        class="inpu inpu-pasivomod w-100"
-                                        style="all: unset;"
-                                        name="nombrecompleto"
-                                        value="{{ $row->nombrecompleto }}">
-                                    @else
-                                    {{ $row->nombrecompleto }}
-                                    @endcan
-                                </td>
-
-                                <td>
-                                    @can('editar_pasivos_dos')
-                                    <input type="text" class="inpu inpu-pasivomod" style="all: unset;" name="observacion" value="{{ $row->observacion }}">
-                                    @else
-                                    {{ $row->observacion }}
-                                    @endcan
-                                </td>
-
-                                @can('editar_pasivos_dos')
-                                <td><button type="submit" name="editarp" class="btn btn-warning">Actualizar</button></td>
-                                </form>
-                                @endcan
-
-                                @can('eliminar_pasivos_dos')
-                                <td>
-                                    <form action="{{ route('pasivodos.eliminar', $row->id) }}" method="POST" onsubmit="return confirm('¿Estás seguro de que deseas eliminar este registro?');">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" onclick="eliminarcof()" class="btn btn-danger" name="elminarp">Eliminar</button>
-                                    </form>
-                                </td>
-                                @endcan
-
-                                @can('seleccionar_pasivos_dos')
-                                <td>
-                                    <form class="seleccionar-pasivod">
-                                        @csrf
-                                        <input type="hidden" name="idselecc" value="{{ $row->id }}">
-                                        <button type="submit" class="btn btn-primary" name="selccionarp">Seleccionar</button>
-                                    </form>
-                                </td>
-                                @endcan
                         </tr>
                     @endforeach
-                </tbody>
-            </table>
+                @endif
+            </tbody>
+        </table>
+
+        @if ($selecciones->count() > 0)
+        <div class="d-flex gap-2 mt-3">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-file-pdf me-2"></i>Generar PDF
+            </button>
+
+            @can('eliminar_seleccion_pasivos_dos')
+            <button type="button" class="btn btn-danger" id="btnEliminarTodo">
+                <i class="fas fa-trash me-2"></i>Eliminar Todo
+            </button>
+            @endcan
+        </div>
+        @endif
+    </form>
+</div>
+@endcan
+
+        <div class="table-responsive">
+<table id="example" class="table table-striped table-bordered" style="width:100%">
+    <thead>
+        <tr>
+            <th>CODIGO</th>
+            <th style="min-width: 400px;">NOMBRE COMPLETO</th>
+            <th class="obser-tabla">OBSERVACIONES</th>
+            @can('editar_pasivos_dos')
+            <th class="obser-tabla text-center" style="width: 100px;">EDITAR</th>
+            @endcan
+            @can('eliminar_pasivos_dos')
+            <th class="obser-tabla text-center" style="width: 100px;">ELIMINAR</th>
+            @endcan
+            @can('seleccionar_pasivos_dos')
+            <th class="obser-tabla text-center" style="width: 140px;">ACCIONES</th>
+            @endcan
+        </tr>
+    </thead>
+    <tbody id="table-body">
+        @foreach ($resultados as $row)
+        <tr>
+            @can('editar_pasivos_dos')
+            <form method="POST" action="{{ route('pasivodos.actualizar', $row->id) }}">
+                @csrf
+                @method('PUT')
+            @endcan
+                <td class="pasivocod">{{ $row->letra }} {{ $row->codigo }}</td>
+                <td style="background-color: {{ empty($row->nombrecompleto) ? '#e11d36' : 'transparent' }}">
+                    @can('editar_pasivos_dos')
+                    <input type="text"
+                        class="inpu inpu-pasivomod w-100"
+                        style="all: unset;"
+                        name="nombrecompleto"
+                        value="{{ $row->nombrecompleto }}">
+                    @else
+                    {{ $row->nombrecompleto }}
+                    @endcan
+                </td>
+
+                <td>
+                    @can('editar_pasivos_dos')
+                    <input type="text" class="inpu inpu-pasivomod" style="all: unset;" name="observacion" value="{{ $row->observacion }}">
+                    @else
+                    {{ $row->observacion }}
+                    @endcan
+                </td>
+
+                @can('editar_pasivos_dos')
+                <td class="text-center">
+                    <button type="submit" name="editarp" class="btn btn-sm btn-warning">
+                        <i class="fas fa-edit"></i> Actualizar
+                    </button>
+                </td>
+            </form>
+            @endcan
+
+            @can('eliminar_pasivos_dos')
+            <td class="text-center">
+                <form action="{{ route('pasivodos.eliminar', $row->id) }}" method="POST" onsubmit="return confirm('¿Estás seguro de que deseas eliminar este registro?');">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" onclick="eliminarcof()" class="btn btn-sm btn-danger" name="elminarp">
+                        <i class="fas fa-trash-alt"></i> Eliminar
+                    </button>
+                </form>
+            </td>
+            @endcan
+
+            @can('seleccionar_pasivos_dos')
+            <td class="text-center">
+                <div class="btn-group" role="group" style="gap: 8px;">
+                    <form class="seleccionar-pasivod" style="display: inline-block;">
+                        @csrf
+                        <input type="hidden" name="idselecc" value="{{ $row->id }}">
+                        <button type="submit" class="btn btn-sm btn-primary" name="selccionarp">
+                            <i class="fas fa-check-circle"></i> Seleccionar
+                        </button>
+                    </form>
+                    
+                    <button type="button" 
+                            class="btn btn-sm btn-info btn-solicitar-prestamo" 
+                            data-id="{{ $row->id }}"
+                            data-codigo="{{ $row->letra }} {{ $row->codigo }}"
+                            data-nombre="{{ $row->nombrecompleto }}"
+                            data-bs-toggle="modal" 
+                            data-bs-target="#modalSolicitarPrestamo">
+                        <i class="fas fa-hand-holding-heart"></i> Prestar
+                    </button>
+                </div>
+            </td>
+            @endcan
+        </tr>
+        @endforeach
+    </tbody>
+</table>
             <div class="d-flex justify-content-center mt-4">
                 {{ $resultados->withQueryString()->links() }}
             </div>
         </div>
     </div>
 </div>
+
+
+{{-- MODAL PARA SOLICITAR PRÉSTAMO --}}
+<!-- Modal para solicitar préstamo -->
+<div class="modal fade" id="modalSolicitarPrestamo" tabindex="-1" aria-labelledby="modalSolicitarPrestamoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalSolicitarPrestamoLabel">
+                    <i class="fas fa-hand-holding-heart me-2"></i>Solicitar Préstamo de Carpeta
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formSolicitarPrestamo">
+                @csrf
+                <div class="modal-body">
+                    <div class="alert alert-info" id="infoCarpeta">
+                        <strong>Carpeta seleccionada:</strong> <span id="carpetaCodigo"></span> - <span id="carpetaNombre"></span>
+                    </div>
+                    
+                    <input type="hidden" name="carpeta_id" id="carpeta_id">
+                    <input type="hidden" name="carpeta_type" value="pasivodos">
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="fecha_solicitud" class="form-label">Fecha de solicitud *</label>
+                            <input type="date" class="form-control" id="fecha_solicitud" name="fecha_solicitud" 
+                                   value="{{ date('Y-m-d') }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="fecha_devolucion_estimada" class="form-label">Fecha estimada de devolución</label>
+                            <input type="date" class="form-control" id="fecha_devolucion_estimada" 
+                                   name="fecha_devolucion_estimada" min="{{ date('Y-m-d') }}">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="motivo_solicitud" class="form-label">Motivo de la solicitud</label>
+                        <textarea class="form-control" id="motivo_solicitud" name="motivo_solicitud" 
+                                  rows="3" placeholder="¿Para qué necesita la carpeta?"></textarea>
+                    </div>
+                    
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="es_verbal" name="es_verbal" value="1">
+                        <label class="form-check-label" for="es_verbal">Préstamo verbal (sin registro formal)</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="btnGuardarPrestamo">
+                        <i class="fas fa-save me-2"></i>Solicitar Préstamo
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<!-- Modal para ver detalles del préstamo -->
+{{-- MODAL PARA MIS PRÉSTAMOS --}}
+<div class="modal fade" id="modalMisPrestamos" tabindex="-1" aria-labelledby="modalMisPrestamosLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="modalMisPrestamosLabel">
+                    <i class="fas fa-book me-2"></i>Mis Préstamos
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                {{-- Pestañas para organizar --}}
+                <ul class="nav nav-tabs mb-3" id="prestamosTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="activos-tab" data-bs-toggle="tab" data-bs-target="#activos" type="button" role="tab">
+                            <i class="fas fa-check-circle text-success"></i> Préstamos Activos
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="pendientes-tab" data-bs-toggle="tab" data-bs-target="#pendientes" type="button" role="tab">
+                            <i class="fas fa-clock text-warning"></i> Solicitudes Pendientes
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="historial-tab" data-bs-toggle="tab" data-bs-target="#historial" type="button" role="tab">
+                            <i class="fas fa-history text-secondary"></i> Historial
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content">
+                    {{-- Préstamos Activos --}}
+                    <div class="tab-pane fade show active" id="activos" role="tabpanel">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead class="table-success">
+                                    <tr>
+                                        <th>Carpeta</th>
+                                        <th>Fecha Solicitud</th>
+                                        <th>Fecha Préstamo</th>
+                                        <th>Devolución Estimada</th>
+                                        <th>Estado</th>
+                                        <th>Días Restantes</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablaPrestamosActivos">
+                                    <tr>
+                                        <td colspan="7" class="text-center">Cargando...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {{-- Solicitudes Pendientes --}}
+                    <div class="tab-pane fade" id="pendientes" role="tabpanel">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead class="table-warning">
+                                    <tr>
+                                        <th>Carpeta</th>
+                                        <th>Fecha Solicitud</th>
+                                        <th>Motivo</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablaPrestamosPendientes">
+                                    <tr>
+                                        <td colspan="5" class="text-center">Cargando...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {{-- Historial --}}
+                    <div class="tab-pane fade" id="historial" role="tabpanel">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead class="table-secondary">
+                                    <tr>
+                                        <th>Carpeta</th>
+                                        <th>Fecha Solicitud</th>
+                                        <th>Fecha Devolución</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tablaPrestamosHistorial">
+                                    <tr>
+                                        <td colspan="5" class="text-center">Cargando...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- MODAL PARA DETALLE DE PRÉSTAMO (si no existe) --}}
+@if(!isset($modalDetallePrestamo))
+<div class="modal fade" id="modalDetallePrestamo" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-secondary text-white">
+                <h5 class="modal-title">Detalles del Préstamo</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="detallePrestamoBody">
+                <!-- Contenido cargado vía AJAX -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+@endif
+
+{{-- Botón flotante para ver mis préstamos --}}
+
+<button type="button"
+        class="btn btn-info rounded-circle shadow"
+        style="position: fixed; top: 70px; right: 20px; width: 60px; height: 60px; z-index: 1050;"
+        data-bs-toggle="modal" 
+        data-bs-target="#modalMisPrestamos">
+    <i class="fas fa-book"></i>
+</button>
+
 @if (session('success'))
 <script>
     Swal.fire({
@@ -291,6 +513,12 @@
 </style>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
+
+        var urls = {
+            misPrestamos: '{{ url("/prestamos/mis-prestamos") }}',
+            storePrestamo: '{{ url("/prestamos") }}',
+            csrfToken: '{{ csrf_token() }}'
+        };
         function sendLetter(letter) {
             $.ajax({
                 url: "{{ route('pasivodos.letra') }}",  // Archivo PHP que procesa el dato
@@ -303,85 +531,92 @@
                     $("#table-body").html("<strong>Error:</strong> No se pudo enviar la letra.");
                 }
             });
-        }
+        };
 
 
-    $(document).on("submit", ".seleccionar-pasivod", function (e) {
-        e.preventDefault();
 
-        var id = $(this).find('input[name="idselecc"]').val();
-        if (!id) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'ID no encontrado.',
-                toast: true,
-                position: 'top-end',
-                showConfirmButton: false,
-                timer: 2500,
-                background: '#ffc107',
-                color: '#000',
-                customClass: { popup: 'custom-toast' }
-            });
-            return;
-        }
 
-        $.ajax({
-            url: "{{ route('pasivodos.traer') }}",
-            type: "GET",
-            data: {
-                idselecc: id
-            },
-            success: function (response) {
-                if (response.success) {
-                    response.data.forEach(function(row) {
-                        var rowHTML = '<tr>';
-                        rowHTML += '<td><input type="hidden" name="idreporte[]" value="'+row.id+'">' + row.codigo + '</td>';
-                        rowHTML += '<td>' + row.nombrecompleto + '</td>';
-                        rowHTML += '<td>' + row.observacion + '</td>';
-                        rowHTML += '<td><button type="button" class="btn btn-danger btn-eliminar" data-id="'+row.idSeleccion+'">X</button></td>';
-                        rowHTML += '</tr>';
+$(document).on("submit", ".seleccionar-pasivod", function (e) {
+    e.preventDefault();
 
-                        $("#tablaBody").append(rowHTML);
-                    });
+    var id = $(this).find('input[name="idselecc"]').val();
+    if (!id) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'ID no encontrado.',
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 2500,
+            background: '#ffc107',
+            color: '#000',
+            customClass: { popup: 'custom-toast' }
+        });
+        return;
+    }
 
-                    Swal.fire({
-                        icon: 'success',
-                        title: '¡Registro agregado!',
-                        toast: true,
-                        position: 'top-end',
-                        showConfirmButton: false,
-                        timer: 3000,
-                        background: '#007BFF',
-                        color: '#fff',
-                        customClass: { popup: 'custom-toast' }
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: response.message || 'Error al obtener los datos.',
-                        toast: true,
-                        position: 'top-end',
-                        showConfirmButton: false,
-                        timer: 3000,
-                        background: '#dc3545',
-                        color: '#fff',
-                        customClass: { popup: 'custom-toast' }
-                    });
-                }
-            },
-            error: function (xhr, status, error) {
-                console.error("AJAX error:", error);
+    $.ajax({
+        url: "{{ route('pasivodos.traer') }}",
+        type: "GET",
+        data: {
+            idselecc: id,  // Solo enviamos el ID, el controlador ya maneja lo demás
+            _token: '{{ csrf_token() }}'
+        },
+        success: function (response) {
+            if (response.success) {
+                response.data.forEach(function(row) {
+                    var rowHTML = '<tr>';
+                    rowHTML += '<td>';
+                    rowHTML += '<input type="hidden" name="idreporte[]" value="'+row.id+'">';
+                    rowHTML += '<input type="hidden" name="carpeta_type[]" value="pasivodos">';
+                    rowHTML += row.codigo;
+                    rowHTML += '</td>';
+                    rowHTML += '<td>' + row.nombrecompleto + '</td>';
+                    rowHTML += '<td>' + row.observacion + '</td>';
+                    rowHTML += '<td><button type="button" class="btn btn-danger btn-eliminar" data-id="'+row.idSeleccion+'">X</button></td>';
+                    rowHTML += '</tr>';
+
+                    $("#tablaBody").append(rowHTML);
+                });
+
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Registro agregado!',
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000,
+                    background: '#007BFF',
+                    color: '#fff',
+                    customClass: { popup: 'custom-toast' }
+                });
+            } else {
                 Swal.fire({
                     icon: 'error',
-                    title: 'Error del servidor',
-                    text: 'Ocurrió un problema al conectar.',
+                    title: response.message || 'Error al obtener los datos.',
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000,
                     background: '#dc3545',
                     color: '#fff',
+                    customClass: { popup: 'custom-toast' }
                 });
             }
-        });
+        },
+        error: function (xhr, status, error) {
+            console.error("AJAX error:", error);
+            console.error("Response:", xhr.responseText);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error del servidor',
+                text: 'Ocurrió un problema al conectar.',
+                background: '#dc3545',
+                color: '#fff',
+            });
+        }
     });
-
+});
 
 $(document).on('submit', '.form-actualizar', function(e) {
     e.preventDefault();
@@ -409,7 +644,6 @@ $(document).on('submit', '.form-actualizar', function(e) {
             const boton = $(this);
             const id = boton.data('id');
 
-            // Confirmación con SweetAlert2
             Swal.fire({
                 title: '¿Estás seguro?',
                 text: "¡Esto eliminará el registro!",
@@ -469,60 +703,416 @@ $(document).on('submit', '.form-actualizar', function(e) {
     });
 
 // Eliminar todas las selecciones
-$(document).ready(function () {
-    $('#btnEliminarTodo').on('click', function () {
-        Swal.fire({
-            title: '¿Estás seguro?',
-            text: "¡Esto eliminará TODOS tus registros seleccionados!",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Sí, eliminar todo',
-            cancelButtonText: 'Cancelar',
-            reverseButtons: true
-        }).then((result) => {
-            if (result.isConfirmed) {
-                $.ajax({
-                    url: "{{ route('seleccion.eliminar.todo') }}",
-                    type: 'DELETE',
-                    data: {
-                        _token: '{{ csrf_token() }}'
-                    },
-                    success: function (response) {
-                        if (response.success) {
-                            // Limpiar la tabla
-                            $("#tablaBody").html('<tr><td colspan="4" class="text-center">No tienes registros seleccionados</td></tr>');
+    $(document).ready(function () {
+        $('#btnEliminarTodo').on('click', function () {
+            Swal.fire({
+                title: '¿Estás seguro?',
+                text: "¡Esto eliminará TODOS tus registros seleccionados!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Sí, eliminar todo',
+                cancelButtonText: 'Cancelar',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: "{{ route('seleccion.eliminar.todo') }}",
+                        type: 'DELETE',
+                        data: {
+                            _token: '{{ csrf_token() }}'
+                        },
+                        success: function (response) {
+                            if (response.success) {
+                                $("#tablaBody").html('<tr><td colspan="4" class="text-center">No tienes registros seleccionados</td></tr>');
+                                $('.d-flex.gap-2.mt-3').hide();
 
-                            // Ocultar botones
-                            $('.d-flex.gap-2.mt-3').hide();
-
-                            Swal.fire({
-                                toast: true,
-                                position: 'top-end',
-                                icon: 'success',
-                                title: 'Todos tus registros fueron eliminados',
-                                showConfirmButton: false,
-                                timer: 3000,
-                                background: '#28a745',
-                                color: '#fff',
-                                customClass: { popup: 'custom-toast' }
-                            });
-                        } else {
+                                Swal.fire({
+                                    toast: true,
+                                    position: 'top-end',
+                                    icon: 'success',
+                                    title: 'Todos tus registros fueron eliminados',
+                                    showConfirmButton: false,
+                                    timer: 3000,
+                                    background: '#28a745',
+                                    color: '#fff',
+                                    customClass: { popup: 'custom-toast' }
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'No se pudieron eliminar los registros',
+                                    text: response.message || 'Intenta de nuevo.',
+                                    background: '#dc3545',
+                                    color: '#fff',
+                                });
+                            }
+                        },
+                        error: function () {
                             Swal.fire({
                                 icon: 'error',
-                                title: 'No se pudieron eliminar los registros',
-                                text: response.message || 'Intenta de nuevo.',
+                                title: 'Error en el servidor',
+                                text: 'No se pudo procesar la eliminación.',
                                 background: '#dc3545',
                                 color: '#fff',
                             });
                         }
+                    });
+                }
+            });
+        });
+    });
+
+
+
+
+
+
+
+$('#formSolicitarPrestamo').on('submit', function(e) {
+    e.preventDefault();
+    
+    // Mostrar los datos que se van a enviar
+    const formData = $(this).serialize();
+    const formArray = $(this).serializeArray();
+    
+    console.log('Form Data string:', formData);
+    console.log('Form Array:', formArray);
+    
+    // Verificar específicamente si viene solicitante_id
+    const solicitanteIdField = formArray.find(field => field.name === 'solicitante_id');
+    console.log('solicitante_id:', solicitanteIdField ? solicitanteIdField.value : 'NO ENCONTRADO');
+    
+    // Si no viene, mostramos un error
+
+    
+    const btn = $('#btnGuardarPrestamo');
+    btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Procesando...');
+    
+    $.ajax({
+        url: '{{ route("prestamos.store") }}',
+        type: 'POST',
+        data: formData,
+        success: function(response) {
+            if (response.success) {
+                $('#modalSolicitarPrestamo').modal('hide');
+                $('#formSolicitarPrestamo')[0].reset();
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Solicitud enviada!',
+                    text: 'Tu solicitud de préstamo ha sido registrada exitosamente.',
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000,
+                    background: '#28a745',
+                    color: '#fff',
+                    customClass: { popup: 'custom-toast' }
+                });
+            }
+        },
+        error: function(xhr) {
+            console.log('Error response:', xhr.responseJSON);
+            let mensaje = 'Error al procesar la solicitud';
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                mensaje = xhr.responseJSON.message;
+            } else if (xhr.responseJSON && xhr.responseJSON.errors) {
+                mensaje = 'Errores de validación:';
+                $.each(xhr.responseJSON.errors, function(key, value) {
+                    mensaje += '<br>' + key + ': ' + value;
+                });
+            }
+            
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                html: mensaje,
+                background: '#dc3545',
+                color: '#fff',
+            });
+        },
+        complete: function() {
+            btn.prop('disabled', false).html('<i class="fas fa-save me-2"></i>Solicitar Préstamo');
+        }
+    });
+});
+
+$(document).ready(function() {
+    $('#modalSolicitarPrestamo').on('show.bs.modal', function (event) {
+        var button = $(event.relatedTarget);
+        var id = button.data('id');
+        var codigo = button.data('codigo');
+        var nombre = button.data('nombre');
+
+        var modal = $(this);
+        modal.find('#carpeta_id').val(id);
+        modal.find('#carpetaCodigo').text(codigo);
+        modal.find('#carpetaNombre').text(nombre);
+    });
+});
+    // Cargar mis préstamos cuando se abre el modal
+    $('#modalMisPrestamos').on('show.bs.modal', function() {
+        cargarMisPrestamos();
+    });
+
+    // Función para cargar mis préstamos
+console.log('URLs cargadas:', urls);
+
+function cargarMisPrestamos() {
+    console.log('Intentando cargar desde:', urls.misPrestamos);
+    // En la función que llama al API
+    
+    $.ajax({
+        url: urls.misPrestamos,
+        type: 'GET',
+        dataType: 'json',
+        headers: {
+            'X-CSRF-TOKEN': urls.csrfToken,
+            'Accept': 'application/json'
+        },
+        success: function(response) {
+            console.log('Respuesta recibida:', response);
+            if (response.success) {
+                renderizarPrestamos(response.data);
+            } else {
+                console.error('Error en la respuesta:', response);
+                mostrarError(response.message || 'No se pudieron cargar los préstamos');
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error('Error AJAX completo:', xhr);
+            console.error('Status:', status);
+            console.error('Error:', error);
+            console.error('Response Text:', xhr.responseText);
+            
+            let mensaje = 'Error al conectar con el servidor';
+            if (xhr.status === 404) {
+                mensaje = 'La ruta ' + urls.misPrestamos + ' no existe. Verifica que la ruta esté definida.';
+            } else if (xhr.status === 401) {
+                mensaje = 'No estás autenticado. Por favor inicia sesión.';
+            } else if (xhr.status === 500) {
+                mensaje = 'Error interno del servidor. Revisa los logs de Laravel.';
+            } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                mensaje = xhr.responseJSON.message;
+            }
+            
+            mostrarError(mensaje);
+        }
+    });
+}
+function mostrarError(mensaje) {
+    Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: mensaje,
+        background: '#dc3545',
+        color: '#fff',
+    });
+}
+
+    // Función para renderizar los préstamos en las tablas
+    function renderizarPrestamos(prestamos) {
+        const activos = prestamos.filter(p => ['aprobado', 'prestado'].includes(p.estado));
+        const pendientes = prestamos.filter(p => p.estado === 'pendiente');
+        const historial = prestamos.filter(p => ['devuelto', 'vencido', 'rechazado'].includes(p.estado));
+        
+        renderizarTablaActivos(activos);
+        renderizarTablaPendientes(pendientes);
+        renderizarTablaHistorial(historial);
+    }
+
+    function renderizarTablaActivos(prestamos) {
+        let html = '';
+        if (prestamos.length === 0) {
+            html = '<tr><td colspan="7" class="text-center">No tienes préstamos activos</td></tr>';
+        } else {
+            prestamos.forEach(p => {
+                const diasRestantes = calcularDiasRestantes(p.fecha_devolucion_estimada);
+                const claseDias = diasRestantes < 0 ? 'text-danger' : diasRestantes < 3 ? 'text-warning' : '';
+                
+                html += `<tr>
+                    <td>${p.carpeta ? ('<strong>'+p.carpeta.letra + ' ' + p.carpeta.codigo + '</strong> '+ p.carpeta.nombrecompleto) : 'N/A'}</td>
+                    <td>${p.fecha_solicitud}</td>
+                    <td>${p.fecha_prestamo || 'Pendiente'}</td>
+                    <td>${p.fecha_devolucion_estimada || 'No definida'}</td>
+                    <td><span class="badge bg-${getBadgeColor(p.estado)}">${getEstadoLabel(p.estado)}</span></td>
+                    <td class="${claseDias}">${diasRestantes > 0 ? diasRestantes + ' días' : diasRestantes < 0 ? 'Vencido' : 'Hoy'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-info btn-ver-detalle" data-id="${p.id}">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        ${p.estado === 'aprobado' ? 
+                            `<button class="btn btn-sm btn-success btn-marcar-recibido" data-id="${p.id}">
+                                <i class="fas fa-check"></i> Recibido
+                            </button>` : ''}
+                    </td>
+                </tr>`;
+            });
+        }
+        $('#tablaPrestamosActivos').html(html);
+    }
+
+    function renderizarTablaPendientes(prestamos) {
+        let html = '';
+        if (prestamos.length === 0) {
+            html = '<tr><td colspan="5" class="text-center">No tienes solicitudes pendientes</td></tr>';
+        } else {
+            prestamos.forEach(p => {
+                html += `<tr>
+                    <td>${p.carpeta ? ('<strong>'+p.carpeta.letra + ' ' + p.carpeta.codigo + '</strong> '+ p.carpeta.nombrecompleto) : 'N/A'}</td>
+                    <td>${p.fecha_solicitud}</td>
+                    <td>${p.motivo_solicitud || 'Sin motivo'}</td>
+                    <td><span class="badge bg-${getBadgeColor(p.estado)}">${getEstadoLabel(p.estado)}</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-info btn-ver-detalle" data-id="${p.id}">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger btn-cancelar-solicitud" data-id="${p.id}">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </td>
+                </tr>`;
+            });
+        }
+        $('#tablaPrestamosPendientes').html(html);
+    }
+
+    function renderizarTablaHistorial(prestamos) {
+        let html = '';
+        if (prestamos.length === 0) {
+            html = '<tr><td colspan="5" class="text-center">No hay historial de préstamos</td></tr>';
+        } else {
+            prestamos.forEach(p => {
+                html += `<tr>
+                    <td>${p.carpeta ? ('<strong>'+p.carpeta.letra + ' ' + p.carpeta.codigo + '</strong> '+p.carpeta.nombrecompleto) : 'N/A'}</td>
+                    <td>${p.fecha_solicitud}</td>
+                    <td>${p.fecha_devolucion_real || p.fecha_devolucion_estimada || 'N/A'}</td>
+                    <td><span class="badge bg-${getBadgeColor(p.estado)}">${getEstadoLabel(p.estado)}</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-info btn-ver-detalle" data-id="${p.id}">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </td>
+                </tr>`;
+            });
+        }
+        $('#tablaPrestamosHistorial').html(html);
+    }
+
+    // Ver detalle del préstamo
+    $(document).on('click', '.btn-ver-detalle', function() {
+        const id = $(this).data('id');
+        
+        $.ajax({
+            url: `{{ url('prestamos') }}/${id}`,
+            type: 'GET',
+            success: function(response) {
+                if (response.success) {
+                    mostrarDetallePrestamo(response.data);
+                }
+            },
+            error: function() {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'No se pudieron cargar los detalles',
+                    background: '#dc3545',
+                    color: '#fff',
+                });
+            }
+        });
+    });
+
+function mostrarDetallePrestamo(prestamo) {
+    let html = `
+        <div class="mb-3">
+            <strong>Carpeta:</strong> ${prestamo.carpeta ? (prestamo.carpeta.letra + ' ' + prestamo.carpeta.codigo + ' - ' + prestamo.carpeta.nombrecompleto) : 'N/A'}
+        </div>
+        <div class="mb-3">
+            <strong>Estado:</strong> <span class="badge bg-${getBadgeColor(prestamo.estado)}">${getEstadoLabel(prestamo.estado)}</span>
+        </div>
+        <div class="mb-3">
+            <strong>Fecha solicitud:</strong> ${prestamo.fecha_solicitud_formateada}
+        </div>
+
+        ${prestamo.fecha_prestamo_formateada ? 
+        `<div class="mb-3"><strong>Fecha préstamo:</strong> ${prestamo.fecha_prestamo_formateada}</div>` : ''}
+
+        ${prestamo.fecha_devolucion_estimada_formateada ? 
+        `<div class="mb-3"><strong>Devolución estimada:</strong> ${prestamo.fecha_devolucion_estimada_formateada}</div>` : ''}
+
+        ${prestamo.fecha_devolucion_real_formateada ? 
+        `<div class="mb-3"><strong>Devolución real:</strong> ${prestamo.fecha_devolucion_real_formateada}</div>` : ''}
+
+        ${prestamo.motivo_solicitud ? `<div class="mb-3"><strong>Motivo:</strong> ${prestamo.motivo_solicitud}</div>` : ''}
+
+        ${prestamo.notas_archivero ? `<div class="mb-3"><strong>Notas del archivero:</strong> ${prestamo.notas_archivero}</div>` : ''}
+
+        ${prestamo.motivo_rechazo ? `<div class="mb-3"><strong>Motivo rechazo:</strong> ${prestamo.motivo_rechazo}</div>` : ''}
+
+        <div class="mb-3">
+            <strong>Solicitante:</strong> ${prestamo.solicitante ? prestamo.solicitante.name : 'N/A'}
+        </div>
+
+        ${prestamo.archivero ? 
+        `<div class="mb-3"><strong>Archivero:</strong> ${prestamo.archivero.name}</div>` : ''}
+
+        <div class="mb-3">
+            <strong>Registrado por:</strong> ${prestamo.usuario_registrador ? prestamo.usuario_registrador.name : 'N/A'}
+        </div>
+
+        <div class="mb-3">
+            <strong>Tipo:</strong> ${prestamo.es_verbal ? 'Verbal' : 'Formal'}
+        </div>
+    `;
+    
+    $('#detallePrestamoBody').html(html);
+    $('#modalDetallePrestamo').modal('show');
+}
+
+    // Cancelar solicitud
+    $(document).on('click', '.btn-cancelar-solicitud', function() {
+        const id = $(this).data('id');
+        
+        Swal.fire({
+            title: '¿Cancelar solicitud?',
+            text: "Esta acción no se puede deshacer",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Sí, cancelar',
+            cancelButtonText: 'No, mantener'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: `{{ url('prestamos') }}/${id}`,
+                    type: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                     },
-                    error: function () {
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Solicitud cancelada',
+                                toast: true,
+                                position: 'top-end',
+                                showConfirmButton: false,
+                                timer: 3000,
+                                background: '#28a745',
+                                color: '#fff',
+                            });
+                            cargarMisPrestamos();
+                        }
+                    },
+                    error: function() {
                         Swal.fire({
                             icon: 'error',
-                            title: 'Error en el servidor',
-                            text: 'No se pudo procesar la eliminación.',
+                            title: 'Error',
+                            text: 'No se pudo cancelar la solicitud',
                             background: '#dc3545',
                             color: '#fff',
                         });
@@ -531,8 +1121,100 @@ $(document).ready(function () {
             }
         });
     });
-});
 
+    // Marcar como recibido (cuando el archivero entrega)
+    $(document).on('click', '.btn-marcar-recibido', function() {
+        const id = $(this).data('id');
+        
+        Swal.fire({
+            title: '¿Confirmar recepción?',
+            text: "Marca que has recibido la carpeta",
+            icon: 'question',
+            input: 'date',
+            inputLabel: 'Fecha de recepción',
+            inputValue: new Date().toISOString().split('T')[0],
+            showCancelButton: true,
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Sí, recibida',
+            cancelButtonText: 'Cancelar',
+            inputValidator: (value) => {
+                if (!value) {
+                    return 'Debes seleccionar una fecha';
+                }
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: `{{ url('prestamos') }}/${id}/entregar`,
+                    type: 'PUT',
+                    data: {
+                        fecha_prestamo: result.value
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: '¡Recibida!',
+                                text: 'La carpeta ha sido marcada como recibida',
+                                toast: true,
+                                position: 'top-end',
+                                showConfirmButton: false,
+                                timer: 3000,
+                                background: '#28a745',
+                                color: '#fff',
+                            });
+                            cargarMisPrestamos();
+                        }
+                    },
+                    error: function() {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'No se pudo marcar como recibida',
+                            background: '#dc3545',
+                            color: '#fff',
+                        });
+                    }
+                });
+            }
+        });
+    });
+
+    // Funciones auxiliares
+    function getBadgeColor(estado) {
+        const colores = {
+            'pendiente': 'warning',
+            'aprobado': 'info',
+            'rechazado': 'danger',
+            'prestado': 'success',
+            'devuelto': 'secondary',
+            'vencido': 'dark'
+        };
+        return colores[estado] || 'primary';
+    }
+
+    function getEstadoLabel(estado) {
+        const labels = {
+            'pendiente': 'Pendiente',
+            'aprobado': 'Aprobado',
+            'rechazado': 'Rechazado',
+            'prestado': 'En préstamo',
+            'devuelto': 'Devuelto',
+            'vencido': 'Vencido'
+        };
+        return labels[estado] || estado;
+    }
+
+    function calcularDiasRestantes(fecha) {
+        if (!fecha) return 0;
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+        const fechaDev = new Date(fecha);
+        fechaDev.setHours(0, 0, 0, 0);
+        const diffTime = fechaDev - hoy;
+        return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    };
 
 
 

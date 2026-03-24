@@ -23,4 +23,9 @@ class Pasivouno extends Model
         'fechaRegistro' => 'datetime',
         'fechaActualizacion' => 'datetime',
     ];
+
+    public function selecciones()
+    {
+        return $this->morphMany(Seleccion::class, 'carpeta');
+    }
 }

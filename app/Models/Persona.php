@@ -313,5 +313,69 @@ class Persona extends Model
         return $this->hasOne(CedulaIdentidad::class, 'idPersona');
     }
 
+    public function selecciones()
+    {
+        return $this->morphMany(Seleccion::class, 'carpeta');
+    }
+
+
+
+    /**
+     * Obtener la profesión principal de la persona
+     */
+    public function profesionPrincipal()
+    {
+        return $this->hasOne(Profesion::class, 'idPersona')
+                    ->where('esPrincipal', true)
+                    ->where('estado', 1);
+    }
+
+    /**
+     * Obtener todas las profesiones activas
+     */
+    public function profesionesActivas()
+    {
+        return $this->hasMany(Profesion::class, 'id_persona')
+                    ->where('estado', 1);
+    }
+
+    /**
+     * Verificar si la persona cumple con los años de experiencia requeridos
+     */
+    public function cumpleExperienciaRequerida(int $aniosRequeridos): bool
+    {
+        $profesionPrincipal = $this->profesionPrincipal;
+        
+        if (!$profesionPrincipal || !$profesionPrincipal->fechaTitulo) {
+            return false;
+        }
+
+        return $profesionPrincipal->aniosExperienciaDesdeTitulacion >= $aniosRequeridos;
+    }
+
+    /**
+     * Verificar si la persona tiene título en provisión nacional
+     */
+    public function tieneTituloProvisionNacional(): bool
+    {
+        $profesionPrincipal = $this->profesionPrincipal;
+        
+        return $profesionPrincipal && $profesionPrincipal->tieneTituloProvision;
+    }
+
+    /**
+     * Obtener el nivel académico más alto de la persona
+     */
+    public function getNivelAcademicoMasAltoAttribute()
+    {
+        return $this->profesionesActivas()
+            ->with('carrera.nivelAcademico')
+            ->get()
+            ->sortByDesc(function ($profesion) {
+                return $profesion->carrera->nivelAcademico->orden ?? 0;
+            })
+            ->first();
+    }
+
 
 }

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
+
 class Puesto extends Model
 {
     protected $table = 'puestos';
@@ -126,7 +127,35 @@ class Puesto extends Model
 
     public function personas(): HasMany
     {
-        return $this->hasMany(Persona::class, 'idPuesto');
+        return $this->hasMany(Persona::class, 'id_usuario');
+    }
+
+
+    /**
+     * Relación con el perfil del puesto (requisitos)
+     */
+    public function perfilRequisitos()
+    {
+        return $this->hasMany(PerfilPuesto::class, 'id_puesto'); // ✅ BIEN
+    }
+    
+
+    /**
+     * Verificar si el puesto tiene perfil definido
+     */
+    public function getTienePerfilDefinidoAttribute(): bool
+    {
+        return $this->perfilRequisitos !== null;
+    }
+
+
+
+    /**
+     * Scope para puestos por nivel jerárquico
+     */
+    public function scopePorNivelJerarquico($query, $nivel)
+    {
+        return $query->where('nivelJerarquico', $nivel);
     }
 
 }

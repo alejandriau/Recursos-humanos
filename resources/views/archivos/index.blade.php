@@ -390,7 +390,7 @@
                         <!-- Nombre archivo -->
                         <div class="mb-1">
                             <small class="file-name " title="{{ $archivo->nombre_archivo }}">
-                                <h5 class="card-title fs-4">
+                                <h5 class="card-title fs-8">
                                     {{ Str::limit($archivo->nombre_archivo) }}
                                 </h5>
                             </small>
