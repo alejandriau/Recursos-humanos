@@ -4,6 +4,7 @@
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-8 mx-auto">
+            @if($profesion)
             <div class="card shadow-sm">
                 <div class="card-header bg-white">
                     <h5 class="mb-0">
@@ -196,13 +197,34 @@
                             <i class="fas fa-arrow-left me-1"></i> Volver
                         </a>
                         <div>
-                            <a href="{{ route('profesion.edit', $profesion->id) }}" class="btn btn-warning">
-                                <i class="fas fa-edit me-1"></i> Editar
-                            </a>
+                            @if(!empty($profesion) && $profesion->id)
+                                <a href="{{ route('profesion.edit', $profesion->id) }}" class="btn btn-warning">
+                                    <i class="fas fa-edit me-1"></i> Editar
+                                </a>
+                            @else
+                                <a href="{{ route('profesion.create',$profesion->persona->id) }}" class="btn btn-primary">
+                                    <i class="fas fa-plus me-1"></i> Registrar Profesión
+                                </a>
+                            @endif
                         </div>
                     </div>
                 </div>
             </div>
+
+            @else
+                <div class="alert alert-warning text-center">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    No hay profesión registrada para esta persona.
+                </div>
+
+                <div class="text-center">
+                    <a href="{{ route('profesion.create',$profesion->persona->id) }}" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i> Registrar Profesión
+                    </a>
+                </div>
+            @endif
+
+
         </div>
     </div>
 </div>

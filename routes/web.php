@@ -328,7 +328,7 @@ Route::middleware([
 
     Route::get('profesion/index', [ProfesionController::class, 'index'])->name('profesion.index');
     Route::get('profesion/create/{persona}', [ProfesionController::class, 'create'])->name('profesion.create');
-    Route::get('profesion/show/{persona}', [ProfesionController::class, 'show'])->name('profesion.show');
+    Route::get('profesion/{persona}/show', [ProfesionController::class, 'show'])->name('profesion.show');
     Route::post('profesion/store/{persona}', [ProfesionController::class, 'store'])->name('profesion.store');
     Route::get('profesion/{profesion}/edit', [ProfesionController::class, 'edit'])->name('profesion.edit');
     Route::put('profesion/update/{profesion}', [ProfesionController::class, 'update'])->name('profesion.update');

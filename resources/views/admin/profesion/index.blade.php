@@ -165,7 +165,7 @@
                             </td>
                             <td>
                                 <div class="btn-group btn-group-sm">
-                                    <a href="{{ route('profesion.show', $profesion->id) }}" 
+                                    <a href="{{ route('profesion.show', $profesion->persona->id) }}" 
                                        class="btn btn-info" data-bs-toggle="tooltip" title="Ver detalles">
                                         <i class="fas fa-eye"></i>
                                     </a>

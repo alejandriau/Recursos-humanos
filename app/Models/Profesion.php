@@ -53,7 +53,7 @@ class Profesion extends Model
      */
     public function carrera(): BelongsTo
     {
-        return $this->belongsTo(Carrera::class, 'idCarrera');
+        return $this->belongsTo(Carrera::class, 'id_carrera');
     }
 
     /**

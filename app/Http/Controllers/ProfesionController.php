@@ -301,10 +301,15 @@ class ProfesionController extends Controller
     /**
      * Ver detalles de una profesión
      */
-    public function show(Profesion $profesion)
+
+    public function show(Persona $persona)
     {
-        $profesion->load(['persona', 'carrera.areaConocimiento', 'carrera.nivelAcademico']);
-        
-        return view('admin.profesion.show', compact('profesion'));
+        $profesion = $persona->profesion; // Adjust relation name if needed
+
+        if ($profesion) {
+            $profesion->load(['carrera.areaConocimiento', 'carrera.nivelAcademico']);
+        }
+
+        return view('admin.profesion.show', compact('profesion', 'persona'));
     }
 }
