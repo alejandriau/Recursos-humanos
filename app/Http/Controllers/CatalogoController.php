@@ -245,7 +245,30 @@ public function nivelesStore(Request $request): JsonResponse
         
         return view('catalogos.carreras.index', compact('carreras', 'areas', 'niveles'));
     }
-    
+    public function carrerasStore(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'nombre' => 'required|string|max:200|unique:carreras,nombre',
+            'idAreaConocimiento' => 'required|exists:areas_conocimiento,id',
+            'idNivelAcademico' => 'required|exists:niveles_academicos,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $carrera = Carrera::create([
+            'nombre' => $request->nombre,
+            'idAreaConocimiento' => $request->idAreaConocimiento,
+            'idNivelAcademico' => $request->idNivelAcademico
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => $carrera->load(['areaConocimiento', 'nivelAcademico']),
+            'message' => 'Carrera creada correctamente'
+        ], 201);
+    }
 
     
     public function carrerasUpdate(Request $request, $id)

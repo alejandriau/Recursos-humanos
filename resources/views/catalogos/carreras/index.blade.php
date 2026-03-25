@@ -21,7 +21,6 @@
                     <div class="table-responsive">
                         <table class="table table-hover" id="tablaCarreras">
                             <thead>
-                                32
                                     <th>ID</th>
                                     <th>Nombre</th>
                                     <th>Área de Conocimiento</th>
