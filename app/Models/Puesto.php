@@ -40,7 +40,10 @@ class Puesto extends Model
     {
         return $this->belongsTo(UnidadOrganizacional::class, 'idUnidadOrganizacional');
     }
-
+    public function unidad()
+    {
+        return $this->belongsTo(UnidadOrganizacional::class, 'idUnidadOrganizacional');
+    }
     // Relación con Historial
     public function historial()
     {
@@ -136,10 +139,9 @@ class Puesto extends Model
      */
     public function perfilRequisitos()
     {
-        return $this->hasMany(PerfilPuesto::class, 'id_puesto'); // ✅ BIEN
+        return $this->hasOne(PerfilPuesto::class, 'id_puesto');
     }
     
-
     /**
      * Verificar si el puesto tiene perfil definido
      */
@@ -147,7 +149,6 @@ class Puesto extends Model
     {
         return $this->perfilRequisitos !== null;
     }
-
 
 
     /**

@@ -223,10 +223,10 @@ public function reportepasivos(Request $request)
     $pdf->Cell(150, 10, 'Nombre', 1, 0, 'C');
     $pdf->Cell(20, 10, 'Letra', 1, 1, 'C');
 
-    $pdf->SetFont('Arial', '', 11);
+    $pdf->SetFont('Arial', 'B', 18);
 
     foreach ($datos as $row) {
-        $pdf->Cell(20, 10, $row->codigo, 1, 0, 'R');
+        $pdf->Cell(20, 10, $row->codigo, 1, 0, 'C');
         $pdf->Cell(150, 10, utf8_decode($row->nombrecompleto), 1, 0, 'L');
         $pdf->Cell(20, 10, $row->letra, 1, 1, 'C');
     }

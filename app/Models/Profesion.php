@@ -15,7 +15,9 @@ class Profesion extends Model
 
     protected $fillable = [
         'idPersona',
-        'id_carrera',           // NUEVO: Relación con carrera normalizada
+        'id_carrera',
+        'idNivelEstudiado',
+        'estadoEstudio',
         'diploma',
         'fechaTitulo',         // CAMBIADO: antes era fechaDiploma
         'provisionN',
@@ -138,6 +140,11 @@ class Profesion extends Model
     public function getNivelAcademicoAttribute()
     {
         return $this->carrera ? $this->carrera->nivelAcademico : null;
+    }
+
+    public function nivelEstudiado()
+    {
+        return $this->belongsTo(NivelAcademico::class, 'idNivelEstudiado');
     }
 
 }

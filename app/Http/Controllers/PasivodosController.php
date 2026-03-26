@@ -220,15 +220,15 @@ public function reportepasivos(Request $request)
     $pdf->Cell(0, 10, utf8_decode("Reporte de Datos - Letra {$letra}"), 0, 1, 'C');
     $pdf->Ln(5);
 
-    $pdf->SetFont('Arial', 'B', 12);
+    $pdf->SetFont('Arial', 'B', 14);
     $pdf->Cell(20, 10, 'Codigo', 1, 0, 'C');
     $pdf->Cell(150, 10, 'Nombre', 1, 0, 'C');
     $pdf->Cell(20, 10, 'Letra', 1, 1, 'C');
 
-    $pdf->SetFont('Arial', '', 11);
+    $pdf->SetFont('Arial', 'B', 18);
 
     foreach ($datos as $row) {
-        $pdf->Cell(20, 10, $row->codigo, 1, 0, 'R');
+        $pdf->Cell(20, 10, $row->codigo, 1, 0, 'C');
         $pdf->Cell(150, 10, utf8_decode($row->nombrecompleto), 1, 0, 'L');
         $pdf->Cell(20, 10, $row->letra, 1, 1, 'C');
     }

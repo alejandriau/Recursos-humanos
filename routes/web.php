@@ -789,7 +789,7 @@ Route::prefix('perfil-puesto')->group(function () {
     Route::get('/index', [PerfilPuestoController::class, 'index'])->name('perfil-puesto.index');
     Route::get('/{idPuesto}/edit', [PerfilPuestoController::class, 'edit'])->name('perfil-puesto.edit');
     Route::post('/{idPuesto}', [PerfilPuestoController::class, 'storeOrUpdate'])->name('perfil-puesto.store-or-update');
-    Route::get('/{idPuesto}', [PerfilPuestoController::class, 'show'])->name('perfil-puesto.show');
+    Route::get('/{idPuesto}/show', [PerfilPuestoController::class, 'show'])->name('perfil-puesto.show');
     Route::delete('/{idPuesto}', [PerfilPuestoController::class, 'destroy'])->name('perfil-puesto.destroy');
     Route::post('/{idPuesto}/validar-candidato', [PerfilPuestoController::class, 'validarCandidato'])->name('perfil-puesto.validar-candidato');
     Route::get('/carreras-por-area/{areaId}', [PerfilPuestoController::class, 'getCarrerasPorArea'])->name('perfil-puesto.carreras-por-area');

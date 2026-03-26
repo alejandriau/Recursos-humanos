@@ -8,14 +8,19 @@ return new class extends Migration
 {
     public function up(): void
     {
+
         Schema::create('perfil_puesto', function (Blueprint $table) {
             $table->id();
             $table->foreignId('id_puesto')->constrained('puestos');
-            $table->integer('aniosExperienciaMinimos')->nullable(); // 3 años
-            $table->string('nivelAcademicoRequerido', 50)->nullable(); // "Licenciatura", "Ingeniería"
-            $table->json('areasConocimientoPermitidas')->nullable(); // ["Ciencias Económicas", "Ciencias Financieras"]
-            $table->json('carrerasEspecificas')->nullable(); // Si requiere carrera específica
+            // 🔥 NIVEL REQUERIDO (ej: Licenciatura)
+            $table->foreignId('idNivelAcademico')->nullable()->constrained('niveles_academicos');
+            $table->foreignId('idAreaConocimiento')->nullable()->constrained('areas_conocimiento');
+            $table->foreignId('idCarrera')->nullable()->constrained('carreras');
+            $table->integer('aniosExperienciaMinimos')->nullable();
             $table->boolean('requiereTituloEnProvisionNacional')->default(true);
+            $table->text('conocimientoTexto')->nullable();
+            $table->text('objetivo')->nullable();
+
             $table->text('observacion')->nullable();
             $table->timestamps();
         });

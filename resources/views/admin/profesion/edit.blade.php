@@ -21,26 +21,105 @@
                         
                         <div class="row">
                             <!-- Carrera -->
-                            <div class="col-md-12 mb-3">
-                                <label class="form-label fw-bold">
-                                    Carrera / Programa Académico <span class="text-danger">*</span>
-                                </label>
-                                <select name="idCarrera" class="form-select @error('idCarrera') is-invalid @enderror" required>
-                                    <option value="">-- Seleccione una carrera --</option>
-                                    @foreach($carreras as $carrera)
-                                        <option value="{{ $carrera->id }}" 
-                                            data-area="{{ $carrera->areaConocimiento->nombre }}"
-                                            data-nivel="{{ $carrera->nivelAcademico->nombre }}"
-                                            {{ old('idCarrera', $profesion->idCarrera) == $carrera->id ? 'selected' : '' }}>
-                                            {{ $carrera->nombre }} 
-                                            ({{ $carrera->areaConocimiento->nombre }} - {{ $carrera->nivelAcademico->nombre }})
+                            <div class="row mb-4">
+
+                                <!-- 🎓 Carrera -->
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">
+                                        Carrera / Programa Académico <span class="text-danger">*</span>
+                                    </label>
+
+                                    <select name="id_carrera" 
+                                            class="form-select @error('id_carrera') is-invalid @enderror" 
+                                            required 
+                                            id="selectCarrera">
+
+                                        <option value="">-- Seleccione una carrera --</option>
+
+                                        @foreach($carreras as $carrera)
+                                            <option value="{{ $carrera->id }}" 
+                                                data-area="{{ $carrera->areaConocimiento->nombre }}"
+                                                data-nivel="{{ $carrera->nivelAcademico->nombre }}"
+                                                {{ old('id_carrera', $profesion->id_carrera) == $carrera->id ? 'selected' : '' }}>
+                                                
+                                                {{ $carrera->nombre }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+
+                                    @error('id_carrera')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+
+                                    <!-- Info dinámica -->
+                                    <div id="infoCarrera" class="mt-2 small text-muted fst-italic"></div>
+                                </div>
+
+                                <!-- 📘 Nivel alcanzado -->
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">
+                                        Nivel alcanzado <span class="text-danger">*</span>
+                                    </label>
+
+                                    <select name="idNivelEstudiado" 
+                                            class="form-select @error('idNivelEstudiado') is-invalid @enderror" 
+                                            required>
+
+                                        <option value="">-- Seleccione nivel --</option>
+
+                                        @foreach($niveles as $nivel)
+                                            <option value="{{ $nivel->id }}"
+                                                {{ old('idNivelEstudiado', $profesion->idNivelEstudiado) == $nivel->id ? 'selected' : '' }}>
+                                                {{ $nivel->nombre }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+
+                                    @error('idNivelEstudiado')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+
+                                    <small class="text-muted">
+                                        Ej: Técnico básico, Bachiller, etc.
+                                    </small>
+                                </div>
+
+                                <!-- 📊 Estado -->
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">
+                                        Estado del estudio <span class="text-danger">*</span>
+                                    </label>
+
+                                    <select name="estadoEstudio" 
+                                            class="form-select @error('estadoEstudio') is-invalid @enderror" 
+                                            required>
+
+                                        <option value="en_curso" 
+                                            {{ old('estadoEstudio', $profesion->estadoEstudio) == 'en_curso' ? 'selected' : '' }}>
+                                            En curso
                                         </option>
-                                    @endforeach
-                                </select>
-                                @error('idCarrera')
-                                    <div class="invalid-feedback">{{ $message }}</div>
-                                @enderror
-                                <div id="infoCarrera" class="mt-2 small text-info"></div>
+
+                                        <option value="incompleto" 
+                                            {{ old('estadoEstudio', $profesion->estadoEstudio) == 'incompleto' ? 'selected' : '' }}>
+                                            Incompleto
+                                        </option>
+
+                                        <option value="egresado" 
+                                            {{ old('estadoEstudio', $profesion->estadoEstudio) == 'egresado' ? 'selected' : '' }}>
+                                            Egresado
+                                        </option>
+
+                                        <option value="titulado" 
+                                            {{ old('estadoEstudio', $profesion->estadoEstudio) == 'titulado' ? 'selected' : '' }}>
+                                            Titulado
+                                        </option>
+                                    </select>
+
+                                    @error('estadoEstudio')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+
                             </div>
 
                             <!-- Diploma y Universidad -->
@@ -222,7 +301,7 @@
 <script>
     $(document).ready(function() {
         // Mostrar información de la carrera seleccionada
-        $('select[name="idCarrera"]').change(function() {
+        $('select[name="id_carrera"]').change(function() {
             var selected = $(this).find('option:selected');
             var area = selected.data('area');
             var nivel = selected.data('nivel');

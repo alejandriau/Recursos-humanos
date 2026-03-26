@@ -13,7 +13,6 @@
 
             <!-- Acciones -->
             <div class="d-flex gap-2 flex-wrap">
-
                 <a href="{{ route('catalogos.areas') }}" 
                 class="btn btn-outline-primary btn-sm d-flex align-items-center">
                     <i class="fas fa-layer-group me-1"></i>
@@ -31,7 +30,6 @@
                     <i class="fas fa-signal me-1"></i>
                     Niveles
                 </a>
-
             </div>
         </div>
         <div class="card-body">
@@ -101,113 +99,119 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($profesiones as $profesion)
-                        <tr class="{{ $profesion->esPrincipal ? 'table-primary' : '' }}">
-                            <td>{{ $loop->iteration }}</td>
-                            <td>
-                                <strong>{{ $profesion->persona ? $profesion->persona->nombre_completo : 'N/A' }}</strong>
-                            </td>
-                            <td>
-                                {{ $profesion->carrera ? $profesion->carrera->nombre : 'Sin carrera' }}
-                                @if($profesion->universidad)
-                                    <br><small class="text-muted">{{ $profesion->universidad }}</small>
-                                @endif
-                            </td>
-                            <td>
-                                @if($profesion->carrera && $profesion->carrera->nivelAcademico)
-                                    <span class="badge bg-info">
-                                        {{ $profesion->carrera->nivelAcademico->nombre }}
-                                    </span>
-                                @else
-                                    <span class="text-muted">—</span>
-                                @endif
-                            </td>
-                            <td>
-                                @if($profesion->carrera && $profesion->carrera->areaConocimiento)
-                                    <span class="badge bg-secondary">
-                                        {{ $profesion->carrera->areaConocimiento->nombre }}
-                                    </span>
-                                @else
-                                    <span class="text-muted">—</span>
-                                @endif
-                            </td>
-                            <td>
-                                {{ $profesion->fechaTitulo ? \Carbon\Carbon::parse($profesion->fechaTitulo)->format('d/m/Y') : '—' }}
-                            </td>
-                            <td>
-                                @if($profesion->fechaTitulo)
-                                    <span class="badge {{ $profesion->aniosExperienciaDesdeTitulacion >= 3 ? 'bg-success' : 'bg-warning' }}">
-                                        {{ number_format($profesion->aniosExperienciaDesdeTitulacion, 1) }} años
-                                    </span>
-                                @else
-                                    <span class="text-muted">—</span>
-                                @endif
-                            </td>
-                            <td>
-                                @if($profesion->tieneTituloProvision)
-                                    <span class="badge bg-success">
-                                        <i class="fas fa-check-circle"></i> Sí
-                                    </span>
-                                @else
-                                    <span class="badge bg-secondary">
-                                        <i class="fas fa-times-circle"></i> No
-                                    </span>
-                                @endif
-                            </td>
-                            <td>
-                                @if($profesion->esPrincipal)
-                                    <span class="badge bg-primary">
-                                        <i class="fas fa-star"></i> Principal
-                                    </span>
-                                @else
-                                    <span class="text-muted">—</span>
-                                @endif
-                            </td>
-                            <td>
-                                <div class="btn-group btn-group-sm">
-                                    <a href="{{ route('profesion.show', $profesion->persona->id) }}" 
-                                       class="btn btn-info" data-bs-toggle="tooltip" title="Ver detalles">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    <a href="{{ route('profesion.edit', $profesion->id) }}" 
-                                       class="btn btn-warning" data-bs-toggle="tooltip" title="Editar">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    <button type="button" 
-                                            onclick="confirmDelete({{ $profesion->id }})" 
-                                            class="btn btn-danger" data-bs-toggle="tooltip" title="Eliminar">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
-                                <form id="delete-form-{{ $profesion->id }}" 
-                                      action="{{ route('profesion.destroy', $profesion->id) }}" 
-                                      method="POST" style="display: none;">
-                                    @csrf
-                                    @method('DELETE')
-                                </form>
-                                <a href="{{ route('profesion.create', $profesion->persona->id) }}" class="btn btn-primary btn-sm">
-                                    <i class="fas fa-plus me-1"></i> Nueva Profesión
-                                </a>
-                            </td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="10" class="text-center text-muted py-5">
-                                <i class="fas fa-graduation-cap fa-3x mb-3"></i>
-                                <p>No se encontraron profesiones registradas.</p>
-                                <a href="{{ route('profesion.create', $profesion->persona->id) }}" class="btn btn-primary btn-sm">
-                                    <i class="fas fa-plus me-1"></i> Registrar primera profesión
-                                </a>
-                            </td>
-                        </tr>
-                        @endforelse
+@forelse($personas as $persona)
+    @if($persona->profesiones->count() > 0)
+        @foreach($persona->profesiones as $profesion)
+            <tr class="{{ $profesion->esPrincipal ? 'table-primary' : '' }}">
+                <!-- Numeración con subíndice si hay múltiples profesiones -->
+                <td>
+                    {{ ($personas->currentPage() - 1) * $personas->perPage() + $loop->parent->index + 1 }}
+                    @if($persona->profesiones->count() > 1)
+                        .{{ $loop->iteration }}
+                    @endif
+                </td>
+                <td><strong>{{ $persona->nombre_completo }}</strong></td>
+                <td>
+                    {{ $profesion->carrera ? $profesion->carrera->nombre : 'Sin carrera' }}
+                    @if($profesion->universidad)
+                        <br><small class="text-muted">{{ $profesion->universidad }}</small>
+                    @endif
+                </td>
+                <td>
+                    @if($profesion->nivelEstudiado)
+                        <span class="badge bg-primary">{{ $profesion->nivelEstudiado->nombre }}</span>
+                        <br><small class="text-muted">({{ ucfirst($profesion->estadoEstudio) }})</small>
+                    @else
+                        <span class="text-muted">—</span>
+                    @endif
+                </td>
+                <td>
+                    @if($profesion->carrera && $profesion->carrera->areaConocimiento)
+                        <span class="badge bg-secondary">{{ $profesion->carrera->areaConocimiento->nombre }}</span>
+                    @else
+                        <span class="text-muted">—</span>
+                    @endif
+                </td>
+                <td>{{ $profesion->fechaTitulo ? \Carbon\Carbon::parse($profesion->fechaTitulo)->format('d/m/Y') : '—' }}</td>
+                <td>
+                    @if($profesion->fechaTitulo)
+                        <span class="badge {{ $profesion->aniosExperienciaDesdeTitulacion >= 3 ? 'bg-success' : 'bg-warning' }}">
+                            {{ number_format($profesion->aniosExperienciaDesdeTitulacion, 1) }} años
+                        </span>
+                    @else
+                        <span class="text-muted">—</span>
+                    @endif
+                </td>
+                <td>
+                    @if($profesion->tieneTituloProvision)
+                        <span class="badge bg-success"><i class="fas fa-check-circle"></i> Sí</span>
+                    @else
+                        <span class="badge bg-secondary"><i class="fas fa-times-circle"></i> No</span>
+                    @endif
+                </td>
+                <td>
+                    @if($profesion->esPrincipal)
+                        <span class="badge bg-primary"><i class="fas fa-star"></i> Principal</span>
+                    @else
+                        <span class="text-muted">—</span>
+                    @endif
+                </td>
+                <td>
+                    <div class="btn-group btn-group-sm" role="group">
+                        <a href="{{ route('personas.show', $persona->id) }}" class="btn btn-info" data-bs-toggle="tooltip" title="Ver detalles de la persona">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        <a href="{{ route('profesion.edit', $profesion->id) }}" class="btn btn-warning" data-bs-toggle="tooltip" title="Editar profesión">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <button type="button" onclick="confirmDelete({{ $profesion->id }})" class="btn btn-danger" data-bs-toggle="tooltip" title="Eliminar profesión">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        <a href="{{ route('profesion.create', $persona->id) }}" class="btn btn-primary btn-sm" data-bs-toggle="tooltip" title="Agregar otra profesión">
+                            <i class="fas fa-plus"></i>
+                        </a>
+                    </div>
+                    <form id="delete-form-{{ $profesion->id }}" action="{{ route('profesion.destroy', $profesion->id) }}" method="POST" style="display: none;">
+                        @csrf
+                        @method('DELETE')
+                    </form>
+                </td>
+            </tr>
+        @endforeach
+    @else
+        <!-- Persona sin profesiones -->
+        <tr>
+            <td>{{ ($personas->currentPage() - 1) * $personas->perPage() + $loop->iteration }}</td>
+            <td><strong>{{ $persona->nombre_completo }}</strong></td>
+            <td colspan="6" class="text-muted text-center">Sin profesión registrada</td>
+            <td>—</td>
+            <td>
+                <div class="btn-group btn-group-sm" role="group">
+                    <a href="{{ route('personas.show', $persona->id) }}" class="btn btn-info" data-bs-toggle="tooltip" title="Ver detalles de la persona">
+                        <i class="fas fa-eye"></i>
+                    </a>
+                    <a href="{{ route('profesion.create', $persona->id) }}" class="btn btn-primary btn-sm" data-bs-toggle="tooltip" title="Registrar primera profesión">
+                        <i class="fas fa-plus"></i>
+                    </a>
+                </div>
+            </td>
+        </tr>
+    @endif
+@empty
+    <tr>
+        <td colspan="10" class="text-center text-muted py-5">
+            <i class="fas fa-graduation-cap fa-3x mb-3"></i>
+            <p>No se encontraron personas registradas.</p>
+        </td>
+    </tr>
+@endforelse
                     </tbody>
                 </table>
             </div>
 
             <!-- Paginación -->
             <div class="d-flex justify-content-center mt-4">
-                {{ $profesiones->appends(request()->query())->links() }}
+                {{ $personas->appends(request()->query())->links() }}
             </div>
         </div>
     </div>

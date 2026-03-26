@@ -10,29 +10,38 @@ class PerfilPuesto extends Model
     protected $table = 'perfil_puesto';
 
     protected $fillable = [
-        'idPuesto',
+        'id_puesto',
+        'idNivelAcademico',
+        'idAreaConocimiento',
+        'idCarrera',
         'aniosExperienciaMinimos',
-        'nivelAcademicoRequerido',
-        'areasConocimientoPermitidas',
-        'carrerasEspecificas',
         'requiereTituloEnProvisionNacional',
+        'conocimientoTexto',
+        'objetivo',
         'observacion'
     ];
 
-    protected $casts = [
-        'aniosExperienciaMinimos' => 'integer',
-        'areasConocimientoPermitidas' => 'array',
-        'carrerasEspecificas' => 'array',
-        'requiereTituloEnProvisionNacional' => 'boolean'
-    ];
-
-    /**
-     * Relación con el puesto
-     */
-    public function puesto(): BelongsTo
+    public function nivelAcademico()
     {
-        return $this->belongsTo(Puesto::class, 'idPuesto');
+        return $this->belongsTo(NivelAcademico::class, 'idNivelAcademico');
     }
+
+    public function areaConocimiento()
+    {
+        return $this->belongsTo(AreaConocimiento::class, 'idAreaConocimiento');
+    }
+
+    public function carrera()
+    {
+        return $this->belongsTo(Carrera::class, 'id_carrera');
+    }
+
+    public function puesto()
+    {
+        return $this->belongsTo(Puesto::class, 'id_puesto');
+    }
+
+
 
     /**
      * Verificar si un área de conocimiento es válida para este puesto

@@ -187,36 +187,52 @@
                             </td>
                             <td>
                                 @if($puesto->perfilRequisitos)
+                                    @php
+                                        $perfil = $puesto->perfilRequisitos;
+                                    @endphp
+
                                     <div class="small">
-                                        @if(optional($puesto->perfilRequisitos->first())->aniosExperienciaMinimos)
+
+                                        {{-- Experiencia --}}
+                                        @if($perfil->aniosExperienciaMinimos)
                                             <span class="badge bg-info me-1">
-                                                <i class="fas fa-clock"></i> {{ optional($puesto->perfilRequisitos->first())->aniosExperienciaMinimos}} años exp.
+                                                <i class="fas fa-clock"></i>
+                                                {{ $perfil->aniosExperienciaMinimos }} años exp.
                                             </span>
                                         @endif
-                                        
-                                        @if(optional($puesto->perfilRequisitos->first())->nivelAcademicoRequerido)
+
+                                        {{-- Nivel académico --}}
+                                        @if($perfil->nivelAcademico)
                                             <span class="badge bg-success me-1">
-                                                <i class="fas fa-graduation-cap"></i> {{ optional($puesto->perfilRequisitos->first())->nivelAcademicoRequerido }}
+                                                <i class="fas fa-graduation-cap"></i>
+                                                    {{ $perfil->nivelAcademico->nombre ?? '' }}
+                                                    en {{ $perfil->areaConocimiento->nombre ?? '' }}
                                             </span>
                                         @endif
-                                        
-                                        @if(count(optional($puesto->perfilRequisitos->first())->areasConocimientoPermitidas ?? []))
+
+                                        {{-- Área --}}
+                                        @if($perfil->areaConocimiento)
                                             <span class="badge bg-warning me-1">
-                                                <i class="fas fa-brain"></i> {{ count(optional($puesto->perfilRequisitos->first())->areasConocimientoPermitidas ?? []) }} áreas
+                                                <i class="fas fa-brain"></i>
+                                                {{ $perfil->areaConocimiento->nombre }}
                                             </span>
                                         @endif
-                                        
-                                        @if(count(optional($puesto->perfilRequisitos->first())->carrerasEspecificas ?? []))
+
+                                        {{-- Carrera --}}
+                                        @if($perfil->carrera)
                                             <span class="badge bg-primary me-1">
-                                                <i class="fas fa-university"></i> {{ count(optional($puesto->perfilRequisitos->first())->carrerasEspecificas ?? []) }} carreras
+                                                <i class="fas fa-university"></i>
+                                                {{ $perfil->carrera->nombre }}
                                             </span>
                                         @endif
-                                        
-                                        @if(optional($puesto->perfilRequisitos->first())->requiereTituloEnProvisionNacional)
+
+                                        {{-- Título --}}
+                                        @if($perfil->requiereTituloEnProvisionNacional)
                                             <span class="badge bg-danger">
                                                 <i class="fas fa-certificate"></i> Titulación Nacional
                                             </span>
                                         @endif
+
                                     </div>
                                 @else
                                     <span class="badge bg-secondary">
