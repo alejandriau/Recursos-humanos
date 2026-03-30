@@ -291,6 +291,19 @@
                                                     </button>
                                                 </li>
                                                 <li>
+                                                    <button type="button" class="dropdown-item text-danger"
+                                                        onclick="confirmarEliminacion({{ $puesto->historial_actual->id }})">
+                                                        <i class="fas fa-trash me-2"></i> Eliminar
+                                                    </button>
+
+                                                    <form id="formEliminar{{ $puesto->historial_actual->id }}"
+                                                        action="{{ route('historial.destroy', $puesto->historial_actual->id) }}"
+                                                        method="POST">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                    </form>
+                                                </li>
+                                                <li>
                                                     <a class="dropdown-item" href="{{ route('historial.create', $puesto->id) }}">
                                                         <i class="fas fa-user-plus me-2"></i>Asignar Personal
                                                     </a>
@@ -548,5 +561,23 @@ document.getElementById('bajaModalGlobal').addEventListener('hidden.bs.modal', f
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Vista de designaciones cargada correctamente');
 });
+
+
+function confirmarEliminacion(id) {
+    Swal.fire({
+        title: '¿Estás seguro?',
+        text: "Este registro se eliminará definitivamente",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            document.getElementById('formEliminar' + id).submit();
+        }
+    });
+}
 </script>
 @endsection

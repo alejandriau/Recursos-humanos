@@ -31,10 +31,10 @@
                 <!-- Haber -->
                 <!--<td>
                     @if ($persona->puestoActual && $persona->puestoActual->puesto)
-{{ number_format($persona->puestoActual->puesto->haber ?? 0, 2, ',', '.') }}
-@else
-<span class="text-muted">0,00</span>
-@endif
+                    {{ number_format($persona->puestoActual->puesto->haber ?? 0, 2, ',', '.') }}
+                    @else
+                    <span class="text-muted">0,00</span>
+                    @endif
                 </td>-->
 
                 <!-- Fechas -->
@@ -65,21 +65,7 @@
 
                             $mensaje = urlencode(
                                 "{$saludo} {$persona->nombre} {$persona->apellidoPat} {$persona->apellidoMat}:\n\n" .
-                                    'Le escribe la *Unidad de Gestión de Recursos Humanos (UGRH)* del ' .
-                                    "*Gobierno Autónomo Departamental de Cochabamba (GADC)*.\n\n" .
-                                    'Nos comunicamos para solicitar la *presentación del Certificado de Años de Servicio – CAS*, ' .
-                                    'documento indispensable para el reconocimiento de su antigüedad laboral, ' .
-                                    "debido a que dicho documento no se encuentra registrado o actualizado en su file personal.\n\n" .
-                                    "Documentación requerida:\n" .
-                                    "• Certificado de Años de Servicio – CAS\n\n" .
-                                    "La documentación solicitada tenia para ser presentada *hasta el viernes 09 de enero de 2026*.\n\n" .
-                                    '*En caso de no presentar la documentación dentro del plazo establecido, no se reconocerá su antigüedad laboral*, ' .
-                                    'procediéndose a su *retiro de planilla* y a la *emisión de un Memo de Llamada de Atención*, ' .
-                                    "conforme a la normativa y procedimientos administrativos vigentes.\n\n" .
-                                    "Agradecemos su colaboración y quedamos atentos para coordinar la entrega de la documentación.\n\n" .
-                                    "Saludos cordiales,\n" .
-                                    "Unidad de Gestión de Recursos Humanos\n" .
-                                    'GADC',
+                                    'Le escribe la *Unidad de Gestión de Recursos Humanos (UGRH)* del ',
                             );
 
                         @endphp
@@ -140,6 +126,11 @@
                             </li>
                             <li><a class="dropdown-item" href="{{ route('persona.dashboard', $persona->id) }}">📊
                                     Documentación</a></li>
+                            <form id="formEliminar{{ $persona->id }}"  action="{{ route('personas.delete', $persona->id) }}" method="POST" onsubmit="return confirm('¿Estás seguro de eliminar este registro?')">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="dropdown-item text-danger btn-eliminar"> <i class="fa fa-trash"></i>Eliminar</button>
+                            </form>
                             <li><a class="dropdown-item" href="{{ route('personas.historial', $persona->id) }}">
                                     📋 Historial
                                     @if ($persona->historials->count() > 0)

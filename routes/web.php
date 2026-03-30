@@ -273,6 +273,7 @@ Route::middleware([
     Route::get('/personas/edit/{id}', [PersonaController::class, 'edit'])->name('personas.edit');
     Route::put('/personas/update/{id}', [PersonaController::class, 'update'])->name('personas.update');
     Route::patch('/personas/destroy/{id}', [PersonaController::class, 'destroy'])->name('personas.destroy');
+    Route::delete('/personas/delete/{id}', [PersonaController::class, 'delete'])->name('personas.delete');
     Route::get('/persona/foto/{id}', [PersonaController::class, 'mostrarFoto'])->name('persona.foto');
 
     Route::get('/persona/{id}/dashboard', [PersonaDashboardController::class, 'show'])->name('persona.dashboard');

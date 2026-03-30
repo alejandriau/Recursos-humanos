@@ -301,8 +301,13 @@ public function mostrarFoto($id)
     abort(404, 'Archivo no encontrado');
 }
 
+    public function delete($id)
+    {
+        $persona = Persona::findOrFail($id);
+        $persona->delete();
 
-
+        return redirect()->route('reportes.index')->with('success', 'Registro eliminado correctamente.');
+    }
 
     public function destroy($id)
     {

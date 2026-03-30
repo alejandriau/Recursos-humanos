@@ -264,6 +264,28 @@
         link.href = url;
         link.click();
     }
+
+
+    document.querySelectorAll('.btn-eliminar').forEach(button => {
+    button.addEventListener('click', function () {
+        let id = this.getAttribute('data-id');
+
+        Swal.fire({
+            title: '¿Estás seguro?',
+            text: "Esta persona será desactivada",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Sí, desactivar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                document.getElementById('formEliminar' + id).submit();
+            }
+        });
+    });
+});
 </script>
 @endpush
 @endsection
