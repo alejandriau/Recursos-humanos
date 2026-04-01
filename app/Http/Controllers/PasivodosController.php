@@ -17,17 +17,18 @@ class PasivodosController extends Controller
 {
     public function index()
     {
-        // Solo selecciones del usuario autenticado
-        $selecciones = Seleccion::with('pasivodos')
+        // Obtener selecciones del usuario autenticado usando la relación polimórfica
+        $selecciones = Seleccion::with('carpeta')
             ->where('user_id', Auth::id())
+            ->where('carpeta_type', 'pasivodos')
             ->get();
 
         $letter = "A";
-        $resultados =  Pasivodos::where('letra', $letter)
+        $resultados = Pasivodos::where('letra', $letter)
             ->orderBy('codigo', 'ASC')
             ->paginate(100);
 
-        return view('admin.pasivos.pasivosdos.index', compact('resultados','selecciones'));
+        return view('admin.pasivos.pasivosdos.index', compact('resultados', 'selecciones'));
     }
 
 
@@ -92,9 +93,10 @@ class PasivodosController extends Controller
     {
         $letter = $request->input('letra');
 
-        // Solo selecciones del usuario autenticado
-        $selecciones = Seleccion::with('pasivodos')
+        // Solo selecciones del usuario autenticado usando relación polimórfica
+        $selecciones = Seleccion::with('carpeta')
             ->where('user_id', Auth::id())
+            ->where('carpeta_type', 'pasivodos')
             ->get();
 
         $resultados = Pasivodos::where('letra', $letter)
@@ -113,9 +115,10 @@ class PasivodosController extends Controller
         $search = $request->input('query');
         $letter = $request->get('letra', ''); // Mantener la letra si existe
 
-        // Solo selecciones del usuario autenticado
-        $selecciones = Seleccion::with('pasivodos')
+        // Solo selecciones del usuario autenticado usando relación polimórfica
+        $selecciones = Seleccion::with('carpeta')
             ->where('user_id', Auth::id())
+            ->where('carpeta_type', 'pasivodos')
             ->get();
 
         // Si hay búsqueda, buscar por nombre; si no, usar la letra
@@ -131,132 +134,109 @@ class PasivodosController extends Controller
         return view('admin.pasivos.pasivosdos.index', compact('resultados','selecciones', 'letter', 'search'));
     }
 
-public function traer(Request $request)
-{
-    $id = $request->input('idselecc');
+    public function traer(Request $request)
+    {
+        $id = $request->input('idselecc');
 
-    // Validar primero el ID
-    if (!is_numeric($id) || $id <= 0) {
+        // Validar primero el ID
+        if (!is_numeric($id) || $id <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ID de persona inválido.'
+            ]);
+        }
+
+        // Validar existencia del pasivo
+        $pasivo = Pasivodos::find($id);
+        if (!$pasivo) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No se encontraron resultados.'
+            ]);
+        }
+
+        // Verificar si el usuario ya tiene este pasivo seleccionado (con la nueva estructura)
+        $seleccionExistente = Seleccion::where('carpeta_type', 'pasivodos')
+            ->where('carpeta_id', $id)
+            ->where('user_id', Auth::id())
+            ->first();
+
+        if ($seleccionExistente) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ya has seleccionado este registro anteriormente.'
+            ]);
+        }
+
+        // Crear la nueva selección con la estructura polimórfica
+        $seleccion = Seleccion::create([
+            'carpeta_type' => 'pasivodos', // Nuevo campo
+            'carpeta_id' => $id, // Nuevo campo (antes era idPasivodos)
+            'tipo_seleccion' => $request->tipo_seleccion ?? 'temporal', // Nuevo campo con valor por defecto
+            'registro' => $request->registro,
+            'user_id' => Auth::id()
+        ]);
+
         return response()->json([
-            'success' => false,
-            'message' => 'ID de persona inválido.'
+            'success' => true,
+            'data' => [[
+                'id' => $pasivo->id,
+                'codigo' => e($pasivo->letra . ' ' . $pasivo->codigo),
+                'nombrecompleto' => e($pasivo->nombrecompleto),
+                'observacion' => e($pasivo->observacion),
+                'idSeleccion' => $seleccion->id,
+                'carpeta_type' => 'pasivosdos' // Agregar para identificar el tipo
+            ]]
         ]);
     }
-
-    // Validar existencia del pasivo
-    $pasivo = Pasivodos::find($id);
-    if (!$pasivo) {
-        return response()->json([
-            'success' => false,
-            'message' => 'No se encontraron resultados.'
-        ]);
-    }
-
-    // Verificar si el usuario ya tiene este pasivo seleccionado
-    $seleccionExistente = Seleccion::where('idPasivodos', $id)
-        ->where('user_id', Auth::id())
-        ->first();
-
-    if ($seleccionExistente) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Ya has seleccionado este registro anteriormente.'
-        ]);
-    }
-
-    // Validar y guardar en Seleccion
-    $request->validate([
-        'registro' => 'nullable|string|max:45',
-    ]);
-
-    // Crear la nueva selección asociada al usuario
-    $seleccion = Seleccion::create([
-        'idPasivodos' => $id,
-        'registro' => $request->registro,
-        'user_id' => Auth::id() // Asociar al usuario autenticado
-    ]);
-
-    return response()->json([
-        'success' => true,
-        'data' => [[
-            'id' => $pasivo->id,
-            'codigo' => e($pasivo->letra . ' ' . $pasivo->codigo), // Formato corregido
-            'nombrecompleto' => e($pasivo->nombrecompleto),
-            'observacion' => e($pasivo->observacion),
-            'idSeleccion' => $seleccion->id
-        ]]
-    ]);
-}
 
 public function reportepasivos(Request $request)
-    {
-        $ids = $request->input('idreporte');
+{
+    $ids = $request->input('idreporte');
 
-        if (!is_array($ids) || empty($ids)) {
-            return response()->json(['error' => 'No se enviaron IDs válidos.'], 400);
-        }
-
-        // Opcional: Verificar que los IDs pertenecen al usuario actual
-        $idsPermitidos = Seleccion::where('user_id', Auth::id())
-            ->whereIn('idPasivodos', $ids)
-            ->pluck('idPasivodos')
-            ->toArray();
-
-        if (empty($idsPermitidos)) {
-            return response()->json(['error' => 'No tienes permisos para generar este reporte.'], 403);
-        }
-
-        $datos = Pasivodos::whereIn('id', $idsPermitidos)->get();
-
-        $letra = $datos->first()?->letra ?? 'N/A';
-
-        $pdf = new \FPDF('P', 'mm', 'Letter');
-        $pdf->AddPage();
-        $pdf->SetFont('Arial', 'B', 16);
-        $pdf->Cell(0, 10, utf8_decode("Reporte de Datos - Letra {$letra}"), 0, 1, 'C');
-        $pdf->Ln(5);
-
-        $pdf->SetFont('Arial', 'B', 12);
-        $pdf->Cell(20, 10, 'Codigo', 1, 0, 'C');
-        $pdf->Cell(150, 10, 'Nombre', 1, 0, 'C');
-        $pdf->Cell(20, 10, 'Letra', 1, 1, 'C');
-
-        $pdf->SetFont('Arial', 'B', 18);
-        foreach ($datos as $row) {
-            $pdf->Cell(20, 10, $row->codigo, 1, 0, 'R');
-            $pdf->Cell(150, 10, utf8_decode($row->nombrecompleto), 1, 0, 'L');
-            $pdf->Cell(20, 10, $row->letra, 1, 1, 'C');
-        }
-
-        return response($pdf->Output('S'), 200)
-            ->header('Content-Type', 'application/pdf')
-            ->header('Content-Disposition', 'inline; filename="reporte_pasivos.pdf"');
+    if (!is_array($ids) || empty($ids)) {
+        return response()->json(['error' => 'No se enviaron IDs válidos.'], 400);
     }
-    //ultimo registro o modificado
-    public function ultimo(Request $request)
-    {
-        $query = Pasivodos::query();
 
-        // Filtro por rango de fecha de registro
-        if ($request->filled(['fecha_inicio', 'fecha_fin'])) {
-            $query->whereBetween('fechaRegistro', [
-                $request->fecha_inicio . ' 00:00:00',
-                $request->fecha_fin . ' 23:59:59'
-            ]);
-        }
+    // Obtener carpetas seleccionadas por el usuario
+    $idsPermitidos = Seleccion::where('user_id', Auth::id())
+        ->where('carpeta_type', 'pasivodos')
+        ->whereIn('carpeta_id', $ids)
+        ->pluck('carpeta_id')
+        ->toArray();
 
-        // Filtro por rango de fecha de actualización
-        if ($request->filled(['fecha_actualizacion_inicio', 'fecha_actualizacion_fin'])) {
-            $query->whereBetween('fechaActualizacion', [
-                $request->fecha_actualizacion_inicio . ' 00:00:00',
-                $request->fecha_actualizacion_fin . ' 23:59:59'
-            ]);
-        }
-
-        $pasivos = $query->orderBy('fechaRegistro', 'desc')->get();
-
-        return view('admin.pasivos.pasivosdos.ultimo', compact('pasivos'));
+    if (empty($idsPermitidos)) {
+        return response()->json(['error' => 'No tienes permisos para generar este reporte.'], 403);
     }
+
+    $datos = Pasivodos::whereIn('id', $idsPermitidos)->get();
+
+    $letra = $datos->first()?->letra ?? 'N/A';
+
+    $pdf = new \FPDF('P', 'mm', 'Letter');
+    $pdf->AddPage();
+
+    $pdf->SetFont('Arial', 'B', 16);
+    $pdf->Cell(0, 10, utf8_decode("Reporte de Datos - Letra {$letra}"), 0, 1, 'C');
+    $pdf->Ln(5);
+
+    $pdf->SetFont('Arial', 'B', 14);
+    $pdf->Cell(20, 10, 'Codigo', 1, 0, 'C');
+    $pdf->Cell(150, 10, 'Nombre', 1, 0, 'C');
+    $pdf->Cell(20, 10, 'Letra', 1, 1, 'C');
+
+    $pdf->SetFont('Arial', 'B', 18);
+
+    foreach ($datos as $row) {
+        $pdf->Cell(20, 10, $row->codigo, 1, 0, 'C');
+        $pdf->Cell(150, 10, utf8_decode($row->nombrecompleto), 1, 0, 'L');
+        $pdf->Cell(20, 10, $row->letra, 1, 1, 'C');
+    }
+
+    return response($pdf->Output('S'), 200)
+        ->header('Content-Type', 'application/pdf')
+        ->header('Content-Disposition', 'inline; filename="reporte_pasivos.pdf"');
+}
 
     //exportables
     public function exportPdf($letra = null)
@@ -267,7 +247,7 @@ public function reportepasivos(Request $request)
         }
 
         // Mostrar vista de selección de letras
-        $letras = PasivoDos::where('estado', 1)
+        $letras = Pasivodos::where('estado', 1)
             ->whereNotNull('letra')
             ->where('letra', '!=', '')
             ->distinct()
@@ -284,7 +264,7 @@ public function reportepasivos(Request $request)
 
     public function exportPdfPorLetra($letra)
     {
-        $datos = PasivoDos::where('estado', 1)
+        $datos = Pasivodos::where('estado', 1)
             ->where('letra', strtoupper($letra))
             ->orderBy('codigo')
             ->get();

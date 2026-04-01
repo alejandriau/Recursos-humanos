@@ -319,33 +319,103 @@ class Persona extends Model
         return $this->hasMany(SituacionesEspeciales::class, 'persona_id');
     }
 
-    public function inmovilidades()
-    {
-        return $this->hasManyThrough(
-            InmovilidadesLaborales::class,
-            SituacionesEspeciales::class,
-            'persona_id',
-            'situacion_id'
-        );
+//inmovilidades
+public function situacionesEspeciales()
+{
+    return $this->hasMany(SituacionesEspeciales::class, 'persona_id');
+}
+
+// 🔥 TU CÓDIGO (inmovilidades)
+public function inmovilidades()
+{
+    return $this->hasManyThrough(
+        InmovilidadesLaborales::class,
+        SituacionesEspeciales::class,
+        'persona_id',
+        'situacion_id'
+    );
+}
+
+public function inmovilidadesActivas()
+{
+    return $this->inmovilidades()
+        ->where('estado', InmovilidadesLaborales::ESTADO_APROBADO)
+        ->where('fecha_fin_inmovilidad', '>=', now());
+}
+
+// Verificar si tiene inmovilidad activa
+public function tieneInmovilidadActiva()
+{
+    return $this->inmovilidadesActivas()->exists();
+}
+
+// Obtener inmovilidad activa actual
+public function getInmovilidadActiva()
+{
+    return $this->inmovilidadesActivas()->first();
+}
+
+// 🔥 CÓDIGO DEL REPOSITORIO (selección + perfil)
+public function selecciones()
+{
+    return $this->morphMany(Seleccion::class, 'carpeta');
+}
+
+/**
+ * Obtener la profesión principal de la persona
+ */
+public function profesionPrincipal()
+{
+    return $this->hasOne(Profesion::class, 'idPersona')
+                ->where('esPrincipal', true)
+                ->where('estado', 1);
+}
+
+/**
+ * Obtener todas las profesiones activas
+ */
+public function profesionesActivas()
+{
+    return $this->hasMany(Profesion::class, 'id_persona')
+                ->where('estado', 1);
+}
+
+/**
+ * Verificar si la persona cumple con los años de experiencia requeridos
+ */
+public function cumpleExperienciaRequerida(int $aniosRequeridos): bool
+{
+    $profesionPrincipal = $this->profesionPrincipal;
+
+    if (!$profesionPrincipal || !$profesionPrincipal->fechaTitulo) {
+        return false;
     }
 
-    public function inmovilidadesActivas()
-    {
-        return $this->inmovilidades()
-            ->where('estado', InmovilidadesLaborales::ESTADO_APROBADO)
-            ->where('fecha_fin_inmovilidad', '>=', now());
-    }
+    return $profesionPrincipal->aniosExperienciaDesdeTitulacion >= $aniosRequeridos;
+}
 
-    // Verificar si tiene inmovilidad activa
-    public function tieneInmovilidadActiva()
-    {
-        return $this->inmovilidadesActivas()->exists();
-    }
+/**
+ * Verificar si la persona tiene título en provisión nacional
+ */
+public function tieneTituloProvisionNacional(): bool
+{
+    $profesionPrincipal = $this->profesionPrincipal;
 
-    // Obtener inmovilidad activa actual
-    public function getInmovilidadActiva()
-    {
-        return $this->inmovilidadesActivas()->first();
-    }
+    return $profesionPrincipal && $profesionPrincipal->tieneTituloProvision;
+}
+
+/**
+ * Obtener el nivel académico más alto de la persona
+ */
+public function getNivelAcademicoMasAltoAttribute()
+{
+    return $this->profesionesActivas()
+        ->with('carrera.nivelAcademico')
+        ->get()
+        ->sortByDesc(function ($profesion) {
+            return $profesion->carrera->nivelAcademico->orden ?? 0;
+        })
+        ->first();
+}
 
 }

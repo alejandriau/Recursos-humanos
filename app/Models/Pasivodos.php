@@ -26,8 +26,11 @@ class Pasivodos extends Model
         'fechaActualizacion' => 'datetime',
     ];
     // Relación: un pasivo tiene muchas selecciones
-    public function seleccions()
+// En el modelo PasivosUno (y similar en PasivosDos y Personal)
+// En el modelo PasivosUno (y similar en PasivosDos y Personal)
+    public function selecciones()
     {
-        return $this->hasMany(Seleccion::class, 'idPasivodos');
+        return $this->morphMany(Seleccion::class, 'carpeta');
     }
+    
 }

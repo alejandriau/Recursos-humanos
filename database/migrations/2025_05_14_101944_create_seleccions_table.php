@@ -6,30 +6,32 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
+
+        
+        // 2. Crear la nueva tabla seleccions con la estructura correcta
         Schema::create('seleccions', function (Blueprint $table) {
             $table->id();
-            $table->integer('idPasivodos');
+            
+            // Relación polimórfica para cualquier tipo de carpeta
+            $table->string('carpeta_type'); // 'pasivosuno', 'pasivosdos', 'personal'
+            $table->unsignedBigInteger('carpeta_id');
+            
             $table->string('registro', 250)->nullable();
-            $table->unsignedBigInteger('user_id'); // Nuevo campo para el usuario
+            $table->enum('tipo_seleccion', ['temporal', 'prestamo_directo'])->default('temporal');
+            $table->unsignedBigInteger('user_id'); // Usuario que selecciona
             $table->timestamps();
-
-            // Clave foránea con referencia a la tabla pasivodos
-            $table->foreign('idPasivodos')->references('id')->on('pasivodos')->onDelete('cascade');
-            // Nueva clave foránea para users
+            
+            // Índices
+            $table->index(['carpeta_type', 'carpeta_id']);
+            $table->index('user_id');
+            
+            // Claves foráneas - Nota: No podemos poner foreign key directa porque carpeta_type varía
+            // Esto se manejará a nivel de aplicación
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
         });
+        
     }
 
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('seleccions');
-    }
 };

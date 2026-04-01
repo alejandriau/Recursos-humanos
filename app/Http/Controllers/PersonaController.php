@@ -54,8 +54,18 @@ class PersonaController extends Controller
 
 public function store(Request $request)
 {
-    // Validación personalizada para fechas
-    $validator = Validator::make($request->all(), [
+    // 1. Obtener datos y convertir a mayúsculas los campos de texto
+    $data = $request->all();
+
+    // Convertir campos relevantes a mayúsculas (manejar null)
+    $data['ci'] = isset($data['ci']) ? strtoupper($data['ci']) : null;
+    $data['nombre'] = isset($data['nombre']) ? strtoupper($data['nombre']) : null;
+    $data['apellidoPat'] = isset($data['apellidoPat']) ? strtoupper($data['apellidoPat']) : null;
+    $data['apellidoMat'] = isset($data['apellidoMat']) ? strtoupper($data['apellidoMat']) : null;
+    // Si hay otros campos que deban ir en mayúsculas, agregarlos aquí
+
+    // 2. Definir reglas de validación
+    $rules = [
         'ci' => 'required|string|max:45|unique:persona,ci',
         'nombre' => 'required|string|max:100',
         'apellidoPat' => 'nullable|string|max:70',
@@ -68,12 +78,20 @@ public function store(Request $request)
         'foto' => 'nullable|image|max:2048',
         'tipo' => 'nullable|string|max:100',
         'archivo' => 'nullable|string|max:2048'
-    ]);
+    ];
 
-    // Validaciones personalizadas para fechas
-    $validator->after(function ($validator) use ($request) {
-        $fechaNacimiento = $request->fechaNacimiento;
-        $fechaIngreso = $request->fechaIngreso;
+    // 3. Mensajes personalizados
+    $messages = [
+        'ci.unique' => 'Ya existe una persona con ese CI.',
+    ];
+
+    // 4. Crear validador
+    $validator = Validator::make($data, $rules, $messages);
+
+    // 5. Validaciones personalizadas para fechas
+    $validator->after(function ($validator) use ($data) {
+        $fechaNacimiento = $data['fechaNacimiento'] ?? null;
+        $fechaIngreso = $data['fechaIngreso'] ?? null;
         $now = now();
 
         // Validación de fecha de nacimiento
@@ -134,46 +152,34 @@ public function store(Request $request)
         }
     });
 
+    // 6. Si falla la validación, redirigir con errores
     if ($validator->fails()) {
-        return redirect()->back()
-                    ->withErrors($validator)
-                    ->withInput();
+        return redirect()->back()->withErrors($validator)->withInput();
     }
 
-    $data = $validator->validated();
-
+    // 7. Manejar archivo de foto (si se envió)
     if ($request->hasFile('foto')) {
-        $ci = $request->input('ci');
-        $extension = $request->file('foto')->extension();
-        $filename = $ci . '.' . $extension;
-
-        $path = $request->file('foto')->storeAs('perfiles', $filename, 'public');
-        $data['foto'] = 'perfiles/' . $filename;
+        $extension = $request->file('foto')->getClientOriginalExtension();
+        $filename = $request->input('ci') . '.' . $extension;
+        $path = $request->file('foto')->storeAs('perfiles', $filename);
+        $data['foto'] = $path;
     }
 
-    // Crear la persona
-    $persona = Persona::create($data);
+    // 8. Crear registro en la base de datos (los datos ya están convertidos)
+    Persona::create($data);
 
-    // Nombre carpeta personalizada
-    $nombre = Str::slug($persona->nombre);
-    $apellidoMat = Str::slug($persona->apellidoMat ?? 'SinApellido');
-    $fecha = now()->format('Y-m-d');
-
-    $nombreCarpeta = "{$persona->id}_{$nombre}_{$apellidoMat}_{$fecha}";
-    $ruta = "archivos/{$nombreCarpeta}";
-
-    // Crear carpeta en storage/app/archivos/...
-    Storage::disk('local')->makeDirectory($ruta);
-
-    // Guardar la ruta relativa en el campo archivo
-    $persona->archivo = $ruta;
-    $persona->save();
-
-    return redirect()->route('reportes.index')->with('success', 'Registro creado correctamente.');
+    // 9. Redirigir con mensaje de éxito
+    return redirect()->route('reportes.index')->with('success', 'Persona creada exitosamente.');
 }
 
 public function update(Request $request, $id)
 {
+    $data = $request->all();
+
+    // Convertir campos relevantes a mayúsculas (manejar null)
+    $data['nombre'] = isset($data['nombre']) ? strtoupper($data['nombre']) : null;
+    $data['apellidoPat'] = isset($data['apellidoPat']) ? strtoupper($data['apellidoPat']) : null;
+    $data['apellidoMat'] = isset($data['apellidoMat']) ? strtoupper($data['apellidoMat']) : null;
     $persona = Persona::findOrFail($id);
 
     // Validación personalizada para fechas
@@ -188,8 +194,10 @@ public function update(Request $request, $id)
         'telefono' => 'nullable|numeric',
         'observaciones' => 'nullable|string',
         'foto' => 'nullable|image|max:2048',
-        'tipo' => 'nullable|string|max:100',
         'archivo' => 'nullable|string|max:2048'
+    ],[
+    'ci.unique' => 'Ya existe una persona con ese CI.',
+    'nombre.string' => 'Ingresa un nombre vale',
     ]);
 
     // Validaciones personalizadas para fechas
@@ -293,8 +301,13 @@ public function mostrarFoto($id)
     abort(404, 'Archivo no encontrado');
 }
 
+    public function delete($id)
+    {
+        $persona = Persona::findOrFail($id);
+        $persona->delete();
 
-
+        return redirect()->route('reportes.index')->with('success', 'Registro eliminado correctamente.');
+    }
 
     public function destroy($id)
     {

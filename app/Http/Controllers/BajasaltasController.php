@@ -456,6 +456,29 @@ public function store(Request $request)
             ->header('Content-Type', 'application/pdf')
             ->header('Content-Disposition', 'attachment; filename="' . $nombreArchivo . '"');
     }
+    public function destroy($id)
+    {
+        try {
+            $baja = Bajasaltas::findOrFail($id);
+
+            // Eliminación lógica
+            $baja->estado = 0;
+            $baja->save();
+
+            \Log::info('Baja eliminada lógicamente:', ['id' => $baja->id]);
+
+            return redirect()->route('bajasaltas.index')
+                            ->with('success', 'Registro eliminado correctamente');
+
+        } catch (\Exception $e) {
+            \Log::error('Error al eliminar baja:', [
+                'id' => $id,
+                'error' => $e->getMessage()
+            ]);
+
+            return back()->with('error', 'Error al eliminar el registro');
+        }
+    }
 
 
 

@@ -2,34 +2,115 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use App\Models\pasivodos;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Seleccion extends Model
 {
+    use HasFactory;
 
-
+    /**
+     * La tabla asociada al modelo.
+     *
+     * @var string
+     */
     protected $table = 'seleccions';
-    protected $primaryKey = 'id';   // por defecto es 'id', pero asegúrate si es distinto
-    public $timestamps = false;
 
+    /**
+     * Los atributos que son asignables en masa.
+     *
+     * @var array<int, string>
+     */
     protected $fillable = [
-        'idPasivodos',
+        'carpeta_type',
+        'carpeta_id',
         'registro',
+        'tipo_seleccion',
         'user_id'
     ];
 
-    // Relación inversa: muchos seleccionados pertenecen a un pasivo
-    public function pasivodos()
+    /**
+     * Los atributos que deben ser convertidos a tipos nativos.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'tipo_seleccion' => 'string', // Podrías crear un enum de PHP para esto
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
+
+    /**
+     * Obtiene el modelo de carpeta asociado (relación polimórfica).
+     */
+    public function carpeta(): MorphTo
     {
-        return $this->belongsTo(Pasivodos::class, 'idPasivodos');
+        return $this->morphTo();
     }
 
-    // Relación con el modelo User
-    public function user()
+    /**
+     * Obtiene el usuario que realizó la selección.
+     */
+    public function usuario(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id');
     }
+
+    /**
+     * Scope para filtrar por tipo de selección.
+     */
+    public function scopeTipoSeleccion($query, $tipo)
+    {
+        return $query->where('tipo_seleccion', $tipo);
+    }
+
+    /**
+     * Scope para filtrar por tipo de carpeta.
+     */
+    public function scopePorCarpetaType($query, $tipo)
+    {
+        return $query->where('carpeta_type', $tipo);
+    }
+
+    /**
+     * Scope para obtener selecciones de un usuario específico.
+     */
+    public function scopeDeUsuario($query, $userId)
+    {
+        return $query->where('user_id', $userId);
+    }
+
+    /**
+     * Verifica si la selección es temporal.
+     */
+    public function esTemporal(): bool
+    {
+        return $this->tipo_seleccion === 'temporal';
+    }
+
+    /**
+     * Verifica si la selección es préstamo directo.
+     */
+    public function esPrestamoDirecto(): bool
+    {
+        return $this->tipo_seleccion === 'prestamo_directo';
+    }
+
+    /**
+     * Obtiene la clase del modelo de carpeta según el tipo.
+     * Útil para resolver la clase concreta del modelo polimórfico.
+     */
+    public static function getCarpetaModelClass(string $carpetaType): string
+    {
+        return match($carpetaType) {
+            'pasivouno' => Pasivouno::class,
+            'pasivodos' => Pasivodos::class,
+            'personal' => Persona::class,
+            default => throw new \InvalidArgumentException("Tipo de carpeta no válido: {$carpetaType}")
+        };
+    }
+    
 
 }
