@@ -52,6 +52,9 @@ use App\Http\Controllers\ConfiguracionSalarioMinimoController;
 use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\ReportePersonasController;
 use App\Http\Controllers\DocumentoAlertaController;
+use App\Http\Controllers\RecursosHumanos\InmovilidadController;
+use App\Http\Controllers\RecursosHumanos\ReporteInmovilidadController;
+
 
 
 use Illuminate\Support\Facades\Route;
@@ -698,6 +701,29 @@ Route::post('/convert-txt-simple', [TxtToWordController::class, 'convertTxtToWor
         Route::get('/documentacion/alertas', [DocumentoAlertaController::class, 'index'])->name('alertas.index');
         Route::get('/alertas/enviar-todos', [DocumentoAlertaController::class, 'enviarATodos'])->name('alertas.enviar-todos');
         Route::get('/alertas/enviar/{id}', [DocumentoAlertaController::class, 'enviarIndividual'])->name('alertas.enviar-individual');
+
+    Route::prefix('rrhh')->middleware(['auth'])->group(function () {
+
+        // Inmovilidades
+    Route::prefix('inmovilidades')->group(function () {
+            Route::get('/', [InmovilidadController::class, 'index'])->name('rrhh.inmovilidades.index');
+            Route::get('/create', [InmovilidadController::class, 'create'])->name('rrhh.inmovilidades.create');
+            Route::post('/', [InmovilidadController::class, 'store'])->name('rrhh.inmovilidades.store');
+            Route::get('/{inmovilidad}', [InmovilidadController::class, 'show'])->name('rrhh.inmovilidades.show');
+            Route::post('/{inmovilidad}/aprobar', [InmovilidadController::class, 'aprobar'])->name('rrhh.inmovilidades.aprobar');
+            Route::post('/{inmovilidad}/rechazar', [InmovilidadController::class, 'rechazar'])->name('rrhh.inmovilidades.rechazar');
+            Route::post('/{inmovilidad}/finalizar', [InmovilidadController::class, 'finalizar'])->name('rrhh.inmovilidades.finalizar');
+            Route::get('/buscar-persona', [InmovilidadController::class, 'buscarPersona'])->name('rrhh.inmovilidades.buscar-persona');
+            Route::get('/persona/{persona}', [InmovilidadController::class, 'obtenerDetallesPersona'])->name('rrhh.inmovilidades.obtener-persona');
+        });
+
+        // Reportes
+        Route::prefix('reportes')->group(function () {
+            Route::get('/inmovilidades-activas', [ReporteInmovilidadController::class, 'inmovilidadesActivas'])->name('rrhh.reportes.activas');
+            Route::get('/inmovilidades-por-vencer', [ReporteInmovilidadController::class, 'inmovilidadesPorVencer'])->name('rrhh.reportes.por-vencer');
+            Route::get('/inmovilidades-por-tipo', [ReporteInmovilidadController::class, 'reportePorTipo'])->name('rrhh.reportes.por-tipo');
+        });
+    });
     Route::middleware(['auth', 'role:empleado'])->group(function () {
 
         // Dashboard

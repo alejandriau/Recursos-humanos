@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
+
 use App\Models\memopuesto;
 use App\Models\Historial;
 use App\Models\Afps;
@@ -312,6 +313,39 @@ class Persona extends Model
     {
         return $this->hasOne(CedulaIdentidad::class, 'idPersona');
     }
+    //inmovilidades
+        public function situacionesEspeciales()
+    {
+        return $this->hasMany(SituacionesEspeciales::class, 'persona_id');
+    }
 
+    public function inmovilidades()
+    {
+        return $this->hasManyThrough(
+            InmovilidadesLaborales::class,
+            SituacionesEspeciales::class,
+            'persona_id',
+            'situacion_id'
+        );
+    }
+
+    public function inmovilidadesActivas()
+    {
+        return $this->inmovilidades()
+            ->where('estado', InmovilidadesLaborales::ESTADO_APROBADO)
+            ->where('fecha_fin_inmovilidad', '>=', now());
+    }
+
+    // Verificar si tiene inmovilidad activa
+    public function tieneInmovilidadActiva()
+    {
+        return $this->inmovilidadesActivas()->exists();
+    }
+
+    // Obtener inmovilidad activa actual
+    public function getInmovilidadActiva()
+    {
+        return $this->inmovilidadesActivas()->first();
+    }
 
 }
