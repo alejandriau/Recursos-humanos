@@ -135,8 +135,6 @@
         </div>
     </div>
 </div>
-
-@push('scripts')
 <script>
 let personaSeleccionada = false;
 
@@ -194,17 +192,18 @@ $(document).ready(function() {
 
 function buscarPersonas(termino) {
     $.ajax({
-        url: '{{ route("rrhh.inmovilidades.buscar-persona") }}',
+        url: '/admin/rrhh/inmovilidades/buscar-persona',
         type: 'GET',
         data: { termino: termino },
         success: function(data) {
+            console.log(data);
             if (data.length > 0) {
                 let html = '<div class="list-group">';
                 data.forEach(persona => {
                     html += `<a href="#" class="list-group-item list-group-item-action"
-                                onclick="seleccionarPersona(${persona.id}, '${persona.nombres} ${persona.apellidos}', '${persona.documento_identidad}')">
-                                <strong>${persona.nombres} ${persona.apellidos}</strong><br>
-                                <small>DNI: ${persona.documento_identidad}</small>
+                                onclick="seleccionarPersona(${persona.id}, '${persona.nombre} ${persona.apellidoPat}', '${persona.ci}')">
+                                <strong>${persona.nombre} ${persona.apellidoPat}</strong><br>
+                                <small>DNI: ${persona.ci}</small>
                             </a>`;
                 });
                 html += '</div>';
@@ -256,5 +255,5 @@ function cargarCamposEspecificos(tipo) {
     });
 }
 </script>
-@endpush
+
 @endsection

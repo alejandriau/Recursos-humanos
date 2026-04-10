@@ -10,7 +10,8 @@ use App\Models\AreaConocimiento;
 use App\Models\NivelAcademico;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
-
+use App\Exports\PersonasProfesionesExport;
+use Maatwebsite\Excel\Facades\Excel;
 class ProfesionController extends Controller
 {
     /**
@@ -370,6 +371,14 @@ public function index(Request $request)
             ->first(); // ✅
 
         return view('admin.profesion.show', compact('profesion', 'persona'));
+    }
+    public function export(Request $request)
+    {
+        try {
+            return Excel::download(new PersonasProfesionesExport($request), 'profesiones_personas_' . date('Y-m-d_Hi') . '.xlsx');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Error al exportar: ' . $e->getMessage());
+        }
     }
 
     

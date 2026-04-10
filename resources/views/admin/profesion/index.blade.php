@@ -10,6 +10,11 @@
                 <i class="fas fa-graduation-cap text-primary me-2"></i>
                 <span class="fw-semibold">Listado de Profesiones Registradas</span>
             </h5>
+            <div class="d-flex gap-2 flex-wrap">
+                <a href="{{ route('profesion.export', request()->query()) }}" class="btn btn-success">
+                    <i class="fas fa-file-excel"></i> Exportar a Excel
+                </a>
+            </div>
 
             <!-- Acciones -->
             <div class="d-flex gap-2 flex-wrap">

@@ -320,10 +320,7 @@ class Persona extends Model
     }
 
 //inmovilidades
-public function situacionesEspeciales()
-{
-    return $this->hasMany(SituacionesEspeciales::class, 'persona_id');
-}
+
 
 // 🔥 TU CÓDIGO (inmovilidades)
 public function inmovilidades()

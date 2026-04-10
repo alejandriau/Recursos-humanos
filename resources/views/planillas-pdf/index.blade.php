@@ -232,61 +232,21 @@
 
                                         <!-- Eliminar -->
                                         @can('eliminar_planillas')
+                                        <!-- Eliminar -->
+                                        @can('eliminar_planillas')
                                         <button type="button"
-                                                class="btn btn-sm btn-outline-danger"
-                                                data-bs-toggle="modal"
-                                                data-bs-target="#deleteModal{{ $planilla->id }}"
-                                                data-bs-toggle="tooltip"
+                                                class="btn btn-sm btn-outline-danger btn-delete"
+                                                data-id="{{ $planilla->id }}"
+                                                data-nombre="{{ $planilla->nombre_original }}"
+                                                data-periodo="{{ $planilla->periodo_pago }}"
+                                                data-anio="{{ $planilla->anio }}"
                                                 title="Eliminar planilla">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                         @endcan
+                                        @endcan
                                     </div>
 
-                                    <!-- Modal de confirmación para eliminar -->
-                                    @can('eliminar_planillas')
-                                    <div class="modal fade" id="deleteModal{{ $planilla->id }}" tabindex="-1" aria-labelledby="deleteModalLabel{{ $planilla->id }}" aria-hidden="true">
-                                        <div class="modal-dialog">
-                                            <div class="modal-content">
-                                                <div class="modal-header bg-danger text-white">
-                                                    <h5 class="modal-title" id="deleteModalLabel{{ $planilla->id }}">
-                                                        <i class="fas fa-exclamation-triangle me-2"></i>
-                                                        Confirmar Eliminación
-                                                    </h5>
-                                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                </div>
-                                                <div class="modal-body">
-                                                    <p>¿Está seguro de que desea eliminar esta planilla?</p>
-                                                    <div class="alert alert-light border">
-                                                        <div class="d-flex align-items-center">
-                                                            <i class="fas fa-file-pdf text-danger me-3"></i>
-                                                            <div>
-                                                                <strong>{{ $planilla->nombre_original }}</strong><br>
-                                                                <small class="text-muted">Período: {{ $planilla->periodo_pago }} | Año: {{ $planilla->anio }}</small>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <p class="text-danger mb-0">
-                                                        <small>
-                                                            <i class="fas fa-info-circle me-1"></i>
-                                                            Esta acción no se puede deshacer.
-                                                        </small>
-                                                    </p>
-                                                </div>
-                                                <div class="modal-footer">
-                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                                                    <form action="{{ route('planillas-pdf.destroy', $planilla->id) }}" method="POST" class="d-inline">
-                                                        @csrf
-                                                        @method('DELETE')
-                                                        <button type="submit" class="btn btn-danger">
-                                                            <i class="fas fa-trash me-2"></i>Eliminar
-                                                        </button>
-                                                    </form>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    @endcan
                                 </td>
                             </tr>
                             @endforeach
@@ -340,6 +300,48 @@
     </div>
     @endcan
 </div>
+<!-- Modal único para eliminar -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteModalLabel">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Confirmar Eliminación
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Está seguro de que desea eliminar esta planilla?</p>
+                <div class="alert alert-light border" id="planillaInfo">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-file-pdf text-danger me-3"></i>
+                        <div>
+                            <strong id="planillaNombre"></strong><br>
+                            <small class="text-muted" id="planillaDetalle"></small>
+                        </div>
+                    </div>
+                </div>
+                <p class="text-danger mb-0">
+                    <small>
+                        <i class="fas fa-info-circle me-1"></i>
+                        Esta acción no se puede deshacer.
+                    </small>
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <form id="deleteForm" action="" method="POST" class="d-inline">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash me-2"></i>Eliminar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 
 <style>
 .card {
@@ -387,22 +389,25 @@
 </style>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Inicializar tooltips
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
-    });
-
-    // Confirmación adicional para eliminar
-    const deleteForms = document.querySelectorAll('form[action*="destroy"]');
-    deleteForms.forEach(form => {
-        form.addEventListener('submit', function(e) {
-            const fileName = this.closest('.modal-content').querySelector('strong').textContent;
-            if (!confirm(`¿Está completamente seguro de eliminar "${fileName}" permanentemente?`)) {
-                e.preventDefault();
-            }
-        });
+// Manejar clic en botones de eliminar
+document.querySelectorAll('.btn-delete').forEach(button => {
+    button.addEventListener('click', function() {
+        const id = this.getAttribute('data-id');
+        const nombre = this.getAttribute('data-nombre');
+        const periodo = this.getAttribute('data-periodo');
+        const anio = this.getAttribute('data-anio');
+        
+        // Actualizar contenido del modal
+        document.getElementById('planillaNombre').textContent = nombre;
+        document.getElementById('planillaDetalle').textContent = `Período: ${periodo} | Año: ${anio}`;
+        
+        // Actualizar action del formulario
+        const deleteForm = document.getElementById('deleteForm');
+        deleteForm.action = `/planillas-pdf/${id}`; // Ajusta la ruta según tu route
+        
+        // Abrir modal
+        const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        modal.show();
     });
 });
 </script>

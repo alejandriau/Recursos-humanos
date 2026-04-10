@@ -33,8 +33,8 @@ class InmovilidadController extends Controller
     public function create()
     {
         $tiposInmovilidad = InmovilidadesLaborales::$tiposInmovilidad;
-        $personas = Persona::where('estado', 'activo')
-            ->orderBy('apellidos')
+        $personas = Persona::where('estado', '1')
+            ->orderBy('apellidoPat')
             ->get();
 
         return view('inmovilidades.create', compact('tiposInmovilidad', 'personas'));
@@ -141,13 +141,13 @@ class InmovilidadController extends Controller
         ]);
 
         $personas = Persona::where(function($query) use ($request) {
-                $query->where('nombres', 'LIKE', "%{$request->termino}%")
-                      ->orWhere('apellidos', 'LIKE', "%{$request->termino}%")
-                      ->orWhere('documento_identidad', 'LIKE', "%{$request->termino}%");
+                $query->where('nombre', 'LIKE', "%{$request->termino}%")
+                    ->orWhere('apellidoPat', 'LIKE', "%{$request->termino}%")
+                    ->orWhere('ci', 'LIKE', "%{$request->termino}%");
             })
-            ->where('estado', 'activo')
+            ->where('estado', '1')
             ->limit(10)
-            ->get(['id', 'nombres', 'apellidos', 'documento_identidad']);
+            ->get(['id', 'nombre', 'apellidoPat', 'ci']);
 
         return response()->json($personas);
     }

@@ -349,7 +349,7 @@ public function personalPDF(Request $request)
 public function personalXLS(Request $request)
 {
     $filtros = $request->only([
-        'search', 'tipo', 'fecha_inicio', 'fecha_fin',
+        'search', 'fecha_inicio', 'fecha_fin',
         'unidad_id', 'nivel_jerarquico', 'estado'
     ]);
 
