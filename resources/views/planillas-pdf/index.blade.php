@@ -13,7 +13,12 @@
             </a>
             @can('crear_planillas')
             <a href="{{ route('planillas-pdf.create') }}" class="btn btn-primary">
-                <i class="fas fa-upload me-2"></i>Subir Nueva Planilla
+                <i class="fas fa-upload me-2"></i>Subir Nueva Planilla pdf
+            </a>
+            @endcan
+            @can('crear_planillas')
+            <a href="{{ route('persona.buscar.planillas') }}" class="btn btn-primary">
+                <i class="fas fa-file-alt me-2"></i>Reportes de aportes
             </a>
             @endcan
         </div>

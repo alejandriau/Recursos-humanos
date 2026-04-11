@@ -59,6 +59,7 @@ use App\Http\Controllers\PrestamoController;
 use App\Http\Controllers\ValidacionPerfilController;
 use App\Http\Controllers\PerfilPuestoController;
 use App\Http\Controllers\CatalogoController;
+use App\Http\Controllers\PlanillaImportController;
 
 
 
@@ -860,7 +861,15 @@ Route::prefix('catalogos')->name('catalogos.')->group(function () {
     Route::get('/api/carreras/por-nivel/{idNivel}', [CatalogoController::class, 'carrerasPorNivel'])->name('api.carreras.por-nivel');
 
     ///fin nuevas rutas de perfil profesion y mas----------------------------------------------------------------------------------------------------------------------
-
+    
+    //Planillas viejas
+    Route::get('/importar-planilla/antiguas', [PlanillaImportController::class, 'showForm'])->name('planillas.import.form');
+    Route::post('/importar-planilla', [PlanillaImportController::class, 'import'])->name('planillas.import');
+    //reporte para años de servicio
+    Route::get('/persona/buscar/planillas', [PlanillaImportController::class, 'buscar'])->name('persona.buscar.planillas');
+    Route::get('/persona/{id}/planillas/mostrar', [PlanillaImportController::class, 'mostrarPlanillas'])->name('persona.planillas.mostrar');
+    Route::get('/persona/{id}/exportar-pdf/aportes', [PlanillaImportController::class, 'exportarPDF'])->name('persona.exportar.aportes.pdf');
+    Route::get('/persona/{id}/exportar-word/planilla', [PlanillaImportController::class, 'exportarWord'])->name('persona.exportar.planilla.word');
 
     Route::middleware(['auth', 'role:empleado'])->group(function () {
 

@@ -414,5 +414,8 @@ public function getNivelAcademicoMasAltoAttribute()
         })
         ->first();
 }
-
+public function planillas()
+{
+    return $this->hasMany(Planilla::class);
+}
 }
