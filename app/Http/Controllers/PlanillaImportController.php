@@ -9,10 +9,11 @@ use Illuminate\Support\Facades\Validator;
 use Barryvdh\DomPDF\Facade\Pdf;
 use PhpOffice\PhpWord\PhpWord;
 use App\Models\Persona;
+use App\Models\Planilla;
 use PhpOffice\PhpWord\SimpleType\Jc;
 use PhpOffice\PhpWord\Style\TablePosition;
 use PhpOffice\PhpWord\Style\Cell;
-
+use Carbon\Carbon;
 class PlanillaImportController extends Controller
 {
     public function showForm()
@@ -52,22 +53,42 @@ class PlanillaImportController extends Controller
 
     //parte de exportar 
 
-    public function buscar(Request $request)
-    {
-        $personas = collect();
-        if ($request->filled('q')) {
-            $q = $request->q;
-            $personas = Persona::where('ci', 'LIKE', "%$q%")
-                ->orWhere('nombre', 'LIKE', "%$q%")
-                ->orWhere('apellidoPat', 'LIKE', "%$q%")
-                ->orWhere('apellidoMat', 'LIKE', "%$q%")
-                ->orWhereRaw("CONCAT(nombre, ' ', apellidoPat, ' ', apellidoMat) LIKE ?", ["%$q%"])
-                ->orWhereRaw("CONCAT(apellidoPat, ' ', apellidoMat, ' ', nombre) LIKE ?", ["%$q%"])
-                ->limit(50)
-                ->get();
-        }
-        return view('planillas.buscar', compact('personas'));
+public function buscar(Request $request)
+{
+    // 1. Búsqueda de personas (sin cambios)
+    $personas = collect();
+    if ($request->filled('q')) {
+        $q = $request->q;
+        $personas = Persona::where('ci', 'LIKE', "%$q%")
+            ->orWhere('nombre', 'LIKE', "%$q%")
+            ->orWhere('apellidoPat', 'LIKE', "%$q%")
+            ->orWhere('apellidoMat', 'LIKE', "%$q%")
+            ->orWhereRaw("CONCAT(nombre, ' ', apellidoPat, ' ', apellidoMat) LIKE ?", ["%$q%"])
+            ->orWhereRaw("CONCAT(apellidoPat, ' ', apellidoMat, ' ', nombre) LIKE ?", ["%$q%"])
+            ->limit(50)
+            ->get();
     }
+
+    // 2. Filtro de planillas (ahora con condiciones opcionales)
+    $planillas = collect();
+    if ($request->filled('mes') || $request->filled('anio') || $request->filled('tipo')) {
+        $query = Planilla::with('persona');
+        
+        if ($request->filled('mes')) {
+            $query->where('mes', $request->mes);
+        }
+        if ($request->filled('anio')) {
+            $query->where('anio', $request->anio);
+        }
+        if ($request->filled('tipo')) {
+            $query->where('tipo', $request->tipo);
+        }
+        
+        $planillas = $query->orderBy('anio', 'desc')->orderBy('mes', 'desc')->get();
+    }
+
+    return view('planillas.buscar', compact('personas', 'planillas'))->withInput($request->all());
+}
 
     public function mostrarPlanillas($id)
     {
@@ -77,150 +98,217 @@ class PlanillaImportController extends Controller
         $planillasPorAnio = $persona->planillas->groupBy('anio');
         return view('planillas.detalle', compact('persona', 'planillasPorAnio'));
     }
-
-public function exportarPDF($id)
+    public function exportarPDF($id)
 {
     $persona = Persona::with('planillas')->findOrFail($id);
-
-    $planillasPorAnio = $persona->planillas->groupBy('anio');
-
-    return \Barryvdh\DomPDF\Facade\Pdf::loadView(
-        'planillas.pdf',
-        compact('persona', 'planillasPorAnio')
-    )->download("certificado_{$persona->ci}.pdf");
+    
+    // Ordenar planillas
+    $planillas = $persona->planillas->sortBy(function ($p) {
+        return $p->anio * 100 + $p->mes;
+    })->values();
+    
+    // Detectar períodos (misma lógica que en Word)
+    $periodos = [];
+    $periodoActual = null;
+    $ultimoCargo = null;
+    
+    foreach ($planillas as $p) {
+        $cargo = $p->cargo ?? 'SIN CARGO';
+        if ($cargo !== $ultimoCargo) {
+            if ($periodoActual) {
+                $periodoActual['fin'] = $periodoActual['planillas']->last()->fecha_vencimiento;
+                $periodos[] = $periodoActual;
+            }
+            $periodoActual = [
+                'cargo' => $cargo,
+                'planillas' => collect([$p]),
+                'inicio' => $p->fecha_ingreso,
+                'fin' => null,
+            ];
+            $ultimoCargo = $cargo;
+        } else {
+            $periodoActual['planillas']->push($p);
+        }
+    }
+    if ($periodoActual) {
+        $periodoActual['fin'] = $periodoActual['planillas']->last()->fecha_vencimiento;
+        $periodos[] = $periodoActual;
+    }
+    
+    // Agrupar por año para las tablas
+    $planillasPorAnio = $planillas->groupBy('anio');
+    
+    $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('planillas.pdf', compact('persona', 'periodos', 'planillasPorAnio'));
+    return $pdf->download("certificado_{$persona->ci}.pdf");
 }
+
 public function exportarWord($id)
 {
     $persona = Persona::with('planillas')->findOrFail($id);
-    $planillasPorAnio = $persona->planillas->groupBy('anio');
+    
+    // Ordenar planillas cronológicamente
+    $planillas = $persona->planillas->sortBy(function ($p) {
+        return $p->anio * 100 + $p->mes;
+    })->values();
 
-    $phpWord = new PhpWord();
+    // 1. Detectar períodos de cargo consecutivos usando fechas reales
+    $periodos = [];
+    $periodoActual = null;
+    $ultimoCargo = null;
+
+    foreach ($planillas as $p) {
+        $cargo = $p->cargo ?? 'SIN CARGO';
+        if ($cargo !== $ultimoCargo) {
+            // Cerrar período anterior si existe
+            if ($periodoActual) {
+                $periodoActual['fin'] = $periodoActual['planillas']->last()->fecha_vencimiento;
+                $periodos[] = $periodoActual;
+            }
+            // Iniciar nuevo período
+            $periodoActual = [
+                'cargo' => $cargo,
+                'planillas' => collect([$p]),
+                'inicio' => $p->fecha_ingreso,
+                'fin' => null,
+            ];
+            $ultimoCargo = $cargo;
+        } else {
+            $periodoActual['planillas']->push($p);
+        }
+    }
+    // Cerrar el último período
+    if ($periodoActual) {
+        $periodoActual['fin'] = $periodoActual['planillas']->last()->fecha_vencimiento;
+        $periodos[] = $periodoActual;
+    }
+
+    // 2. Configurar PHPWord
+    $phpWord = new \PhpOffice\PhpWord\PhpWord();
     $phpWord->setDefaultFontName('Arial');
     $phpWord->setDefaultFontSize(10);
 
-    // Estilo de tabla SIN márgenes internos (cellMargin = 0)
+    // Estilo de tabla
     $tableStyle = [
         'borderSize' => 1,
         'borderColor' => '000000',
-        'cellMargin' => 0,          // ← Elimina el espacio interior de las celdas
+        'cellMargin' => 0,
     ];
     $phpWord->addTableStyle('miTabla', $tableStyle);
 
-    // Estilo de párrafo compacto (sin espaciado)
+    // Estilo de párrafo compacto
     $paragraphStyle = [
         'spaceBefore' => 0,
-        'spaceAfter'  => 0,
-        'lineHeight'  => 1,         // Altura de línea mínima
+        'spaceAfter' => 0,
+        'lineHeight' => 1,
     ];
 
     $section = $phpWord->addSection();
+        $section->addText(
+        'CERTIFICACION DE APORTES',
+        ['bold' => true, 'size' => 18],
+        ['alignment' => \PhpOffice\PhpWord\SimpleType\Jc::CENTER]
+    );
 
-    // Encabezado institucional (sin cambios)
-    $section->addText(
-        'GOBIERNO AUTÓNOMO DEPARTAMENTAL DE COCHABAMBA',
-        ['bold' => true, 'size' => 14],
-        ['alignment' => Jc::CENTER]
-    );
-    $section->addText(
-        'UNIDAD DE GESTIÓN DE RECURSOS HUMANOS',
-        ['bold' => true, 'size' => 12],
-        ['alignment' => Jc::CENTER]
-    );
+    // Número de GD (autogenerado)
+    $numeroGD = 'GD-UGRH/' . str_pad(rand(1, 999), 3, '0', STR_PAD_LEFT) . '/' . date('Y');
+    $section->addText($numeroGD, ['bold' => true, 'size' => 12], ['alignment' => \PhpOffice\PhpWord\SimpleType\Jc::RIGHT]);
     $section->addTextBreak(1);
 
+    // Encabezado institucional
     $section->addText(
-        'CERTIFICADO DE APORTES',
-        ['bold' => true, 'size' => 16],
-        ['alignment' => Jc::CENTER]
+        'LA UNIDAD DE GESTIÓN DE RECURSOS HUMANOS DEL GOBIERNO AUTONOMO DEPARTAMENTAL DE COCHABAMBA.',
+        ['bold' => true, 'size' => 11]
     );
-    $section->addTextBreak(1);
+
+    $section->addText(
+        'CERTIFICA:',
+        ['bold' => true, 'size' => 11]
+    );
 
     // Datos de la persona
-    $section->addText("Certifica que:");
-    $section->addText("CI: {$persona->ci}");
-    $section->addText("Nombre: {$persona->nombre} {$persona->apellidoPat} {$persona->apellidoMat}");
-    $section->addText("Fecha de nacimiento: " . optional($persona->fechaNacimiento)->format('d/m/Y'));
+    // Datos de la persona (con negrita en nombre y CI)
+    $nombreCompleto = trim("{$persona->apellidoPat} {$persona->apellidoMat} {$persona->nombre}");
+    $textRun = $section->addTextRun();
+    $textRun->addText("Que, la Sra. ");
+    $textRun->addText(strtoupper($nombreCompleto), ['bold' => true]);
+    $textRun->addText(" con C.I. ");
+    $textRun->addText($persona->ci, ['bold' => true]);
+    $textRun->addText(", presta servicios en el Gobierno Autónomo Departamental de Cochabamba bajo el Régimen de la Ley Nº 2027 Estatuto del funcionario Público, como personal de contrato y planta, de acuerdo al siguiente detalle:");
+
+    // Listado de períodos
+    foreach ($periodos as $indice => $periodo) {
+        $cargo = $periodo['cargo'];
+        $fechaInicio = \Carbon\Carbon::parse($periodo['inicio'])->locale('es');
+        $esUltimo = ($indice === count($periodos) - 1);
+        
+        $inicioStr = $fechaInicio->isoFormat('D [de] MMMM [de] YYYY');
+        
+        if ($esUltimo) {
+            $texto = "Del {$inicioStr} a la fecha viene desempeñando funciones como {$cargo}";
+        } else {
+            $fechaFin = \Carbon\Carbon::parse($periodo['fin'])->locale('es');
+            $finStr = $fechaFin->isoFormat('D [de] MMMM [de] YYYY');
+            $texto = "Del {$inicioStr} al {$finStr} desempeño funciones como {$cargo}";
+        }
+        
+        $section->addText($texto);
+    }
+
+    $section->addText("siendo sus haberes y aportes los siguientes:", ['italic' => true]);
     $section->addTextBreak(1);
 
-    foreach ($planillasPorAnio as $anio => $planillas) {
-        $section->addText("GESTIÓN $anio", ['bold' => true, 'size' => 12]);
-
+    // Tablas agrupadas por año
+    $planillasPorAnio = $planillas->groupBy('anio');
+    
+    foreach ($planillasPorAnio as $anio => $planillasAnio) {
+        $section->addText("GESTION $anio", ['bold' => true, 'size' => 12], ['alignment' => \PhpOffice\PhpWord\SimpleType\Jc::CENTER]);
+        
         $table = $section->addTable('miTabla');
-
-        // FILA DE ENCABEZADO (sin altura fija)
+        
+        // Encabezados de la tabla
         $table->addRow(null, ['tblHeader' => true]);
-
-        // Cada celda usa addText con el estilo de párrafo compacto
-        $headerCell = $table->addCell(1000);
-        $headerCell->addText('MES', ['bold' => true], $paragraphStyle);
-
-        $headerCell = $table->addCell(800);
-        $headerCell->addText('DÍAS TRAB.', ['bold' => true], $paragraphStyle);
-
-        $headerCell = $table->addCell(1500);
-        $headerCell->addText('HABER BÁSICO', ['bold' => true], $paragraphStyle);
-
-        $headerCell = $table->addCell(1500);
-        $headerCell->addText('TOTAL GANADO', ['bold' => true], $paragraphStyle);
-
-        $headerCell = $table->addCell(1500);
-        $headerCell->addText('APORTE SEGURO LARGO PLAZO', ['bold' => true], $paragraphStyle);
-
-        $headerCell = $table->addCell(1500);
-        $headerCell->addText('OTROS DESC.', ['bold' => true], $paragraphStyle);
-
-        // FILAS DE DATOS
-        foreach ($planillas as $p) {
-            $mesNombre = strtoupper(
-                \Carbon\Carbon::create()->month($p->mes)->locale('es')->monthName
-            );
-
-            $table->addRow(); // ← Sin argumentos, altura automática
-
-            $cell = $table->addCell();
-            $cell->addText($mesNombre, ['bold' => true], $paragraphStyle);
-
-            $cell = $table->addCell();
-            $cell->addText($p->dia_trab ?? '-', [], $paragraphStyle);
-
-            $cell = $table->addCell();
-            $cell->addText(number_format($p->h_basico ?? 0, 2), [], $paragraphStyle);
-
-            $cell = $table->addCell();
-            $cell->addText(number_format($p->neto ?? 0, 2), [], $paragraphStyle);
-
-            $cell = $table->addCell();
-            $cell->addText(number_format($p->t_afp ?? 0, 2), [], $paragraphStyle);
-
-            $cell = $table->addCell();
-            $cell->addText(number_format($p->tot_des ?? 0, 2), [], $paragraphStyle);
+        $table->addCell(1000)->addText('MES', ['bold' => true], $paragraphStyle);
+        $table->addCell(800)->addText('DÍAS TRAB.', ['bold' => true], $paragraphStyle);
+        $table->addCell(1500)->addText('HABER BASICO', ['bold' => true], $paragraphStyle);
+        $table->addCell(1500)->addText('TOTAL GANADO', ['bold' => true], $paragraphStyle);
+        $table->addCell(2000)->addText('APORTE A LA SEGURIDAD SOCIAL DE LARGO PLAZO', ['bold' => true,'size' => 7], $paragraphStyle);
+        
+        // Filas de datos
+        foreach ($planillasAnio as $p) {
+            $mesNombre = strtoupper(\Carbon\Carbon::create()->month($p->mes)->locale('es')->monthName);
+            $table->addRow();
+            $table->addCell()->addText($mesNombre, ['bold' => true], $paragraphStyle);
+            $table->addCell()->addText($p->dia_trab ?? '-', [], $paragraphStyle);
+            $table->addCell()->addText(number_format($p->h_basico ?? 0, 2, ',', '.'), [], $paragraphStyle);
+            $table->addCell()->addText(number_format($p->neto ?? 0, 2, ',', '.'), [], $paragraphStyle);
+            $table->addCell()->addText(number_format($p->t_afp ?? 0, 2, ',', '.'), [], $paragraphStyle);
         }
-
+        
         $section->addTextBreak(1);
     }
 
     // Pie de certificación
     $section->addTextBreak(1);
     $section->addText(
-        "Es cuanto certifico, para fines que convenga al interesado.",
+        "Es cuanto certifico, para fines que convenga a la interesada.",
         ['italic' => true],
-        ['alignment' => Jc::BOTH]
+        ['alignment' => \PhpOffice\PhpWord\SimpleType\Jc::BOTH]
     );
     $section->addTextBreak(2);
     $section->addText(
-        "Cochabamba, " . now()->format('d \d\e F \d\e Y'),
+        "Cochabamba, " . now()->locale('es')->isoFormat('D [de] MMMM [de] YYYY'),
         [],
-        ['alignment' => Jc::RIGHT]
+        ['alignment' => \PhpOffice\PhpWord\SimpleType\Jc::RIGHT]
     );
     $section->addTextBreak(3);
-    $section->addText("___________________________", [], ['alignment' => Jc::CENTER]);
-    $section->addText("Unidad de Gestión de Recursos Humanos", ['bold' => true], ['alignment' => Jc::CENTER]);
+    $section->addText("___________________________", [], ['alignment' => \PhpOffice\PhpWord\SimpleType\Jc::CENTER]);
+    $section->addText("Unidad de Gestión de Recursos Humanos", ['bold' => true], ['alignment' => \PhpOffice\PhpWord\SimpleType\Jc::CENTER]);
 
     // Guardar y descargar
     $fileName = "certificado_aportes_{$persona->ci}.docx";
     $tempFile = tempnam(sys_get_temp_dir(), $fileName);
     $phpWord->save($tempFile, 'Word2007');
-
+    
     return response()->download($tempFile, $fileName)->deleteFileAfterSend(true);
 }
 }

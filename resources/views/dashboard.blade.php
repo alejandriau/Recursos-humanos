@@ -10,7 +10,7 @@
     @yield('contenidouno')
 
     <!-- Favicon -->
-    <link href="<?php echo asset('dashmin'); ?>/img/favicon.ico" rel="icon">
+    <link href="{{ asset('images/logo-gob.png') }}" rel="icon" type="image/png">
 
     <!-- Google Web Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">

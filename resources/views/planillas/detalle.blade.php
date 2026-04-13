@@ -30,7 +30,7 @@
                                     <th>Haber Básico</th>
                                     <th>Total Ganado</th>
                                     <th>APORTE A LA SEGURIDAD SOCIAL DE LARGO PLAZO</th>
-                                    <th>Otros Descuentos</th>
+                                    <th>Nivel jerarquico</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -44,7 +44,7 @@
                                         <td>{{ number_format($p->h_basico ?? 0, 2) }}</td>
                                         <td>{{ number_format($p->neto ?? 0, 2) }}</td>
                                         <td>{{ number_format($p->t_afp ?? 0, 2) }}</td>
-                                        <td>{{ number_format($p->tot_des ?? 0, 2) }}</td>
+                                        <td>{{ $p->cargo ?? '_' }}</td>
                                     </tr>
                                 @endforeach
                             </tbody>

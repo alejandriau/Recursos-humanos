@@ -870,6 +870,7 @@ Route::prefix('catalogos')->name('catalogos.')->group(function () {
     Route::get('/persona/{id}/planillas/mostrar', [PlanillaImportController::class, 'mostrarPlanillas'])->name('persona.planillas.mostrar');
     Route::get('/persona/{id}/exportar-pdf/aportes', [PlanillaImportController::class, 'exportarPDF'])->name('persona.exportar.aportes.pdf');
     Route::get('/persona/{id}/exportar-word/planilla', [PlanillaImportController::class, 'exportarWord'])->name('persona.exportar.planilla.word');
+    Route::get('/persona/planillas/{id}/vista', [PlanillaController::class, 'show'])->name('persona.planillas.show.vista');
 
     Route::middleware(['auth', 'role:empleado'])->group(function () {
 

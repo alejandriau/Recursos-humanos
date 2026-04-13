@@ -29,7 +29,9 @@ class PlanillaImport implements ToModel, WithHeadingRow, WithChunkReading
     {
         try {
             // 1. Normalizar campos (los nombres de columna vienen del Excel)
-            $ci = trim($row['carnet'] ?? '');
+            $ci = strtoupper(trim($row['carnet'] ?? ''));
+            $ci = preg_replace('/[^A-Z0-9]/', '', $ci); // mantiene letras y números
+            
             if (empty($ci)) return null;
             
             // 2. Buscar o crear persona
@@ -37,12 +39,24 @@ class PlanillaImport implements ToModel, WithHeadingRow, WithChunkReading
             
             if (!$persona) {
                 $nombreCompleto = trim($row['nombre'] ?? '');
-                $partes = explode(' ', $nombreCompleto);
-                $apellidoPat = $partes[0] ?? '';
-                $apellidoMat = $partes[1] ?? '';
-                $nombres = implode(' ', array_slice($partes, 2));
+                $partes = preg_split('/\s+/', $nombreCompleto);
+
+                $apellidoPat = '';
+                $apellidoMat = '';
+                $nombres = '';
+
+                if (count($partes) == 1) {
+                    $nombres = $partes[0];
+                } elseif (count($partes) == 2) {
+                    $apellidoPat = $partes[0];
+                    $nombres = $partes[1];
+                } else {
+                    $apellidoPat = $partes[0];
+                    $apellidoMat = $partes[1];
+                    $nombres = implode(' ', array_slice($partes, 2));
+                }
                 
-                $persona = Persona::create([
+                $persona = Persona::firstOrCreate([
                     'ci' => $ci,
                     'nombre' => $nombres ?: $nombreCompleto,
                     'apellidoPat' => $apellidoPat,

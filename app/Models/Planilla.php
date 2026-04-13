@@ -19,4 +19,9 @@ class Planilla extends Model
         'tot_par', 'tot_parcom', 'liq_pag', 'cuenta', 'sol_p', 'afp_p', 'fonvi_p',
         'cns_p', 't_labor', 't_patro', 't_carga', 'financia', 'separa2', 'cga', 'cua', 'des'
     ];
+
+    public function persona()
+    {
+        return $this->belongsTo(Persona::class);
+    }
 }
