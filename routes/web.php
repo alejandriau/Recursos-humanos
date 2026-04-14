@@ -158,7 +158,7 @@ Route::middleware([
 
 
     // Listar unidades
-    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    //Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/unidades', [UnidadOrganizacionalController::class, 'index'])->name('unidades.index');
 
     // Mostrar formulario de creación
