@@ -11,6 +11,7 @@ use Illuminate\Support\Str;
 use Carbon\Carbon;
 use Maatwebsite\Excel\Validators\ValidationException;
 use Maatwebsite\Excel\Exceptions\NoTypeDetectedException;
+use Illuminate\Support\Facades\Log;
 
 class PlanillaImport implements ToModel, WithHeadingRow, WithChunkReading
 {
@@ -130,12 +131,12 @@ class PlanillaImport implements ToModel, WithHeadingRow, WithChunkReading
                 'des' => $row['des'] ?? null,
             ]);
         } catch (\Exception $e) {
-        \Log::error('Error importando fila: ' . $e->getMessage(), [
-            'ci' => $ci ?? 'desconocido',
-            'row' => $row
-        ]);
-        return null; // Salta esta fila
-    }
+            \Log::error('Error importando fila: ' . $e->getMessage(), [
+                'ci' => $ci ?? 'desconocido',
+                'row' => $row
+            ]);
+            return null; // Salta esta fila
+        }
     }
     
     private function parseDecimal($value)
