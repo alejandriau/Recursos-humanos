@@ -60,6 +60,7 @@ use App\Http\Controllers\ValidacionPerfilController;
 use App\Http\Controllers\PerfilPuestoController;
 use App\Http\Controllers\CatalogoController;
 use App\Http\Controllers\PlanillaImportController;
+use App\Http\Controllers\PerfilController;
 
 
 
@@ -674,7 +675,6 @@ Route::middleware([
     Route::post('/admin/asistencias/marcar-ausentes', [AsistenciaAdminController::class, 'marcarAusentes'])->name('admin.asistencias.marcar-ausentes');
 
 // API para dispositivos biométricos
-    Route::post('/api/biometrico/registro', [BiometricoController::class, 'recibirRegistro']);
 
 
     /// controller para historial bono cas
