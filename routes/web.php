@@ -351,6 +351,7 @@ Route::middleware([
     Route::put('/certificados/update/{certificado}', [CertificadoController::class, 'update'])->name('certificados.update');
     Route::delete('/certificados/{certificado}', [CertificadoController::class, 'destroy'])->name('certificados.destroy');
     Route::get('/certificados/reporte-vencimientos', [CertificadoController::class, 'reporteVencimientos'])->name('certificados.reporte-vencimientos');
+    Route::get('/certificados/exportar', [CertificadoController::class, 'export'])->name('certificados.export');
     //lisa de cas
     // Rutas para CAS
     Route::get('/cas', [CasController::class, 'index'])->name('cas.index');
@@ -434,6 +435,7 @@ Route::middleware([
     Route::delete('/cenvis/{cenvi}', [CenviController::class, 'destroy'])->name('cenvis.destroy');
     // Descargar PDF
     Route::get('/cenvis/{cenvi}/download', [CenviController::class, 'downloadPdf'])->name('cenvis.download');
+    Route::get('/cenvis/exportar/excel', [CenviController::class, 'export'])->name('cenvis.export.excel');
 
     //declaracion jurada de bienes y renta
     Route::get('/djbrentas', [DjbrentaController::class, 'index'])->name('djbrentas.index');

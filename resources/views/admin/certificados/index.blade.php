@@ -8,7 +8,10 @@
             <a href="{{ route('certificados.reporte-vencimientos') }}" class="btn btn-warning me-2">
                 ⚠️ Reporte de Vencimientos
             </a>
-            <a href="{{ route('certificados.create') }}" class="btn btn-success">➕ Nuevo Certificado</a>
+            <a href="{{ route('certificados.export', request()->query()) }}" class="btn btn-success me-2">
+                📎 Exportar a Excel
+            </a>
+            <a href="{{ route('certificados.create') }}" class="btn btn-primary">➕ Nuevo Certificado</a>
         </div>
     </div>
 
@@ -59,6 +62,14 @@
             </div>
         </div>
     </form>
+
+    <!-- Botón de exportación rápido debajo de filtros -->
+    <div class="mb-3 text-end">
+        <a href="{{ route('certificados.export', request()->query()) }}" class="btn btn-outline-success">
+            📎 Exportar resultados filtrados a Excel
+        </a>
+        <small class="text-muted ms-2">(respeta los filtros actuales)</small>
+    </div>
 
     <!-- Tabla de resultados -->
     <div class="table-responsive shadow-sm">

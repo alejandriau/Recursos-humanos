@@ -6,6 +6,10 @@ use App\Models\Cenvi;
 use App\Models\Persona;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use App\Exports\CenvisExport;
+use Maatwebsite\Excel\Facades\Excel;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class CenviController extends Controller
 {
@@ -159,4 +163,19 @@ class CenviController extends Controller
     {
         Storage::disk('public')->delete($path);
     }
+    //exportar excel cenvi
+    public function export(Request $request)
+    {
+        try {
+            $export = new CenvisExport($request);
+            $fecha = Carbon::now()->format('Ymd_His');
+            $nombreArchivo = "cenvis_filtrados_{$fecha}.xlsx";
+
+            return Excel::download($export, $nombreArchivo);
+        } catch (\Exception $e) {
+            \Log::error('Error al exportar CENVIS: ' . $e->getMessage());
+            return back()->with('error', 'Error al generar la exportación: ' . $e->getMessage());
+        }
+    }
+    
 }

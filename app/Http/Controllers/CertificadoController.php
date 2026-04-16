@@ -7,7 +7,8 @@ use App\Models\Certificado;
 use App\Models\Persona;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
-
+use App\Exports\CertificadosExport;
+use Maatwebsite\Excel\Facades\Excel;
 class CertificadoController extends Controller
 {
     public function index(Request $request)
@@ -318,5 +319,19 @@ public function update(Request $request, Certificado $certificado)
         $certificado->estado = 0;
         $certificado->save();
         return redirect()->route('certificados.index')->with('success', 'Certificado eliminado correctamente.');
+    }
+    //expotar excel
+    public function export(Request $request)
+    {
+        try {
+            $export = new CertificadosExport($request);
+            $fecha = Carbon::now()->format('Ymd_His');
+            $nombreArchivo = "certificados_filtrados_{$fecha}.xlsx";
+
+            return Excel::download($export, $nombreArchivo);
+        } catch (\Exception $e) {
+            \Log::error('Error al exportar certificados: ' . $e->getMessage());
+            return back()->with('error', 'Error al generar la exportación: ' . $e->getMessage());
+        }
     }
 }

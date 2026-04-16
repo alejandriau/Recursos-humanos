@@ -6,11 +6,16 @@
     <div class="card">
         <div class="card-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Lista de CENVI</h5>
-            @can('crear cenvis')
-                <a href="{{ route('cenvis.create') }}" class="btn btn-primary">
-                    <i class="fas fa-plus"></i> Nuevo CENVI
+            <div>
+                <a href="{{ route('cenvis.export.excel', request()->query()) }}" class="btn btn-success me-2">
+                    <i class="fas fa-file-excel"></i> Exportar a Excel
                 </a>
-            @endcan
+                @can('crear cenvis')
+                    <a href="{{ route('cenvis.create') }}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Nuevo CENVI
+                    </a>
+                @endcan
+            </div>
         </div>
 
         <!-- Filtros mejorados -->
@@ -93,10 +98,10 @@
                     <a href="{{ route('cenvis.index') }}" class="btn btn-secondary">
                         <i class="fas fa-times"></i> Limpiar
                     </a>
+                    <a href="{{ route('cenvis.export.excel', request()->query()) }}" class="btn btn-success">
+                        <i class="fas fa-file-excel"></i> Exportar resultados filtrados
+                    </a>
                 </div>
-
-
-                <!-- Resto de campos... -->
             </form>
         </div>
 
@@ -181,7 +186,31 @@
                                     @endif
                                 </td>
                                 <td>
-                                    <!-- Acciones existentes... -->
+                                    <!-- Aquí van las acciones (editar, eliminar, ver PDF, etc.) -->
+                                    <!-- Ejemplo: -->
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{{ route('cenvis.show', $cenvi) }}" class="btn btn-info" title="Ver">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        @can('editar cenvis')
+                                            <a href="{{ route('cenvis.edit', $cenvi) }}" class="btn btn-warning" title="Editar">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                        @endcan
+                                        @if($cenvi->pdf_cenvi)
+                                            <a href="{{ route('cenvis.download-pdf', $cenvi) }}" class="btn btn-secondary" title="Descargar PDF">
+                                                <i class="fas fa-download"></i>
+                                            </a>
+                                        @endif
+                                        @can('eliminar cenvis')
+                                            <form action="{{ route('cenvis.destroy', $cenvi) }}" method="POST" style="display:inline;">
+                                                @csrf @method('DELETE')
+                                                <button type="submit" class="btn btn-danger" onclick="return confirm('¿Eliminar este CENVI?')" title="Eliminar">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        @endcan
+                                    </div>
                                 </td>
                             </tr>
                         @empty
