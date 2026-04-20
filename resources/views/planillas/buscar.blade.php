@@ -59,9 +59,18 @@
                         <label class="form-label">Mes</label>
                         <select name="mes" class="form-select">
                             <option value="">-- Seleccione --</option>
-                            @foreach(range(1,12) as $m)
-                                <option value="{{ $m }}" {{ request('mes') == $m ? 'selected' : '' }}>
-                                    {{ DateTime::createFromFormat('!m', $m)->format('F') }}
+                            @php
+                                $meses = [
+                                    1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo',
+                                    4 => 'Abril', 5 => 'Mayo', 6 => 'Junio',
+                                    7 => 'Julio', 8 => 'Agosto', 9 => 'Septiembre',
+                                    10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre'
+                                ];
+                            @endphp
+
+                            @foreach($meses as $num => $nombre)
+                                <option value="{{ $num }}" {{ request('mes') == $num ? 'selected' : '' }}>
+                                    {{ $nombre }}
                                 </option>
                             @endforeach
                         </select>
