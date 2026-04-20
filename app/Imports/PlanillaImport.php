@@ -57,20 +57,23 @@ class PlanillaImport implements ToModel, WithHeadingRow, WithChunkReading
                     $nombres = implode(' ', array_slice($partes, 2));
                 }
                 
-                $persona = Persona::firstOrCreate([
-                    'ci' => $ci,
-                    'nombre' => $nombres ?: $nombreCompleto,
-                    'apellidoPat' => $apellidoPat,
-                    'apellidoMat' => $apellidoMat,
-                    'fechaIngreso' => $this->parseFecha($row['f_ingreso'] ?? null),   // ← se guarda en persona
-                    'fechaNacimiento' => $this->parseFecha($row['f_naci'] ?? null),
-                    'sexo' => $row['s'] ?? null,
-                    'telefono' => null,
-                    'observaciones' => null,
-                    'estado' => 1,
-                    'user_id' => null,
-                    'archivo' => null,
-                ]);
+                // ✅ Separar búsqueda de creación
+                $persona = Persona::firstOrCreate(
+                    ['ci' => $ci],  // solo busca por CI
+                    [               // estos campos solo se usan al CREAR
+                        'nombre'         => $nombres ?: $nombreCompleto,
+                        'apellidoPat'    => $apellidoPat,
+                        'apellidoMat'    => $apellidoMat,
+                        'fechaIngreso'   => $this->parseFecha($row['f_ingreso'] ?? null),
+                        'fechaNacimiento'=> $this->parseFecha($row['f_naci'] ?? null),
+                        'sexo'           => $row['s'] ?? null,
+                        'telefono'       => null,
+                        'observaciones'  => null,
+                        'estado'         => 1,
+                        'user_id'        => null,
+                        'archivo'        => null,
+                    ]
+                );
             }
             
             // 3. Crear registro de planilla
@@ -185,7 +188,7 @@ private function parseFecha($value)
     
     public function chunkSize(): int
     {
-        return 500;
+        return 100;
     }
 
 
