@@ -81,7 +81,7 @@
                                                 <label for="letra" class="form-label">Letra:</label>
                                                 <select class="form-select" id="letra" name="letra" required>
                                                     <option value="">Seleccione una letra</option>
-                                                    @foreach (['A','B','C','D','E','G','H','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'] as $letra)
+                                                    @foreach (['A','B','C','D','E','F','G','H','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'] as $letra)
                                                         <option value="{{ $letra }}">{{ $letra }}</option>
                                                     @endforeach
                                                 </select>
