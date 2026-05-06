@@ -185,7 +185,7 @@
                                     </div>
                                 </td>
                                 <td>
-                                    <span class="badge bg-info bg-opacity-10 text-info">
+                                    <span class="badge bg-info bg-opacity-10 text-white">
                                         <i class="fas fa-calendar-alt me-1"></i>
                                         {{ $planilla->periodo_pago }}
                                     </span>

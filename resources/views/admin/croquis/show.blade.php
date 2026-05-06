@@ -10,6 +10,9 @@
             <a href="{{ route('croquis.edit', $croqui) }}" class="btn btn-warning btn-sm">
                 <i class="fas fa-edit"></i> Editar
             </a>
+            <a href="{{ route('croquis.export-pdf', $croqui) }}" class="btn btn-danger btn-sm">
+                <i class="fas fa-file-pdf"></i> Exportar PDF
+            </a>
             <a href="{{ route('croquis.index') }}" class="btn btn-secondary btn-sm">
                 <i class="fas fa-arrow-left"></i> Volver
             </a>
@@ -68,7 +71,7 @@
             <div class="mt-2">
                 <iframe
                     width="100%"
-                    height="400"
+                    height="500"
                     frameborder="0"
                     scrolling="no"
                     marginheight="0"

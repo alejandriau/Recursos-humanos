@@ -33,6 +33,18 @@
                         @enderror
                     </div>
 
+                    <!-- Descripción del Puesto (NUEVO) -->
+                    <div class="sm:col-span-2">
+                        <label for="descripcion_puesto" class="block text-sm font-medium text-gray-700">
+                            Descripción del Puesto
+                        </label>
+                        <textarea name="descripcion_puesto" id="descripcion_puesto" rows="3"
+                                  class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md @error('descripcion_puesto') border-red-300 @enderror">{{ old('descripcion_puesto') }}</textarea>
+                        @error('descripcion_puesto')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
                     <!-- Nivel Jerárquico -->
                     <div>
                         <label for="nivelJerarquico" class="block text-sm font-medium text-gray-700">
@@ -65,6 +77,49 @@
                         @enderror
                     </div>
 
+                    <!-- Categoría (NUEVO) -->
+                    <div>
+                        <label for="categoria" class="block text-sm font-medium text-gray-700">
+                            Categoría
+                        </label>
+                        <select name="categoria" id="categoria"
+                                class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                            <option value="">Seleccione categoría</option>
+                            <option value="SUPERIOR" {{ old('categoria') == 'SUPERIOR' ? 'selected' : '' }}>Superior</option>
+                            <option value="EJECUTIVO" {{ old('categoria') == 'EJECUTIVO' ? 'selected' : '' }}>Ejecutivo</option>
+                            <option value="OPERATIVO" {{ old('categoria') == 'OPERATIVO' ? 'selected' : '' }}>Operativo</option>
+                        </select>
+                        @error('categoria')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <!-- Nivel Clase (NUEVO) -->
+                    <div>
+                        <label for="nivel_clase" class="block text-sm font-medium text-gray-700">
+                            Nivel (Clase)
+                        </label>
+                        <input type="number" name="nivel_clase" id="nivel_clase"
+                               value="{{ old('nivel_clase') }}" min="1"
+                               class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+                        @error('nivel_clase')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <!-- Nivel Salarial (antes "nivel") -->
+                    <div>
+                        <label for="nivel_salarial" class="block text-sm font-medium text-gray-700">
+                            Nivel Salarial
+                        </label>
+                        <input type="number" name="nivel_salarial" id="nivel_salarial"
+                               value="{{ old('nivel_salarial') }}" min="1"
+                               class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+                        @error('nivel_salarial')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+
                     <!-- Item -->
                     <div>
                         <label for="item" class="block text-sm font-medium text-gray-700">
@@ -72,7 +127,7 @@
                         </label>
                         <input type="text" name="item" id="item"
                                value="{{ old('item') }}"
-                               class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md @error('item') border-red-300 @enderror">
+                               class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
                         @error('item')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
@@ -122,21 +177,8 @@
                         </label>
                         <input type="number" name="haber" id="haber"
                                value="{{ old('haber') }}" step="0.01" min="0"
-                               class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md @error('haber') border-red-300 @enderror">
+                               class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
                         @error('haber')
-                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
-                        @enderror
-                    </div>
-
-                    <!-- Nivel -->
-                    <div>
-                        <label for="nivel" class="block text-sm font-medium text-gray-700">
-                            Nivel
-                        </label>
-                        <input type="number" name="nivel" id="nivel"
-                               value="{{ old('nivel') }}" min="1" max="10"
-                               class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md @error('nivel') border-red-300 @enderror">
-                        @error('nivel')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
@@ -148,7 +190,7 @@
                         </label>
                         <input type="text" name="manual" id="manual"
                                value="{{ old('manual') }}"
-                               class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md @error('manual') border-red-300 @enderror">
+                               class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
                         @error('manual')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
@@ -172,7 +214,7 @@
                             Perfil del Puesto
                         </label>
                         <textarea name="perfil" id="perfil" rows="3"
-                                  class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md @error('perfil') border-red-300 @enderror">{{ old('perfil') }}</textarea>
+                                  class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">{{ old('perfil') }}</textarea>
                         @error('perfil')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
@@ -184,7 +226,7 @@
                             Experiencia Requerida
                         </label>
                         <textarea name="experencia" id="experencia" rows="2"
-                                  class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md @error('experencia') border-red-300 @enderror">{{ old('experencia') }}</textarea>
+                                  class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">{{ old('experencia') }}</textarea>
                         @error('experencia')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror

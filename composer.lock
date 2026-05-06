@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "e379daffdb4bfaf4b04ed3f2fc3f02ba",
+    "content-hash": "db9fa1f8cb0a46f35f09b83317de7d65",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -5103,6 +5103,51 @@
             "time": "2025-07-31T06:19:56+00:00"
         },
         {
+            "name": "sparkscoding/static-maps",
+            "version": "dev-master",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/mattsparks/StaticMaps.git",
+                "reference": "055b8d058bb8647a238462f116fee181445117e4"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/mattsparks/StaticMaps/zipball/055b8d058bb8647a238462f116fee181445117e4",
+                "reference": "055b8d058bb8647a238462f116fee181445117e4",
+                "shasum": ""
+            },
+            "default-branch": true,
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "SparksCoding\\StaticMaps\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Matt Sparks",
+                    "email": "matt@sparkscoding.com"
+                }
+            ],
+            "description": "A PHP library to make working with the Google Static Maps API a little more friendly.",
+            "keywords": [
+                "Google Static Map API",
+                "google maps",
+                "map",
+                "maps",
+                "static maps"
+            ],
+            "support": {
+                "issues": "https://github.com/mattsparks/StaticMaps/issues",
+                "source": "https://github.com/mattsparks/StaticMaps/tree/v1.1.0-beta"
+            },
+            "time": "2017-07-07T01:47:35+00:00"
+        },
+        {
             "name": "spatie/laravel-permission",
             "version": "6.21.0",
             "source": {
@@ -10052,7 +10097,9 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": {},
+    "stability-flags": {
+        "sparkscoding/static-maps": 20
+    },
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {

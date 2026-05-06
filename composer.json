@@ -17,6 +17,7 @@
         "phpoffice/phpword": "^1.3",
         "setasign/fpdf": "^1.8",
         "smalot/pdfparser": "^2.12",
+        "sparkscoding/static-maps": "dev-master",
         "spatie/laravel-permission": "^6.21"
     },
     "require-dev": {

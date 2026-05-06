@@ -16,7 +16,7 @@ public function index(Request $request)
     try {
         $query = Puesto::with(['unidadOrganizacional.padre']);
 
-        // Filtros básicos
+        // Filtros básicos (igual que antes)
         if ($request->filled('buscar')) {
             $search = $request->buscar;
             $query->where(function($q) use ($search) {
@@ -33,11 +33,10 @@ public function index(Request $request)
             $query->where('tipoContrato', $request->tipo_contrato);
         }
 
-        // Ordenamiento
         $query->orderBy('denominacion');
 
-        // Paginación
-        $puestos = $query->paginate(15);
+        // Paginación con appends para mantener los filtros
+        $puestos = $query->paginate(100)->appends($request->all());
 
         // Niveles jerárquicos
         $nivelesJerarquicos = [
@@ -93,16 +92,19 @@ public function index(Request $request)
         try {
             $validated = $request->validate([
                 'denominacion' => 'required|string|max:800',
+                'descripcion_puesto' => 'nullable|string',
                 'nivelJerarquico' => 'required|in:GOBERNADOR (A),SECRETARIA (O) DEPARTAMENTAL,ASESORA (OR) / DIRECTORA (OR) / DIR. SERV. DPTAL.,JEFA (E) DE UNIDAD,PROFESIONAL I,PROFESIONAL II,ADMINISTRATIVO I,ADMINISTRATIVO II,APOYO ADMINISTRATIVO I,APOYO ADMINISTRATIVO II,ASISTENTE',
-                'item' => 'nullable|string|max:45|unique:puestos,item',
+                'categoria' => 'nullable|in:SUPERIOR,EJECUTIVO,OPERATIVO',
+                'nivel_clase' => 'nullable|integer|min:1',
+                'nivel_salarial' => 'nullable|integer|min:1',
+                'item' => 'nullable|string|max:45',
+                'idUnidadOrganizacional' => 'required|exists:unidad_organizacionals,id',
+                'tipoContrato' => 'required|in:PERMANENTE,EVENTUAL',
+                'haber' => 'nullable|numeric|min:0',
                 'manual' => 'nullable|string|max:500',
+                'esJefatura' => 'sometimes|boolean',
                 'perfil' => 'nullable|string',
                 'experencia' => 'nullable|string',
-                'nivel' => 'nullable|integer',
-                'haber' => 'nullable|numeric|min:0',
-                'tipoContrato' => 'required|in:PERMANENTE,EVENTUAL',
-                'idUnidadOrganizacional' => 'required|exists:unidad_organizacionals,id',
-                'esJefatura' => 'boolean'
             ]);
 
             $puesto = Puesto::create($validated);
@@ -171,16 +173,19 @@ public function index(Request $request)
 
             $validated = $request->validate([
                 'denominacion' => 'required|string|max:800',
+                'descripcion_puesto' => 'nullable|string',
                 'nivelJerarquico' => 'required|in:GOBERNADOR (A),SECRETARIA (O) DEPARTAMENTAL,ASESORA (OR) / DIRECTORA (OR) / DIR. SERV. DPTAL.,JEFA (E) DE UNIDAD,PROFESIONAL I,PROFESIONAL II,ADMINISTRATIVO I,ADMINISTRATIVO II,APOYO ADMINISTRATIVO I,APOYO ADMINISTRATIVO II,ASISTENTE',
-                'item' => 'nullable|string|max:45|unique:puestos,item,' . $id,
+                'categoria' => 'nullable|in:SUPERIOR,EJECUTIVO,OPERATIVO',
+                'nivel_clase' => 'nullable|integer|min:1',
+                'nivel_salarial' => 'nullable|integer|min:1',
+                'item' => 'nullable|string|max:45',
+                'idUnidadOrganizacional' => 'required|exists:unidad_organizacionals,id',
+                'tipoContrato' => 'required|in:PERMANENTE,EVENTUAL',
+                'haber' => 'nullable|numeric|min:0',
                 'manual' => 'nullable|string|max:500',
+                'esJefatura' => 'sometimes|boolean',
                 'perfil' => 'nullable|string',
                 'experencia' => 'nullable|string',
-                'nivel' => 'nullable|integer',
-                'haber' => 'nullable|numeric|min:0',
-                'tipoContrato' => 'required|in:PERMANENTE,EVENTUAL',
-                'idUnidadOrganizacional' => 'required|exists:unidad_organizacionals,id',
-                'esJefatura' => 'boolean'
             ]);
 
             $puesto->update($validated);

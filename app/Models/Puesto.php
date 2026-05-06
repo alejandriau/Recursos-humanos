@@ -15,7 +15,9 @@ class Puesto extends Model
     protected $fillable = [
         'denominacion',
         'nivelJerarquico',
-        'nivel',
+        'categoria',           // nuevo
+        'nivel_clase',         // nuevo
+        'nivel_salarial', 
         'item',
         'manual',
         'perfil',
@@ -25,7 +27,8 @@ class Puesto extends Model
         'idUnidadOrganizacional',
         'esJefatura',
         'esActivo',
-        'estado'
+        'estado',
+        'descripcion_puesto',
     ];
 
     protected $casts = [

@@ -6,6 +6,10 @@ use App\Models\Croqui;
 use App\Models\Persona;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Barryvdh\DomPDF\Facade\Pdf;
+use jstayton\StaticMap\StaticMap;
+use Spatie\Browsershot\Browsershot;
+use Illuminate\Support\Facades\Storage;
 
 class CroquiController extends Controller
 {
@@ -176,4 +180,11 @@ class CroquiController extends Controller
 
         return response()->json($croquis);
     }
+public function exportPdf(Croqui $croqui)
+{
+    return view('admin.croquis.pdf_show', compact('croqui'));
+    $pdf = Pdf::loadView('admin.croquis.pdf_show', compact('croqui'));
+    $pdf->setPaper('A4', 'portrait');
+    return $pdf->download('croquis_' . $croqui->id . '.pdf');
+}
 }

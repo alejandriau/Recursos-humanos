@@ -70,6 +70,19 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+
+
+Route::get('/test-map-download', function () {
+    $url = 'https://tile.openstreetmap.org/0/0/0.png';
+    $ch = curl_init($url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+    $data = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    return "HTTP $httpCode - " . (strlen($data) > 0 ? "Imagen descargada" : "Sin datos");
+});
+
 Route::middleware([
     'auth:sanctum',
     config('jetstream.auth_session'),
@@ -487,6 +500,7 @@ Route::middleware([
     Route::delete('/croquis/{croqui}', [CroquiController::class, 'destroy'])->name('croquis.destroy');
     Route::get('/mapa/general', [CroquiController::class, 'mapa'])->name('croquis.mapa');
     Route::get('/api/datos', [CroquiController::class, 'getCroquisData'])->name('croquis.api.datos');
+    Route::get('/croquis/{croqui}/export-pdf', [CroquiController::class, 'exportPdf'])->name('croquis.export-pdf');
     // Agregar esta ruta dentro del grupo de croquis
     Route::post('/geocode', [CroquiController::class, 'geocode'])->name('geocode');
 
