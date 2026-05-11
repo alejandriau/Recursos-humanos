@@ -3,9 +3,10 @@
 
 namespace App\Exports;
 
-use App\Models\PasivoDos;
+use App\Models\Pasivodos;
 use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 use Maatwebsite\Excel\Concerns\Exportable;
+use App\Exports\PasivoDosPorLetraSheet;
 
 class PasivoDosExport implements WithMultipleSheets
 {
@@ -16,7 +17,7 @@ class PasivoDosExport implements WithMultipleSheets
         $sheets = [];
 
         // Obtener letras únicas de la base de datos
-        $letras = PasivoDos::where('estado', 1)
+        $letras = Pasivodos::where('estado', 1)
             ->whereNotNull('letra')
             ->where('letra', '!=', '')
             ->distinct()

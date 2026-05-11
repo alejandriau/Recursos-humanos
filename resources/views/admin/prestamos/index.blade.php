@@ -785,6 +785,30 @@ $('#formReporte').on('submit', function(e) {
     });
 });
 });
+
+$(document).ready(function() {
+    // Al entrar a la página de préstamos, marcar TODAS las notificaciones relacionadas como leídas
+    $.ajax({
+        url: '{{ route("notificaciones.marcar-prestamos") }}',
+        type: 'POST',
+        data: { _token: '{{ csrf_token() }}' },
+        success: function(response) {
+            if (response.success) {
+                // Refrescar el contador de la campana
+                if (typeof cargarNotificaciones === 'function') {
+                    cargarNotificaciones();
+                }
+                // También puedes actualizar el badge de solicitudes pendientes (si es necesario)
+                if (typeof actualizarContadorPendientes === 'function') {
+                    actualizarContadorPendientes();
+                }
+            }
+        },
+        error: function() {
+            console.log('Error al marcar notificaciones como leídas');
+        }
+    });
+});
 </script>
 
 @endsection

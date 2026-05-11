@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use App\Models\Pasivodos;
 use App\Models\Seleccion;
 use Illuminate\Support\Facades\Auth;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\PasivoDosExport;
 
 
 

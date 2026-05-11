@@ -7,6 +7,7 @@ use App\Models\PasivoUno;
 use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 use Maatwebsite\Excel\Concerns\Exportable;
 
+
 class PasivoUnoExport implements WithMultipleSheets
 {
     use Exportable;

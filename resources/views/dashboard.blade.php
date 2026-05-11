@@ -212,6 +212,196 @@
     cursor: pointer;
     z-index: 999;
 }
+/* ============================================
+   NOTIFICACIONES - ESTILO MODERNO
+   ============================================ */
+
+/* Contenedor principal del dropdown */
+.notification-dropdown {
+    min-width: 400px;
+    max-height: 480px;
+    overflow-y: auto;
+    background: #1a1a2e;  /* fondo oscuro elegante */
+    border-radius: 16px;
+    padding: 8px 0;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Scroll personalizado (opcional) */
+.notification-dropdown::-webkit-scrollbar {
+    width: 5px;
+}
+.notification-dropdown::-webkit-scrollbar-track {
+    background: #2d2d42;
+    border-radius: 10px;
+}
+.notification-dropdown::-webkit-scrollbar-thumb {
+    background: #6c5ce7;
+    border-radius: 10px;
+}
+
+/* Cada elemento de notificación */
+.notification-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 18px;
+    text-decoration: none;
+    transition: all 0.25s ease;
+    border-left: 4px solid transparent;
+    cursor: pointer;
+}
+
+/* Hover suave */
+.notification-item:hover {
+    background: rgba(108, 92, 231, 0.08);
+    transform: translateX(2px);
+}
+
+/* ========== NO LEÍDAS ========== */
+.notification-item.unread {
+    background: #23233a;
+    border-left-color: #6c5ce7;
+}
+
+.notification-item.unread .notification-title {
+    color: #ffffff;
+    font-weight: 600;
+}
+
+.notification-item.unread .notification-message {
+    color: #d0d0e0;
+    font-weight: 500;
+}
+
+/* ========== LEÍDAS ========== */
+.notification-item.read {
+    background: #1a1a2e;
+    border-left-color: transparent;
+    opacity: 0.65;
+}
+
+.notification-item.read .notification-title {
+    color: #a0a0b0;
+    font-weight: 400;
+}
+
+.notification-item.read .notification-message {
+    color: #808090;
+}
+
+/* Icono circular */
+.notification-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: rgba(108, 92, 231, 0.15);
+    transition: all 0.2s;
+}
+
+.notification-icon i {
+    font-size: 18px;
+    color: #a29bfe;
+}
+
+/* Colores específicos por tipo (opcional) */
+.notification-icon.nueva_solicitud { background: rgba(253, 203, 110, 0.2); }
+.notification-icon.nueva_solicitud i { color: #fdcb6e; }
+
+.notification-icon.prestamo_aprobado { background: rgba(0, 184, 148, 0.2); }
+.notification-icon.prestamo_aprobado i { color: #00b894; }
+
+.notification-icon.prestamo_rechazado { background: rgba(255, 118, 117, 0.2); }
+.notification-icon.prestamo_rechazado i { color: #ff7675; }
+
+.notification-icon.prestamo_entregado { background: rgba(9, 132, 227, 0.2); }
+.notification-icon.prestamo_entregado i { color: #0984e3; }
+
+.notification-icon.prestamo_devuelto { background: rgba(108, 92, 231, 0.2); }
+.notification-icon.prestamo_devuelto i { color: #a29bfe; }
+
+/* Contenido textual */
+.notification-content {
+    flex: 1;
+    line-height: 1.4;
+}
+
+.notification-title {
+    font-size: 0.9rem;
+    margin-bottom: 4px;
+    font-family: 'Segoe UI', 'Heebo', sans-serif;
+    letter-spacing: -0.2px;
+}
+
+.notification-message {
+    font-size: 0.8rem;
+    margin-bottom: 6px;
+    color: #b0b0c0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.notification-time {
+    font-size: 0.65rem;
+    color: #7a7a8a;
+    font-weight: 400;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.notification-time::before {
+    content: "⏱️";
+    font-size: 0.6rem;
+    opacity: 0.7;
+}
+
+/* Separador entre notificaciones */
+.dropdown-divider {
+    margin: 0;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* Botón "Marcar todas como leídas" */
+.mark-all-read {
+    text-align: center;
+    padding: 12px;
+    background: #0f0f1a;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 16px 16px 0 0;
+}
+
+.mark-all-read a {
+    color: #a29bfe;
+    text-decoration: none;
+    font-size: 0.8rem;
+    font-weight: 500;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.mark-all-read a:hover {
+    color: #6c5ce7;
+    text-decoration: underline;
+}
+
+/* Mensaje cuando no hay notificaciones */
+#notificationList .text-center {
+    color: #a0a0b0;
+    font-size: 0.85rem;
+    padding: 30px 20px;
+}
+
 
 </style>
 
@@ -235,7 +425,7 @@
                     <img class="img-fluid me-2" width="30" src="<?php echo asset('dashmin'); ?>/img/logo-gob.png" alt="">
                     <h3 class="text-white mb-0">UGRH</h3>
                 </a>
-
+                    
                 <div class="d-flex align-items-center ms-4 mb-4">
                     <div class="position-relative">
                         <img class="rounded-circle" src="<?php echo asset('dashmin'); ?>/img/user.jpg" alt="" style="width: 40px; height: 40px;">
@@ -456,6 +646,16 @@
                             <a href="#" class="dropdown-item text-center text-white">Ver todas las notificaciones</a>
                         </div>
                     </div>-->
+<div class="nav-item dropdown">
+    <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown" id="notificationDropdown">
+        <i class="fa fa-bell me-lg-2"></i>
+        <span class="d-none d-lg-inline-flex text-white">Notificaciones</span>
+        <span id="notifCount" class="badge bg-danger rounded-pill" style="display: none;">0</span>
+    </a>
+    <div class="dropdown-menu dropdown-menu-end border-0 shadow-lg m-0 notification-dropdown" id="notificationList">
+        <div class="text-center text-white p-3">Cargando...</div>
+    </div>
+</div>
 
                     {{-- PERFIL DE USUARIO --}}
                     <div class="nav-item dropdown">
@@ -735,7 +935,155 @@
         createParticles();
         document.getElementById('message').focus();
     };
+    }
+
+        $(document).ready(function() {
+        // Cargar notificaciones
+// Declarar función global
+window.cargarNotificaciones = function() {
+    $.ajax({
+        url: '/notificaciones',
+        method: 'GET',
+        success: function(data) {
+            let notifHtml = '';
+            let noLeidas = 0;
+
+            if (data.length === 0) {
+                notifHtml = '<div class="text-center text-white p-3">No hay notificaciones</div>';
+            } else {
+                data.forEach(notif => {
+                    const esLeida = notif.read_at !== null;
+                    if (!esLeida) noLeidas++;
+                    
+                    let mensaje = notif.data.mensaje || 'Nueva notificación';
+                    let url = notif.data.url || '#';
+                    let tipo = notif.data.tipo || 'default';
+                    let icono = obtenerIconoSegunTipo(tipo);
+                    
+                    // Clases según leída/no leída
+                    let itemClass = esLeida ? 'read' : 'unread';
+                    
+                    notifHtml += `
+                        <a href="${url}" class="notification-item ${itemClass}" data-id="${notif.id}">
+                            <div class="notification-icon ${tipo}">
+                                <i class="${icono}"></i>
+                            </div>
+                            <div class="notification-content">
+                                <div class="notification-title">${notif.data.titulo || 'Notificación'}</div>
+                                <div class="notification-message">${mensaje}</div>
+                                <div class="notification-time">${new Date(notif.created_at).toLocaleString()}</div>
+                            </div>
+                        </a>
+                        <div class="dropdown-divider"></div>
+                    `;
+                });
+            }
+            
+            $('#notificationList').html(notifHtml);
+            
+            // Mostrar/ocultar el badge de no leídas
+            if (noLeidas > 0) {
+                $('#notifCount').text(noLeidas).show();
+            } else {
+                $('#notifCount').hide();
+            }
+            
+            // Agregar opción "Marcar todas" SOLO si hay notificaciones
+            if (data.length > 0 && !$('#marcarTodasBtn').length) {
+                $('#notificationList').prepend(`
+                    <div class="mark-all-read" id="marcarTodasBtn">
+                        <a href="#" id="marcarTodas">📋 Marcar todas como leídas</a>
+                    </div>
+                    <div class="dropdown-divider"></div>
+                `);
+            }
+        },
+        error: function() {
+            console.log('Error cargando notificaciones');
         }
+    });
+};
+
+// Función auxiliar para ícono según tipo
+function obtenerIconoSegunTipo(tipo) {
+    const iconos = {
+        'nueva_solicitud': 'fas fa-clock',
+        'prestamo_aprobado': 'fas fa-check-circle',
+        'prestamo_rechazado': 'fas fa-times-circle',
+        'prestamo_entregado': 'fas fa-hand-holding-heart',
+        'prestamo_devuelto': 'fas fa-undo-alt',
+        'prestamo_vencido': 'fas fa-exclamation-triangle',
+        'default': 'fas fa-bell'
+    };
+    return iconos[tipo] || iconos.default;
+}
+
+// Al hacer clic en una notificación, marcarla como leída individualmente
+$(document).on('click', '#notificationList .dropdown-item', function(e) {
+    let notifId = $(this).data('id');
+    if (notifId) {
+        $.post('/notificaciones/marcar-leida/' + notifId, {
+            _token: '{{ csrf_token() }}'
+        });
+    }
+});
+
+// Cargar al inicio y cada 30 segundos
+$(document).ready(function() {
+    cargarNotificaciones();
+    setInterval(cargarNotificaciones, 30000);
+});
+        
+        // Marcar como leída al hacer clic en una notificación
+        $(document).on('click', '#notificationList .notification-item', function(e) {
+            let notifId = $(this).data('id');
+            if (notifId) {
+                // Marcar como leída en el servidor (sin bloquear la navegación)
+                $.post('/notificaciones/marcar-leida/' + notifId, {
+                    _token: '{{ csrf_token() }}'
+                }).done(function() {
+                    // Disminuir contador visual
+                    let currentCount = parseInt($('#notifCount').text());
+                    if (!isNaN(currentCount) && currentCount > 1) {
+                        $('#notifCount').text(currentCount - 1);
+                    } else {
+                        $('#notifCount').hide();
+                    }
+                    // Recargar notificaciones en segundo plano (opcional)
+                    setTimeout(window.cargarNotificaciones, 500);
+                });
+            }
+            // Permitir que el navegador siga el enlace
+            return true;
+        });
+        
+        // Botón para marcar todas como leídas (opcional, agregar en el dropdown)
+        // Puedes agregar un elemento al inicio del dropdown
+        function agregarOpcionMarcarTodas() {
+            let opcion = '<div class="dropdown-header text-center border-bottom"><a href="#" id="marcarTodas" class="text-white text-decoration-none">Marcar todas como leídas</a></div>';
+            $('#notificationList').prepend(opcion);
+        }
+        
+        $(document).on('click', '#marcarTodas', function(e) {
+            e.preventDefault();
+            $.post('/notificaciones/marcar-todas', { _token: '{{ csrf_token() }}' })
+                .done(function() {
+                    cargarNotificaciones();
+                });
+        });
+        
+        // Cargar inicial y cada 30 segundos
+        cargarNotificaciones();
+        setInterval(cargarNotificaciones, 30000);
+        
+        // También al abrir el dropdown, recargar (opcional)
+        $('#notificationDropdown').on('shown.bs.dropdown', function() {
+            cargarNotificaciones();
+        });
+        
+        // Agregar opción de marcar todas después de cargar
+        setTimeout(agregarOpcionMarcarTodas, 500);
+    });
     </script>
 </body>
 

@@ -13,6 +13,11 @@ use App\Models\profesion;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;  // <--- IMPORTANTE: Agrega esta línea
 use Illuminate\Support\Facades\DB;   // Opcional, si usas DB
+use App\Notifications\NuevaSolicitudPrestamo;
+use App\Notifications\PrestamoAprobado;
+use App\Notifications\PrestamoDevuelto;
+use App\Notifications\PrestamoEntregado;
+use App\Notifications\PrestamoRechazado;
 
 class PrestamoController extends Controller
 {
@@ -55,7 +60,7 @@ class PrestamoController extends Controller
         return view('admin.prestamos.index', compact('stats', 'pendientes', 'activos', 'historial'));
     }
 
-        /**
+    /**
      * Obtener préstamos del usuario actual
      */
 public function misPrestamos(Request $request)
@@ -187,6 +192,17 @@ $data = $prestamos->map(function ($prestamo) {
         // Cargar relaciones para la respuesta
         $prestamo->load(['carpeta', 'solicitante', 'usuarioRegistrador']);
 
+        // Enviar notificación a todos los usuarios con rol 'archivo' (o 'admin')
+        $usuariosArchivo = User::role('archivo')->get(); // si usas spatie/laravel-permission
+        foreach ($usuariosArchivo as $usuario) {
+            $usuario->notify(new NuevaSolicitudPrestamo($prestamo));
+        }
+        // También a admins si quieres
+        //$admins = User::role('admin')->get();
+        //foreach ($admins as $admin) {
+        //    $admin->notify(new NuevaSolicitudPrestamo($prestamo));
+        //}
+
         return response()->json([
             'success' => true,
             'message' => 'Solicitud de préstamo creada exitosamente',
@@ -290,6 +306,7 @@ public function aprobar(Request $request, $id)
             'archivero_id' => Auth::id(),
             'notas_archivero' => $request->notas_archivero
         ]);
+        $prestamo->solicitante->notify(new PrestamoAprobado($prestamo));
 
         return response()->json([
             'success' => true,
@@ -346,6 +363,7 @@ public function rechazar(Request $request, $id)
             'notas_archivero' => $request->notas_archivero
         ]);
 
+        $prestamo->solicitante->notify(new PrestamoRechazado($prestamo));
         return response()->json([
             'success' => true,
             'message' => 'Préstamo rechazado',
@@ -400,7 +418,7 @@ public function entregar(Request $request, $id)
             'archivero_id' => $prestamo->archivero_id ?? Auth::id(),
             'notas_archivero' => $request->notas_archivero
         ]);
-
+        $prestamo->solicitante->notify(new PrestamoEntregado($prestamo));
         return response()->json([
             'success' => true,
             'message' => 'Préstamo marcado como entregado',
@@ -454,6 +472,7 @@ public function devolver(Request $request, $id)
             'fecha_devolucion_real' => $request->fecha_devolucion,
             'notas_archivero' => $request->observaciones_devolucion
         ]);
+        $prestamo->solicitante->notify(new PrestamoDevuelto($prestamo));
 
         return response()->json([
             'success' => true,

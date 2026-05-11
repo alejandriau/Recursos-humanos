@@ -61,6 +61,7 @@ use App\Http\Controllers\PerfilPuestoController;
 use App\Http\Controllers\CatalogoController;
 use App\Http\Controllers\PlanillaImportController;
 use App\Http\Controllers\PerfilController;
+use App\Http\Controllers\NotificacionController;
 
 
 
@@ -101,6 +102,28 @@ Route::middleware([
         return view('chatbot.chatbot');
     });
 
+    //notificaciones 
+       Route::get('/notificaciones', function () {
+        $notificaciones = Auth::user()->notifications()->take(20)->get();
+        return response()->json($notificaciones);
+    })->name('notificaciones.obtener');
+
+    Route::post('/notificaciones/marcar-leida/{id}', function ($id) {
+        $notificacion = Auth::user()->notifications()->where('id', $id)->first();
+        if ($notificacion) {
+            $notificacion->markAsRead();
+        }
+        return response()->json(['success' => true]);
+    })->name('notificaciones.marcar');
+
+    Route::post('/notificaciones/marcar-todas', function () {
+        Auth::user()->unreadNotifications->markAsRead();
+        return response()->json(['success' => true]);
+    })->name('notificaciones.marcar-todas');
+    Route::get('/notificaciones', [NotificacionController::class, 'obtener'])->name('notificaciones.obtener');
+    Route::post('/notificaciones/marcar-leida/{id}', [NotificacionController::class, 'marcarLeida'])->name('notificaciones.marcar');
+    Route::post('/notificaciones/marcar-prestamos', [NotificacionController::class, 'marcarPrestamosLeidas'])->name('notificaciones.marcar-prestamos');
+    
     Route::get('/personas/show/{id}', [PersonaController::class, 'show'])->name('personas.show');
     Route::get('/personas/{id}/expediente', [PersonaController::class, 'generarExpediente'])->name('personas.expediente');
     Route::get('/personas/{id}/expediente/ver', [PersonaController::class, 'verExpediente'])->name('personas.expediente.ver');
@@ -658,9 +681,9 @@ Route::middleware([
     Route::delete('/pasivouno/eliminar/{id}', [PasivoUnoController::class, 'destroy'])->name('pasivouno.eliminar');
 
     // Pasivo Dos
-    Route::get('/reportes/pasivouno/pdf', [PasivoUnoController::class, 'exportPdf'])->name('reportes.pasivouno.pdf');
-    Route::get('/reportes/pasivouno/pdf/{letra}', [PasivoUnoController::class, 'exportPdfPorLetra'])->name('reportes.pasivouno.pdf.letra');
-    Route::get('/reportes/pasivouno/excel', [PasivoUnoController::class, 'exportExcel'])->name('reportes.pasivouno.excel');
+    Route::get('/reportes/pasivodos/pdf', [PasivodosController::class, 'exportPdf'])->name('reportes.pasivodos.pdf');
+    Route::get('/reportes/pasivodos/pdf/{letra}', [PasivodosController::class, 'exportPdfPorLetra'])->name('reportes.pasivodos.pdf.letra');
+    Route::get('/reportes/pasivodos/excel', [PasivodosController::class, 'exportExcel'])->name('reportes.pasivodos.excel');
 
 
 
