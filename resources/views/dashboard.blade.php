@@ -937,103 +937,187 @@
     };
     }
 
-        $(document).ready(function() {
-        // Cargar notificaciones
-// Declarar función global
-window.cargarNotificaciones = function() {
-    $.ajax({
-        url: '/notificaciones',
-        method: 'GET',
-        success: function(data) {
-            let notifHtml = '';
-            let noLeidas = 0;
+    $(document).ready(function() {
 
-            if (data.length === 0) {
-                notifHtml = '<div class="text-center text-white p-3">No hay notificaciones</div>';
+        // ========== DECLARAR VARIABLES AL INICIO ==========
+        let userInteracted = false;               // Control de interacción para autoplay
+        let ultimoConteoNoLeidas = null;          // Para detectar nuevas notificaciones
+        let audioNotificacion = null;
+        let sonidoListo = false;
+
+        // ========== FUNCIÓN PARA INICIALIZAR SONIDO ==========
+        function inicializarAudio() {
+            audioNotificacion = new Audio('/sounds/clin.mp3');
+            audioNotificacion.volume = 0.8;
+            audioNotificacion.load();
+
+            audioNotificacion.addEventListener('canplaythrough', () => {
+                console.log('✅ Audio local cargado y listo');
+                sonidoListo = true;
+            });
+
+            audioNotificacion.addEventListener('error', (e) => {
+                console.error('❌ Error cargando audio local:', e);
+                sonidoListo = false;
+            });
+        }
+
+        // ========== REPRODUCIR SONIDO CON VERIFICACIÓN DE INTERACCIÓN ==========
+        function reproducirSonidoNotificacion() {
+            if (!userInteracted) {
+                console.log('Sonido bloqueado: el usuario aún no ha interactuado');
+                return;
+            }
+
+            if (sonidoListo && audioNotificacion) {
+                audioNotificacion.currentTime = 0;
+                audioNotificacion.play().catch(err => {
+                    console.warn('Error reproduciendo audio local:', err);
+                    reproducirVoz();
+                });
             } else {
-                data.forEach(notif => {
-                    const esLeida = notif.read_at !== null;
-                    if (!esLeida) noLeidas++;
+                reproducirVoz();
+            }
+        }
+
+        function reproducirVoz() {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance('Nueva notificación');
+                utterance.volume = 0.5;
+                utterance.rate = 1.2;
+                window.speechSynthesis.cancel();
+                window.speechSynthesis.speak(utterance);
+                console.log('🔊 Notificación por voz');
+            } else {
+                console.log('No hay soporte de voz');
+            }
+        }
+
+        // ========== DETECTAR PRIMERA INTERACCIÓN DEL USUARIO ==========
+        function marcarInteraccion() {
+            if (!userInteracted) {
+                userInteracted = true;
+                console.log('Usuario interactuó - sonido habilitado');
+                // Intento silencioso para "despertar" el audio (opcional)
+                if (audioNotificacion) {
+                    audioNotificacion.play().then(() => {
+                        audioNotificacion.pause();
+                        audioNotificacion.currentTime = 0;
+                    }).catch(() => {});
+                }
+            }
+        }
+
+        // Registrar eventos de interacción (solo una vez)
+        document.body.addEventListener('click', marcarInteraccion, { once: true });
+        document.body.addEventListener('keydown', marcarInteraccion, { once: true });
+        document.body.addEventListener('touchstart', marcarInteraccion, { once: true });
+
+        // Inicializar audio
+        inicializarAudio();
+
+        // ========== FUNCIÓN DE ICONOS (la que ya tenías) ==========
+        function obtenerIconoSegunTipo(tipo) {
+            const iconos = {
+                'nueva_solicitud': 'fas fa-clock',
+                'prestamo_aprobado': 'fas fa-check-circle',
+                'prestamo_rechazado': 'fas fa-times-circle',
+                'prestamo_entregado': 'fas fa-hand-holding-heart',
+                'prestamo_devuelto': 'fas fa-undo-alt',
+                'prestamo_vencido': 'fas fa-exclamation-triangle',
+                'default': 'fas fa-bell'
+            };
+            return iconos[tipo] || iconos.default;
+        }
+
+        window.cargarNotificaciones = function() {
+            $.ajax({
+                url: '/notificaciones',
+                method: 'GET',
+                success: function(data) {
+                    let notifHtml = '';
+                    let noLeidas = 0;
+
+                    if (data.length === 0) {
+                        notifHtml = '<div class="text-center text-white p-3">No hay notificaciones</div>';
+                    } else {
+                        data.forEach(notif => {
+                            const esLeida = notif.read_at !== null;
+                            if (!esLeida) noLeidas++;
+                            
+                            let mensaje = notif.data.mensaje || 'Nueva notificación';
+                            let url = notif.data.url || '#';
+                            let tipo = notif.data.tipo || 'default';
+                            let icono = obtenerIconoSegunTipo(tipo);
+                            
+                            // Clases según leída/no leída
+                            let itemClass = esLeida ? 'read' : 'unread';
+                            
+                            notifHtml += `
+                                <a href="${url}" class="notification-item ${itemClass}" data-id="${notif.id}">
+                                    <div class="notification-icon ${tipo}">
+                                        <i class="${icono}"></i>
+                                    </div>
+                                    <div class="notification-content">
+                                        <div class="notification-title">${notif.data.titulo || 'Notificación'}</div>
+                                        <div class="notification-message">${mensaje}</div>
+                                        <div class="notification-time">${new Date(notif.created_at).toLocaleString()}</div>
+                                    </div>
+                                </a>
+                                <div class="dropdown-divider"></div>
+                            `;
+                        });
+                    }
                     
-                    let mensaje = notif.data.mensaje || 'Nueva notificación';
-                    let url = notif.data.url || '#';
-                    let tipo = notif.data.tipo || 'default';
-                    let icono = obtenerIconoSegunTipo(tipo);
+                    $('#notificationList').html(notifHtml);
                     
-                    // Clases según leída/no leída
-                    let itemClass = esLeida ? 'read' : 'unread';
+                    // Mostrar/ocultar el badge de no leídas
+                // Actualizar contador y sonido si hay nuevas
+                if (noLeidas > 0) {
+                    $('#notifCount').text(noLeidas).show();
                     
-                    notifHtml += `
-                        <a href="${url}" class="notification-item ${itemClass}" data-id="${notif.id}">
-                            <div class="notification-icon ${tipo}">
-                                <i class="${icono}"></i>
+                    if (ultimoConteoNoLeidas !== null && noLeidas > ultimoConteoNoLeidas) {
+                        reproducirSonidoNotificacion();
+                    }
+                } else {
+                    $('#notifCount').hide();
+                }
+                ultimoConteoNoLeidas = noLeidas;
+
+
+                    // Agregar opción "Marcar todas" SOLO si hay notificaciones
+                    if (data.length > 0 && !$('#marcarTodasBtn').length) {
+                        $('#notificationList').prepend(`
+                            <div class="mark-all-read" id="marcarTodasBtn">
+                                <a href="#" id="marcarTodas">📋 Marcar todas como leídas</a>
                             </div>
-                            <div class="notification-content">
-                                <div class="notification-title">${notif.data.titulo || 'Notificación'}</div>
-                                <div class="notification-message">${mensaje}</div>
-                                <div class="notification-time">${new Date(notif.created_at).toLocaleString()}</div>
-                            </div>
-                        </a>
-                        <div class="dropdown-divider"></div>
-                    `;
+                            <div class="dropdown-divider"></div>
+                        `);
+                    }
+                },
+                error: function() {
+                    console.log('Error cargando notificaciones');
+                }
+            });
+        };
+
+
+        // Al hacer clic en una notificación, marcarla como leída individualmente
+        $(document).on('click', '#notificationList .dropdown-item', function(e) {
+            let notifId = $(this).data('id');
+            if (notifId) {
+                $.post('/notificaciones/marcar-leida/' + notifId, {
+                    _token: '{{ csrf_token() }}'
                 });
             }
-            
-            $('#notificationList').html(notifHtml);
-            
-            // Mostrar/ocultar el badge de no leídas
-            if (noLeidas > 0) {
-                $('#notifCount').text(noLeidas).show();
-            } else {
-                $('#notifCount').hide();
-            }
-            
-            // Agregar opción "Marcar todas" SOLO si hay notificaciones
-            if (data.length > 0 && !$('#marcarTodasBtn').length) {
-                $('#notificationList').prepend(`
-                    <div class="mark-all-read" id="marcarTodasBtn">
-                        <a href="#" id="marcarTodas">📋 Marcar todas como leídas</a>
-                    </div>
-                    <div class="dropdown-divider"></div>
-                `);
-            }
-        },
-        error: function() {
-            console.log('Error cargando notificaciones');
-        }
-    });
-};
-
-// Función auxiliar para ícono según tipo
-function obtenerIconoSegunTipo(tipo) {
-    const iconos = {
-        'nueva_solicitud': 'fas fa-clock',
-        'prestamo_aprobado': 'fas fa-check-circle',
-        'prestamo_rechazado': 'fas fa-times-circle',
-        'prestamo_entregado': 'fas fa-hand-holding-heart',
-        'prestamo_devuelto': 'fas fa-undo-alt',
-        'prestamo_vencido': 'fas fa-exclamation-triangle',
-        'default': 'fas fa-bell'
-    };
-    return iconos[tipo] || iconos.default;
-}
-
-// Al hacer clic en una notificación, marcarla como leída individualmente
-$(document).on('click', '#notificationList .dropdown-item', function(e) {
-    let notifId = $(this).data('id');
-    if (notifId) {
-        $.post('/notificaciones/marcar-leida/' + notifId, {
-            _token: '{{ csrf_token() }}'
         });
-    }
-});
 
-// Cargar al inicio y cada 30 segundos
-$(document).ready(function() {
-    cargarNotificaciones();
-    setInterval(cargarNotificaciones, 30000);
-});
-        
+        // Cargar al inicio y cada 30 segundos
+        $(document).ready(function() {
+            cargarNotificaciones();
+            setInterval(cargarNotificaciones, 30000);
+        });
+                
         // Marcar como leída al hacer clic en una notificación
         $(document).on('click', '#notificationList .notification-item', function(e) {
             let notifId = $(this).data('id');
