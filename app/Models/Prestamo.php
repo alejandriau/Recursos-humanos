@@ -53,7 +53,7 @@ class Prestamo extends Model
     const CARPETA_TYPES = [
         'App\Models\Pasivouno' => 'Pasivouno',
         'App\Models\Pasivodos' => 'Pasivodos',
-        'App\Models\Personal' => 'Personal'
+        'App\Models\Persona' => 'Persona'
     ];
     protected $appends = [
     'fecha_solicitud_formateada',

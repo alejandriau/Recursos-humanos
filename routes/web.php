@@ -831,7 +831,7 @@ Route::middleware([
         Route::post('/admin/prestamos/{id}/rechazar', [PrestamoController::class, 'rechazar'])->name('prestamos.rechazar');
         Route::post('/admin/prestamos/{id}/entregar', [PrestamoController::class, 'entregar'])->name('prestamos.entregar');
         Route::post('/admin/prestamos/{id}/devolver', [PrestamoController::class, 'devolver'])->name('prestamos.devolver');
-        Route::get('/admin/prestamos/reporte', [PrestamoController::class, 'reporte'])->name('prestamos.reporte');
+        Route::get('/admin/prestamos/reporte/jh', [PrestamoController::class, 'reporte'])->name('prestamos.reporte');
         Route::get('/admin/prestamos/vencidos', [PrestamoController::class, 'vencidos'])->name('prestamos.vencidos');
         Route::post('/admin/prestamos/manual', [PrestamoController::class, 'storeManual'])->name('prestamos.manual');
 

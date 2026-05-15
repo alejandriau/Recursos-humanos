@@ -106,66 +106,81 @@
 
                 <!-- Acciones -->
                 <td>
-                    <div class="dropdown">
-                        <button class="btn text-dark fw-bold fs-4" type="button" id="dropdownMenu{{ $persona->id }}"
-                            data-bs-toggle="dropdown" aria-expanded="false">
-                            ⋮
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenu{{ $persona->id }}">
-                            <li><a class="dropdown-item" href="{{ route('personas.show', $persona->id) }}">🔍 Ver</a>
-                            </li>
-                            <li><a class="dropdown-item" href="{{ route('personas.edit', $persona->id) }}">✏️
-                                    Editar</a></li>
-                            <li>
-                                <form action="{{ route('personas.destroy', $persona->id) }}" method="POST"
-                                    onsubmit="return confirm('¿Estás seguro de desactivar a esta persona?');">
-                                    @csrf
-                                    @method('PATCH')
-                                    <button type="submit" class="dropdown-item text-danger">🗑️ Desactivar</button>
-                                </form>
-                            </li>
-                            <li><a class="dropdown-item" href="{{ route('persona.dashboard', $persona->id) }}">📊
-                                    Documentación</a></li>
-                            <form id="formEliminar{{ $persona->id }}"  action="{{ route('personas.delete', $persona->id) }}" method="POST" onsubmit="return confirm('¿Estás seguro de eliminar este registro?')">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="dropdown-item text-danger btn-eliminar"> <i class="fa fa-trash"></i>Eliminar</button>
-                            </form>
-                            <li><a class="dropdown-item" href="{{ route('personas.historial', $persona->id) }}">
-                                    📋 Historial
-                                    @if ($persona->historials->count() > 0)
-                                        <span class="badge bg-primary">{{ $persona->historials->count() }}</span>
-                                    @endif
-                                </a></li>
-
-                            <!-- Información rápida del historial -->
-                            @if ($persona->historials->count() > 0)
-                                <li>
-                                    <hr class="dropdown-divider">
-                                </li>
-                                <li class="dropdown-header text-primary">Últimos puestos:</li>
-                                @foreach ($persona->historials->sortByDesc('fecha_inicio')->take(2) as $historial)
-                                    <li>
-                                        <a class="dropdown-item text-wrap small" href="#"
-                                            title="{{ $historial->puesto->denominacion ?? 'N/A' }}">
-                                            <div>
-                                                <strong>{{ $historial->puesto->item ?? 'N/A' }}</strong>
-                                                <br>
-                                                <small class="text-muted">
-                                                    {{ \Carbon\Carbon::parse($historial->fecha_inicio)->format('d/m/Y') }}
-                                                    @if ($historial->fecha_fin)
-                                                        -
-                                                        {{ \Carbon\Carbon::parse($historial->fecha_fin)->format('d/m/Y') }}
-                                                    @else
-                                                        - Actual
-                                                    @endif
-                                                </small>
-                                            </div>
-                                        </a>
+                    <div class="flex">
+                        <div>
+                            <button type="button" 
+                                    class="btn btn-sm btn-info btn-solicitar-prestamo" 
+                                    data-id="{{ $persona->id }}"
+                                    data-codigo=000
+                                    data-nombre="{{ $persona->apellidoPat  }} {{ $persona->apellidoMat }} {{ $persona->nombre }}"
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#modalSolicitarPrestamo">
+                                <i class="fas fa-hand-holding-heart"></i> Prestar
+                            </button>
+                        </div>
+                        <div>
+                            <div class="dropdown">
+                                <button class="btn text-dark fw-bold fs-4" type="button" id="dropdownMenu{{ $persona->id }}"
+                                    data-bs-toggle="dropdown" aria-expanded="false">
+                                    ⋮
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenu{{ $persona->id }}">
+                                    <li><a class="dropdown-item" href="{{ route('personas.show', $persona->id) }}">🔍 Ver</a>
                                     </li>
-                                @endforeach
-                            @endif
-                        </ul>
+                                    <li><a class="dropdown-item" href="{{ route('personas.edit', $persona->id) }}">✏️
+                                            Editar</a></li>
+                                    <li>
+                                        <form action="{{ route('personas.destroy', $persona->id) }}" method="POST"
+                                            onsubmit="return confirm('¿Estás seguro de desactivar a esta persona?');">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button type="submit" class="dropdown-item text-danger">🗑️ Desactivar</button>
+                                        </form>
+                                    </li>
+                                    <li><a class="dropdown-item" href="{{ route('persona.dashboard', $persona->id) }}">📊
+                                            Documentación</a></li>
+                                    <form id="formEliminar{{ $persona->id }}"  action="{{ route('personas.delete', $persona->id) }}" method="POST" onsubmit="return confirm('¿Estás seguro de eliminar este registro?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="dropdown-item text-danger btn-eliminar"> <i class="fa fa-trash"></i>Eliminar</button>
+                                    </form>
+                                    <li><a class="dropdown-item" href="{{ route('personas.historial', $persona->id) }}">
+                                            📋 Historial
+                                            @if ($persona->historials->count() > 0)
+                                                <span class="badge bg-primary">{{ $persona->historials->count() }}</span>
+                                            @endif
+                                        </a></li>
+        
+                                    <!-- Información rápida del historial -->
+                                    @if ($persona->historials->count() > 0)
+                                        <li>
+                                            <hr class="dropdown-divider">
+                                        </li>
+                                        <li class="dropdown-header text-primary">Últimos puestos:</li>
+                                        @foreach ($persona->historials->sortByDesc('fecha_inicio')->take(2) as $historial)
+                                            <li>
+                                                <a class="dropdown-item text-wrap small" href="#"
+                                                    title="{{ $historial->puesto->denominacion ?? 'N/A' }}">
+                                                    <div>
+                                                        <strong>{{ $historial->puesto->item ?? 'N/A' }}</strong>
+                                                        <br>
+                                                        <small class="text-muted">
+                                                            {{ \Carbon\Carbon::parse($historial->fecha_inicio)->format('d/m/Y') }}
+                                                            @if ($historial->fecha_fin)
+                                                                -
+                                                                {{ \Carbon\Carbon::parse($historial->fecha_fin)->format('d/m/Y') }}
+                                                            @else
+                                                                - Actual
+                                                            @endif
+                                                        </small>
+                                                    </div>
+                                                </a>
+                                            </li>
+                                        @endforeach
+                                    @endif
+                                </ul>
+                            </div>
+                        </div>
                     </div>
                 </td>
             </tr>

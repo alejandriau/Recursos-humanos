@@ -750,7 +750,7 @@ $('#formReporte').on('submit', function(e) {
     console.log('Generando reporte con:', data);
     
     $.ajax({
-        url: '/admin/prestamos/reporte',
+        url: '/admin/prestamos/reporte/jh',
         type: 'GET',
         data: data,
         dataType: 'json',

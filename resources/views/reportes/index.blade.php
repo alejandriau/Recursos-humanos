@@ -107,6 +107,61 @@
             @include('reportes.partes.tabla-personas', ['personas' => $personas])
         </div>
     </div>
+    {{-- MODAL PARA SOLICITAR PRÉSTAMO --}}
+<!-- Modal para solicitar préstamo -->
+<div class="modal fade" id="modalSolicitarPrestamo" tabindex="-1" aria-labelledby="modalSolicitarPrestamoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalSolicitarPrestamoLabel">
+                    <i class="fas fa-hand-holding-heart me-2"></i>Solicitar Préstamo de Carpeta
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formSolicitarPrestamo">
+                @csrf
+                <div class="modal-body">
+                    <div class="alert alert-info" id="infoCarpeta">
+                        <strong>Carpeta seleccionada:</strong> <span id="carpetaCodigo"></span> - <span id="carpetaNombre"></span>
+                    </div>
+                    
+                    <input type="hidden" name="carpeta_id" id="carpeta_id">
+                    <input type="hidden" name="carpeta_type" value="persona">
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="fecha_solicitud" class="form-label">Fecha de solicitud *</label>
+                            <input type="date" class="form-control" id="fecha_solicitud" name="fecha_solicitud" 
+                                   value="{{ date('Y-m-d') }}" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="fecha_devolucion_estimada" class="form-label">Fecha estimada de devolución</label>
+                            <input type="date" class="form-control" id="fecha_devolucion_estimada" 
+                                   name="fecha_devolucion_estimada" min="{{ date('Y-m-d') }}">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="motivo_solicitud" class="form-label">Motivo de la solicitud</label>
+                        <textarea class="form-control" id="motivo_solicitud" name="motivo_solicitud" 
+                                  rows="3" placeholder="¿Para qué necesita la carpeta?"></textarea>
+                    </div>
+                    
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="es_verbal" name="es_verbal" value="1">
+                        <label class="form-check-label" for="es_verbal">Préstamo verbal (sin registro formal)</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="btnGuardarPrestamo">
+                        <i class="fas fa-save me-2"></i>Solicitar Préstamo
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
     @if (session('success'))
     <script>
@@ -306,6 +361,88 @@ $(document).ready(function () {
         const url = "{{ route('reportes.personal') }}?" + queryString;
         window.open(url, '_blank');
     }
+});
+
+$(document).ready(function() {
+    $('#modalSolicitarPrestamo').on('show.bs.modal', function (event) {
+        var button = $(event.relatedTarget);
+        var id = button.data('id');
+        var codigo = button.data('codigo');
+        var nombre = button.data('nombre');
+
+        var modal = $(this);
+        modal.find('#carpeta_id').val(id);
+        modal.find('#carpetaCodigo').text(codigo);
+        modal.find('#carpetaNombre').text(nombre);
+    });
+});
+$('#formSolicitarPrestamo').on('submit', function(e) {
+    e.preventDefault();
+    
+    // Mostrar los datos que se van a enviar
+    const formData = $(this).serialize();
+    const formArray = $(this).serializeArray();
+    
+    console.log('Form Data string:', formData);
+    console.log('Form Array:', formArray);
+    
+    // Verificar específicamente si viene solicitante_id
+    const solicitanteIdField = formArray.find(field => field.name === 'solicitante_id');
+    console.log('solicitante_id:', solicitanteIdField ? solicitanteIdField.value : 'NO ENCONTRADO');
+    
+    // Si no viene, mostramos un error
+
+    
+    const btn = $('#btnGuardarPrestamo');
+    btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Procesando...');
+    
+    $.ajax({
+        url: '{{ route("prestamos.store") }}',
+        type: 'POST',
+        data: formData,
+        success: function(response) {
+            if (response.success) {
+                $('#modalSolicitarPrestamo').modal('hide');
+                $('#formSolicitarPrestamo')[0].reset();
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Solicitud enviada!',
+                    text: 'Tu solicitud de préstamo ha sido registrada exitosamente.',
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000,
+                    background: '#28a745',
+                    color: '#fff',
+                    customClass: { popup: 'custom-toast' }
+                });
+            }
+        },
+        error: function(xhr) {
+            console.log('Error response:', xhr.responseJSON);
+            let mensaje = 'Error al procesar la solicitud';
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                mensaje = xhr.responseJSON.message;
+            } else if (xhr.responseJSON && xhr.responseJSON.errors) {
+                mensaje = 'Errores de validación:';
+                $.each(xhr.responseJSON.errors, function(key, value) {
+                    mensaje += '<br>' + key + ': ' + value;
+                });
+            }
+            
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                html: mensaje,
+                background: '#dc3545',
+                color: '#fff',
+            });
+        },
+        complete: function() {
+            btn.prop('disabled', false).html('<i class="fas fa-save me-2"></i>Solicitar Préstamo');
+        }
+    });
 });
 </script>
 

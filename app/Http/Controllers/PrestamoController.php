@@ -572,8 +572,8 @@ public function devolver(Request $request, $id)
     public function reporte(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'fecha_inicio' => 'required|date',
-            'fecha_fin' => 'required|date|after_or_equal:fecha_inicio'
+            'fecha_desde' => 'required|date',
+            'fecha_hasta' => 'required|date|after_or_equal:fecha_inicio'
         ]);
 
         if ($validator->fails()) {
