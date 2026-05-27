@@ -335,9 +335,15 @@ $(document).ready(function () {
     }
 
     // Exportar datos (opcional)
-    $('#btn-exportar-pdf, #btn-exportar-excel').on('click', function() {
-        const tipo = $(this).attr('id') === 'btn-exportar-pdf' ? 'pdf' : 'excel';
-        exportarDatos(tipo);
+    $('#btn-exportar-pdf, #btn-exportar-excel').on('click', function () {
+
+        const rutas = {
+            'btn-exportar-pdf': "{{ route('reportes.personal') }}",
+            'btn-exportar-excel': "{{ route('reportes.excel') }}"
+        };
+
+        window.location.href = rutas[$(this).attr('id')];
+
     });
 
     function exportarDatos(tipo) {
