@@ -238,6 +238,7 @@
                                         <span class="badge bg-warning">Vacante</span>
                                     @endif
                                 </td>
+                                
                                 <td class="jerarquia-text">
                                     @php
                                         $unidad = $puesto->unidadOrganizacional;
@@ -308,6 +309,14 @@
                                                         <i class="fas fa-user-plus me-2"></i>Asignar Personal
                                                     </a>
                                                 </li>
+                                                @if($puesto->historial_actual && $puesto->historial_actual->archivo_memo)
+                                                <li>
+                                                    <a class="dropdown-item" href="javascript:void(0)" 
+                                                    onclick="verPDF('{{ route('memosdesignacion.ver-memo', $puesto->historial_actual->id) }}')">
+                                                        <i class="fas fa-eye me-2"></i>Ver PDF
+                                                    </a>
+                                                </li>
+                                                @endif
                                                 @endif
                                             @else
                                                 <li>
@@ -579,5 +588,7 @@ function confirmarEliminacion(id) {
         }
     });
 }
+
+
 </script>
 @endsection

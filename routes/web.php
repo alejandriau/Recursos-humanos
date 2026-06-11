@@ -291,6 +291,8 @@ Route::middleware([
     Route::put('/historial/desactivar/{id}', [HistorialController::class, 'desactivar'])->name('historial.desactivar');
     Route::get('/historial/buscar', [HistorialController::class, 'buscarPersonas'])->name('historial.buscar');
     Route::get('/historial/vacio', [HistorialController::class, 'vacios'])->name('historial.vacio');
+    //Route::get('/historiales/{id}/historials-pdff/pr', [HistorialController::class, 'verPdf'])->name('historial.ver-pdf');
+    Route::get('/memosdisignacion/{id}/ver-memo', [HistorialController::class, 'verPdf'])->name('memosdesignacion.ver-memo');
 
         Route::post('/historial/store', [HistorialController::class, 'store'])->name('historial.store');
         Route::get('/historial/{historial}', [HistorialController::class, 'show'])->name('historial.show');

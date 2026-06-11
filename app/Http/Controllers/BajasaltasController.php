@@ -424,21 +424,21 @@ public function store(Request $request)
     }
     public function verPdf($id)
     {
-        $baja = Bajasaltas::findOrFail($id);
+        $historial = Historial::findOrFail($id);
 
-        // Verifica que exista el PDF
-        if (!$baja->pdfbaja || !Storage::exists($baja->pdfbaja)) {
+        // Verifica que exista el PDF (campo archivo_memo)
+        if (!$historial->archivo_memo || !Storage::exists($historial->archivo_memo)) {
             abort(404, 'PDF no encontrado');
         }
 
         // Obtiene contenido y tipo MIME
-        $contenido = Storage::get($baja->pdfbaja);
-        $tipo = Storage::mimeType($baja->pdfbaja);
+        $contenido = Storage::get($historial->archivo_memo);
+        $tipo = Storage::mimeType($historial->archivo_memo);
 
         // Devuelve el PDF para ver en el navegador
         return response($contenido)
             ->header('Content-Type', $tipo)
-            ->header('Content-Disposition', 'inline; filename="' . basename($baja->pdfbaja) . '"');
+            ->header('Content-Disposition', 'inline; filename="' . basename($historial->archivo_memo) . '"');
     }
 
     public function descargarPdf($id)

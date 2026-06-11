@@ -404,7 +404,7 @@
 
 
 </style>
-
+<x-pdf-viewer-modal />
 <body>
     <div class="container-xxl position-relative bg-white d-flex p-0">
         <!-- Overlay para móviles -->
@@ -1168,6 +1168,13 @@
         // Agregar opción de marcar todas después de cargar
         setTimeout(agregarOpcionMarcarTodas, 500);
     });
+
+function verPDF(url) {
+    document.getElementById('pdfIframe').src = url;
+    document.getElementById('descargarPdfLink').href = url;
+    var modal = new bootstrap.Modal(document.getElementById('pdfViewerModalGlobal'));
+    modal.show();
+}
     </script>
 </body>
 

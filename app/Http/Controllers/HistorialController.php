@@ -631,4 +631,27 @@ public function marcarComoConcluido($fechaFin = null, $motivo = 'Movimiento a nu
         // Redirigir o devolver respuesta
         return redirect()->back()->with('success', 'Registro eliminado correctamente');
     }
+
+    //ver pdf 
+    public function verPdf($id)
+    {
+        $historial = Historial::find($id);
+        
+        if (!$historial) {
+            abort(404, 'No se encontró la designación con ID ' . $id);
+        }
+
+        if (!$historial->archivo_memo) {
+            abort(404, 'Esta designación no tiene un archivo PDF asociado.');
+        }
+
+        if (!Storage::disk('local')->exists($historial->archivo_memo)) {
+            abort(404, 'El archivo PDF no existe en el servidor.');
+        }
+
+        return response()->file(Storage::disk('local')->path($historial->archivo_memo), [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . basename($historial->archivo_memo) . '"'
+        ]);
+    }
 }
