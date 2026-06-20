@@ -16,6 +16,28 @@ use Carbon\Carbon;
 
 class PersonaController extends Controller
 {
+    public function funValidar(Request $request)
+    {
+        // Obtener el idServidor desde la query string (GET) o desde el body (POST)
+        $idServidor = $request->input('idServidor');
+
+        // Validación básica: si no viene el parámetro, redirigir a form
+        if (!$idServidor) {
+            return redirect('/form');
+        }
+
+        $existe = Persona::where('id_servidor', $idServidor)->exists();
+
+        if ($existe) {
+            return redirect('/homeusr');
+        }
+
+        return redirect('/form');
+    }
+    public function crearForm()
+    {
+        return view("formulario");
+    }
     // Mostrar todas las personas
     public function index()
     {

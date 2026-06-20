@@ -16,6 +16,8 @@ use App\Exports\ReportePersonalExport;
 use App\Exports\AnalyticsPersonalExport;
 use Illuminate\Support\Facades\DB;
 use App\Exports\PersonalExport;
+use App\Models\Salida;
+use App\Models\Tiposalida;
 
 class ReporteController extends Controller
 {
@@ -647,4 +649,171 @@ public function exportarDashboardPDF()
 
     return $pdf->download('dashboard_estadisticas.pdf');
 }
+
+//nueva integracion uge
+
+    public function reporteAprobados()
+    {
+        $reportes = Salida::with(['tiposalida'])
+            ->where('vobo', 'aprobado')
+            ->where('estado', 'espera')
+            ->paginate(5);
+
+        return view('admin.reportes.salidas_aprobadas', compact('reportes'));
+    }
+    public function verPerSalida(Request $request)
+    {
+        $query = Salida::with(['tiposalida', 'personal.kardex', 'nvobo'])
+            ->where('vobo', 'aprobado')
+            ->where('estado', 'validado');
+
+        // Filtros
+        if ($request->filled('buscar')) {
+            $query->whereHas('personal', function ($q) use ($request) {
+                $q->where('nombre', 'like', '%' . $request->buscar . '%')
+                    ->orWhere('apellidopat', 'like', '%' . $request->buscar . '%')
+                    ->orWhere('ci', 'like', '%' . $request->buscar . '%');
+            });
+        }
+
+        if ($request->filled('fecha_inicio') && $request->filled('fecha_fin')) {
+            $query->whereBetween('fechasal', [$request->fecha_inicio, $request->fecha_fin]);
+        }
+
+        if ($request->filled('tipo_salida')) {
+            $query->whereHas('tiposalida', function ($q) use ($request) {
+                $q->where('descripcion', $request->tipo_salida);
+            });
+        }
+
+        // Agrupar por tipo de salida para las pestañas
+        $tipos = ['VACACION', 'COMISION', 'SALUD', 'PARTICULAR'];
+        $salidasPorTipo = [];
+        foreach ($tipos as $tipo) {
+            $subQuery = clone $query;
+
+            if ($tipo === 'PARTICULAR') {
+                // Obtener ID del tipo 'PARTICULAR'
+                $tipoParticular = TipoSalida::where('descripcion', 'PARTICULAR')->first();
+                $idParticular = $tipoParticular?->id;
+
+                $salidasPorTipo[$tipo] = $subQuery
+                    ->whereHas('tiposalida', function ($q) use ($idParticular) {
+                        $q->where('id', $idParticular)
+                            ->orWhere('id_padre', $idParticular);
+                    })
+                    ->paginate(5, ['*'], strtolower($tipo));
+            } else {
+                $salidasPorTipo[$tipo] = $subQuery
+                    ->whereHas('tiposalida', fn($q) => $q->where('descripcion', $tipo))
+                    ->paginate(5, ['*'], strtolower($tipo));
+            }
+        }
+
+        return view('admin.reportes.verPerSalida', compact('salidasPorTipo', 'tipos'));
+    }
+    public function validarSalida($id)
+    {
+        $salida = Salida::findOrFail($id);
+        $salida->estado = 'validado';
+        $salida->save();
+
+        return redirect()->back()->with('success', 'La salida ha sido validada correctamente.');
+    }
+    public function rechazarSalida($id)
+    {
+        $salida = Salida::findOrFail($id);
+        $salida->estado = 'rechazado';
+        $salida->save();
+
+        return redirect()->back()->with('success1', 'La salida ha sido rechazada correctamente.');
+    }
+    public function actualizarRetorno(Request $request, $id)
+    {
+        $request->validate([
+            'fecharet' => 'required|date',
+            'horaret' => 'required|date_format:H:i',
+        ]);
+
+        $salida = Salida::findOrFail($id);
+        $salida->fecharet = $request->fecharet;
+        $salida->horaret = $request->horaret;
+        $salida->save();
+
+        return redirect()->back()->with('success3', 'Fecha y hora de retorno actualizadas correctamente.');
+    }
+    public function validarTodas()
+    {
+        Salida::where('vobo', 'aprobado')->update(['estado' => 'validado']);
+
+        return redirect()->back()->with('success2', 'Todos los registros fueron validados correctamente.');
+    }
+    // funcion para exportar a pdf la lista de salidas del personal
+    public function exportarSalidasPDF(Request $request)
+    {
+        $query = Salida::with(['tiposalida', 'personal', 'nvobo'])
+            ->where('vobo', 'aprobado')
+            ->where('estado', 'validado');
+
+        if ($request->filled('buscar')) {
+            $query->whereHas('personal', function ($q) use ($request) {
+                $q->where('nombre', 'like', '%' . $request->buscar . '%')
+                    ->orWhere('apellidopat', 'like', '%' . $request->buscar . '%')
+                    ->orWhere('ci', 'like', '%' . $request->buscar . '%');
+            });
+        }
+
+        if ($request->filled('fecha_inicio') && $request->filled('fecha_fin')) {
+            $query->whereBetween('fechasal', [$request->fecha_inicio, $request->fecha_fin]);
+        }
+
+        if ($request->filled('tipo_salida')) {
+            $query->whereHas('tiposalida', function ($q) use ($request) {
+                $q->where('descripcion', $request->tipo_salida);
+            });
+        }
+
+        $tipos = ['VACACION', 'COMISION', 'SALUD', 'PARTICULAR'];
+        $salidasPorTipo = [];
+
+        foreach ($tipos as $tipo) {
+            $subQuery = clone $query;
+
+            if ($tipo === 'PARTICULAR') {
+                $idParticular = TipoSalida::where('descripcion', 'PARTICULAR')->value('id');
+                $salidasPorTipo[$tipo] = $subQuery
+                    ->whereHas('tiposalida', fn($q) => $q->where('id', $idParticular)->orWhere('id_padre', $idParticular))
+                    ->get();
+            } else {
+                $salidasPorTipo[$tipo] = $subQuery
+                    ->whereHas('tiposalida', fn($q) => $q->where('descripcion', $tipo))
+                    ->get();
+            }
+        }
+
+        $pdf = Pdf::loadView('admin.reportes.salidas_pdf', compact('salidasPorTipo', 'tipos'))
+            ->setPaper('A4', 'landscape');
+
+        return $pdf->download('reporte_salidas.pdf');
+    }
+    // funcion para exportar a PDF toda la lista del personal registrado en el sistema
+    public function exportarPDF()
+    {
+        $personal = Persona::with('kardex')->get(); // o con relaciones si necesitas
+
+        $pdf = Pdf::loadView('admin.reportes.pdf_personal', compact('personal'))
+            ->setPaper('A4', 'landscape'); // ← aquí se define horizontal
+
+        return $pdf->download('reporte_personal.pdf'); // o ->stream() para verlo en el navegador
+    }
+    //Funcion para exportar datos del personal (personal, kardex, CAS)
+    public function exportarKardexCasPDF($id)
+    {
+        $personal = Persona::with('kardex', 'cas')->findOrFail($id);
+
+        $pdf = Pdf::loadView('admin.reportes.pdf_kardex_cas', compact('personal'))
+            ->setPaper('A4', 'landscape'); // ← orientación horizontal
+
+        return $pdf->download('reporte_kardex_cas_' . $personal->id . '.pdf');
+    }
 }

@@ -643,3 +643,18 @@ public function indexGestion()
 
 
 }
+
+
+// --- Módulo Productos ---
+    Route::middleware('permission:productos.crear')->group(function () {
+        Route::resource('productos', ProductoController::class)->only(['create', 'store']);
+    });
+    Route::middleware('permission:productos.ver')->group(function () {
+        Route::resource('productos', ProductoController::class)->only(['index', 'show']);
+    });
+    Route::middleware('permission:productos.editar')->group(function () {
+        Route::resource('productos', ProductoController::class)->only(['edit', 'update']);
+    });
+    Route::middleware('permission:productos.eliminar')->group(function () {
+        Route::resource('productos', ProductoController::class)->only(['destroy']);
+    });

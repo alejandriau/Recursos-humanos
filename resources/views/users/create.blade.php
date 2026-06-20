@@ -3,68 +3,143 @@
 @section('title', 'Crear Usuario')
 
 @section('contenido')
-<div class="container mx-auto px-4 py-8 max-w-2xl">
-    <div class="bg-white shadow-md rounded-lg p-6">
-        <h2 class="text-2xl font-bold text-gray-800 mb-6">Crear Nuevo Usuario</h2>
 
-        <form method="POST" action="{{ route('users.store') }}">
+<div class="max-w-6xl mx-auto py-8 px-4">
+
+    <!-- Encabezado -->
+    <div class="bg-gray-100 border rounded-lg p-4 flex justify-between items-center mb-8">
+        <h1 class="font-bold text-gray-700 uppercase">
+            Registrar cuenta de usuario administrador
+        </h1>
+
+        <div class="flex items-center text-blue-600">
+            <i class="fas fa-user text-xl mr-2"></i>
+            <span>{{ auth()->user()->name }}</span>
+        </div>
+    </div>
+
+    <!-- Card Principal -->
+    <div class="bg-white rounded-xl shadow-lg border">
+
+        <!-- Título -->
+        <div class="text-center py-6 border-b">
+            <h2 class="text-2xl font-semibold text-gray-700">
+                Registro de usuario
+            </h2>
+        </div>
+
+        <form action="{{ route('users.store') }}" method="POST" class="p-8">
             @csrf
 
-            <div class="mb-4">
-                <label for="name" class="block text-sm font-medium text-gray-700 mb-2">Nombre</label>
-                <input type="text" id="name" name="name" value="{{ old('name') }}"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                @error('name')
-                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                @enderror
-            </div>
+            <!-- Datos -->
+            <div class="grid md:grid-cols-2 gap-6">
 
-            <div class="mb-4">
-                <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                <input type="email" id="email" name="email" value="{{ old('email') }}"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                @error('email')
-                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                @enderror
-            </div>
+                <div>
+                    <label class="block mb-2 font-medium text-gray-700">
+                        Nombre completo
+                    </label>
 
-            <div class="mb-4">
-                <label for="password" class="block text-sm font-medium text-gray-700 mb-2">Contraseña</label>
-                <input type="password" id="password" name="password"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                @error('password')
-                    <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
-                @enderror
-            </div>
-
-            <div class="mb-4">
-                <label for="password_confirmation" class="block text-sm font-medium text-gray-700 mb-2">Confirmar Contraseña</label>
-                <input type="password" id="password_confirmation" name="password_confirmation"
-                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-            </div>
-
-            <div class="mb-6">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Roles</label>
-                <div class="space-y-2">
-                    @foreach($roles as $role)
-                    <div class="flex items-center">
-                        <input type="checkbox" id="role-{{ $role->id }}" name="roles[]" value="{{ $role->name }}"
-                            class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
-                        <label for="role-{{ $role->id }}" class="ml-2 text-sm text-gray-700">{{ $role->name }}</label>
-                    </div>
-                    @endforeach
+                    <input
+                        type="text"
+                        name="name"
+                        value="{{ old('name') }}"
+                        class="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
                 </div>
+
+                <div>
+                    <label class="block mb-2 font-medium text-gray-700">
+                        Correo electrónico
+                    </label>
+
+                    <input
+                        type="email"
+                        name="email"
+                        value="{{ old('email') }}"
+                        class="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                </div>
+
+                <div>
+                    <label class="block mb-2 font-medium text-gray-700">
+                        Contraseña
+                    </label>
+
+                    <input
+                        type="password"
+                        name="password"
+                        class="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                </div>
+
+                <div>
+                    <label class="block mb-2 font-medium text-gray-700">
+                        Confirmar contraseña
+                    </label>
+
+                    <input
+                        type="password"
+                        name="password_confirmation"
+                        class="w-full rounded-lg border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                </div>
+
             </div>
 
-            <div class="flex justify-end space-x-3">
-                <a href="{{ route('users.index') }}" class="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-md transition duration-200">
+            <!-- Roles -->
+            <div class="mt-8">
+
+                <h3 class="font-semibold text-gray-700 mb-4">
+                    Roles del usuario
+                </h3>
+
+                <div class="grid md:grid-cols-3 gap-3">
+
+                    @foreach($roles as $role)
+
+                        <label
+                            class="flex items-center gap-3 border rounded-lg p-3 hover:bg-blue-50 cursor-pointer transition"
+                        >
+                            <input
+                                type="checkbox"
+                                name="roles[]"
+                                value="{{ $role->name }}"
+                                class="w-4 h-4 text-blue-600"
+                            >
+
+                            <span>{{ $role->name }}</span>
+                        </label>
+
+                    @endforeach
+
+                </div>
+
+            </div>
+
+            <!-- Botones -->
+            <div class="flex justify-end gap-3 mt-8 pt-6 border-t">
+
+                <a
+                    href="{{ route('users.index') }}"
+                    class="px-5 py-2.5 rounded-lg border border-gray-300 bg-white hover:bg-gray-100 transition"
+                >
                     Cancelar
                 </a>
-                <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md transition duration-200">
-                    Crear Usuario
+
+                <button
+                    type="submit"
+                    class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-md transition"
+                >
+                    <i class="fas fa-plus mr-2"></i>
+                    Crear usuario
                 </button>
+
             </div>
+
         </form>
+
     </div>
+
 </div>
+
 @endsection

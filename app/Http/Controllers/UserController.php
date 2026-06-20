@@ -63,7 +63,7 @@ class UserController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $user->id,
-            'password' => 'nullable|string|min:8|confirmed',
+            'password' => 'nullable|string|min:6|confirmed',
         ]);
 
         $data = [
@@ -87,13 +87,13 @@ class UserController extends Controller
     }
 
     // Métodos específicos para gestión de roles
-public function editRoles(User $user)
-{
-    $roles = Role::all();
-    $user->load('roles');
+    public function editRoles(User $user)
+    {
+        $roles = Role::all();
+        $user->load('roles');
 
-    return view('users.edit-roles', compact('user', 'roles'));
-}
+        return view('users.edit-roles', compact('user', 'roles'));
+    }
 
     public function updateRoles(Request $request, User $user)
     {
@@ -133,12 +133,10 @@ public function editRoles(User $user)
     // Métodos específicos para gestión de permisos directos
 
 
+    public function removePermission(User $user, Permission $permission)
+    {
+        $user->revokePermissionTo($permission);
 
-
-public function removePermission(User $user, Permission $permission)
-{
-    $user->revokePermissionTo($permission);
-
-    return redirect()->route('users.permissions.edit', $user)->with('success', 'Permiso eliminado exitosamente.');
-}
+        return redirect()->route('users.permissions.edit', $user)->with('success', 'Permiso eliminado exitosamente.');
+    }
 }

@@ -21,6 +21,7 @@ class Persona extends Model
     public $timestamps = false; // porque no usas los campos created_at y updated_at típicos
 
     protected $fillable = [
+        'id_servidor',
         'ci',
         'nombre',
         'apellidoPat',
@@ -418,4 +419,10 @@ public function planillas()
 {
     return $this->hasMany(Planilla::class);
 }
+
+    //beneficios asignar 
+    public function beneficios()
+    {
+        return $this->hasMany(Beneficio::class);
+    }
 }

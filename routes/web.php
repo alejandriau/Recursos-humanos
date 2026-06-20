@@ -62,15 +62,27 @@ use App\Http\Controllers\CatalogoController;
 use App\Http\Controllers\PlanillaImportController;
 use App\Http\Controllers\PerfilController;
 use App\Http\Controllers\NotificacionController;
+use App\Http\Controllers\Auth\LoginController;
 
+use App\Http\Controllers\BeneficioController;
+use App\Http\Controllers\FeriadoController;
+use App\Http\Controllers\GestionController;
+use App\Http\Controllers\SalidaController;
+use App\Http\Controllers\TiposalidaController;
 
 
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('welcome');
+    return view('inicio');
 });
+Route::post('/login-api', [LoginController::class, 'loginApi']);
+Route::get('/form', [PersonaController::class, "crearForm"]);
+Route::get('/validate', [PersonaController::class, "funValidar"]);
 
+Route::get('/homeusr', function () {
+    return view('homeUser');
+});
 
 
 Route::get('/test-map-download', function () {
@@ -101,6 +113,7 @@ Route::middleware([
     Route::get('/chatbot-content', function () {
         return view('chatbot.chatbot');
     });
+
 
     //notificaciones 
        Route::get('/notificaciones', function () {
@@ -844,7 +857,7 @@ Route::middleware([
     ///nuevs rutas de perfil profesion y mas----------------------------------------------------------------------------------------------------------------------
 Route::prefix('validacion')->name('validacion.')->group(function () {
     Route::get('/index', [ValidacionPerfilController::class, 'index'])->name('index');
-    Route::post('/validar', [ValidacionPerfilController::class, 'validar'])->name('validar');
+    //Route::post('/validar', [ValidacionPerfilController::class, 'validar'])->name('validar');
     Route::post('/validar-multiple', [ValidacionPerfilController::class, 'validarMultiple'])->name('validar-multiple');
     Route::get('/historial', [ValidacionPerfilController::class, 'historial'])->name('historial');
     Route::get('/reporte', [ValidacionPerfilController::class, 'reporte'])->name('reporte');
@@ -912,6 +925,51 @@ Route::prefix('catalogos')->name('catalogos.')->group(function () {
     Route::get('/persona/{id}/exportar-pdf/aportes', [PlanillaImportController::class, 'exportarPDF'])->name('persona.exportar.aportes.pdf');
     Route::get('/persona/{id}/exportar-word/planilla', [PlanillaImportController::class, 'exportarWord'])->name('persona.exportar.planilla.word');
     Route::get('/persona/planillas/{id}/vista', [PlanillaController::class, 'show'])->name('persona.planillas.show.vista');
+    //rutas de nuevos sistema de control de personal---------------------------------------------------------------------------------------------------
+    Route::get('/homeadm', [MenuController::class, 'homeadm'])->name('homeadm');
+    // rutas de gestion
+    //Route::get('/apertura-gestion/gestion', [GestionController::class, 'index']);
+    Route::resource('/apertura-gestion/gestion', GestionController::class);
+    // feriados
+    Route::resource('/feriado-gestion/feriado', FeriadoController::class);
+    // beneficios
+    Route::get('/buscar-persona/beneficio', [BeneficioController::class, 'buscarPersonal'])->name('buscar.personal');
+    Route::post('/guardar-beneficios', [BeneficioController::class, 'guardarBeneficios']);
+    Route::get('/beneficios/asignar', [BeneficioController::class, 'asignarVista'])->name('beneficios.asignar');
+    Route::delete('/beneficio/{id}', [BeneficioController::class, 'eliminar']);
+    Route::put('/beneficio/{id}', [BeneficioController::class, 'actualizar']);
+    // tipo de salida
+    Route::get('/tipo-salida/salida', [TiposalidaController::class, "funListar"])->name('tipo-salida.salida');
+    Route::get('/tipo-salida/salida/crear', [TiposalidaController::class, "funCrear"]);
+    Route::post('/tipo-salida/salida', [TiposalidaController::class, "funGuardar"]);
+    Route::get('/tipo-salida/salida/{id}', [TiposalidaController::class, "funEditar"]);
+    Route::put('/tipo-salida/salida/{id}', [TiposalidaController::class, "funModificar"]);
+    Route::delete('/tipo-salida/salida/{id}', [TiposalidaController::class, "funEliminar"]);
+    // cas
+    Route::resource('/cas', CasController::class);
+    // kardex
+    Route::get("/kardex/buscar-kadex", [KadexController::class, "buscarKardex"])->name("buscar-kadex");
+    Route::get('/kardex/{id}', [KadexController::class, "funCrear"]);
+    Route::resource('/kardex', KadexController::class);
+    // Reportes
+    Route::get('/reportes', [PersonalController::class, "reportePersonal"]);
+    Route::get('/reportes/{id}', [PersonalController::class, "funKardexCas"]);
+    Route::get('/salidas', [PersonalController::class, "funPerSalida"])->name('salidas');
+    Route::get('/admin/reporte/salidas/pdf', [ReporteController::class, 'exportarSalidasPDF'])->name('reportes.salidas.pdf');
+    Route::get('/reporte/pdf', [ReporteController::class, 'exportarPDF'])->name('reporte.pdf');
+    Route::get('/reportes/pdf/kardex-cas/{id}', [ReporteController::class, 'exportarKardexCasPDF'])->name('reportes.kardexcas.pdf');
+    // **************************** rutas para crear usuarios en la tabla user *****************
+    Route::get('/registrar', [UserController::class, 'create'])->name('users.create');
+    Route::post('/registrar', [UserController::class, 'store'])->name('users.store');
+    Route::resource('users', UserController::class)->except(['show']);
+    // ******************* validar salidas **************************************************
+    Route::get('/reporte/salidas-aprobadas', [ReporteController::class, 'reporteAprobados']);
+    Route::post('/salida/{id}/validar', [ReporteController::class, 'validarSalida'])->name('salida.validar'); // validar salida usr rrhh
+    Route::post('/salida/{id}/rechazar', [ReporteController::class, 'rechazarSalida'])->name('salida.rechazar'); // rechazar salida usr rrhh
+    Route::post('/salidas/validar-todas', [ReporteController::class, 'validarTodas'])->name('salidas.validarTodas'); // validar todas las salidas usr rrhh
+    Route::get('/admin/reportes/verPerSalida', [ReporteController::class, 'verPerSalida'])->name('reportes.verPerSalida'); // reporte de salidas
+    Route::post('/salida/{id}/actualizar-retorno', [ReporteController::class, 'actualizarRetorno'])
+    ->name('salida.actualizarRetorno'); // ruta para modificar la hora y fecha de retorno del personal antes de validar usuario rrhh
 
     Route::middleware(['auth', 'role:empleado'])->group(function () {
 
@@ -943,7 +1001,51 @@ Route::prefix('catalogos')->name('catalogos.')->group(function () {
         Route::get('/empleado/historial', [HistorialController::class, 'index'])->name('empleado.historial.index');
         Route::get('/empleado/historial/{historial}', [HistorialController::class, 'show'])->name('empleado.historial.show');
 
+        // NUEVA INTEGRACION 
+        //  ******************************************* APIs ************************************************
+        Route::get('/cas/buscar-serv', [CasController::class, "funBuscarServ"]); // busqueda de servidor por api
+        Route::get('/vacacion/buscar-superior', [SalidaController::class, "buscarSuperio"]); // busqueda de superior por api
+        Route::post('/form/guardar-personal', [PersonaController::class, "funGuardarPer"]); // busqueda de servidor por api
+        Route::get('/vacacion/dias-disponibles', [SalidaController::class, 'obtenerDiasDisponibles']); // muestra la cantidad de dias disponibles
+        Route::get('/particular/dias-disponibles', [SalidaController::class, 'diasDisponibles']);// cantidad de beneficio de particular
+        Route::post('/particular/registrar', [SalidaController::class, 'registrarParticular'])->name('particular.registrar');
+        Route::post('/vacacion/registrar-vacacion', [SalidaController::class, 'registrarVacacion'])->name('vacacion.registrar'); // registrar vacacion por api
+        Route::post('/comision/registrar', [SalidaController::class, 'registrarComision']); // registrar comision por api
+        Route::post('/vacacion/registrar-salida-salud', [SalidaController::class, "registarSalSalud"]); // registrar salida a salud por api
+        Route::post('/list-vacacion', [PersonaController::class, "listarVacacion"]); // listar vacaciones por api
+        Route::post('/list-comision', [PersonaController::class, "listarComision"]); // listar comisiones  por api
+        Route::post('/list-salud', [PersonaController::class, "listarSalud"]); // listar salida de salud  por api
+        Route::post('/list-particular', [PersonaController::class, 'listParticular']); // listar salida paricular por api
+        Route::post('/listar-solicitudes', [PersonaController::class, "listarSolicitudes"]); // listar salida de salud  por api
+        Route::post('/aprobar-solicitud', [PersonaController::class, "aprobarSolicitud"]); // aprobar solicitudes pendientes para vobo por api
+        Route::post('/rechazar-solicitud', [PersonaController::class, "rechazarSolicitud"]); // rechaza la solicitud de salidas pendiente de vobo
+        Route::get('/detalle-pdf/{id}', [PersonaController::class, 'generarPDF']);
+        // ********************* reportes usuario ******************************************
+        Route::get('/reportesusr', [SalidaController::class, "reporteusr"]); // reporte de salidas del personal
+        Route::get('/reportesusr/data', [SalidaController::class, "reporteusrData"]); // consulta api para generar reporte de salidas del personal
 
+        Route::get('/listarbeneficio', [BeneficioController::class, 'beneficiosView'])->name('beneficios.view');// lista de beneficios del personal
+        Route::get('/beneficios/data', [BeneficioController::class, 'data'])->name('beneficios.data'); // lista de bebeficios por api del personal
+        Route::get('/datos-personal', [PersonaController::class, 'datosPersonalView'])->name('datos.personal.view');
+        Route::get('/datos-personal/data', [PersonaController::class, 'datosPersonalData'])->name('datos.personal.data');
+        // ***************************** KARDEX ********************************
+        // buscar kardex api
+        //Route::get('/kardex/buscar-kardex',[KadexController::class,"buscarKardex"]);
+        //Route::put('/kardex/validar-kardex',[KadexController::class,"validarkardex"]);
+
+
+
+        // ************************ salidas *****************************************
+        Route::get('/comision/usuario', [SalidaController::class, "funComision"]);
+        Route::get('/salud', [SalidaController::class, "funcSalud"]);
+        Route::get('/particular', [SalidaController::class, "funcParicular"]);
+        //  *************************** USUARIO ****************************************
+
+        //Route::resource('/vacacion',SalidaController::class);
+
+        Route::get('/homeusr', [FeriadoController::class, "funListFer"]);
+
+        Route::get('/vacacion/usuario', [SalidaController::class, 'index'])->name('vacacion.index');
         // Redirección por defecto
         Route::get('/empleado', function () {
             return redirect()->route('dashboard');

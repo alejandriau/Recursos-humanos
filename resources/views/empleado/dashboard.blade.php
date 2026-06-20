@@ -1,4 +1,4 @@
-@extends('dashboard')
+@extends('layouts.baseusr')
 
 @section('title', 'Mi Panel - Empleado')
 
