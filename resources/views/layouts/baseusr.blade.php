@@ -10,7 +10,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="{{ asset('js/funcionesApiUsr.js') }}"></script>
 <meta name="csrf-token" content="{{ csrf_token() }}">
     <style>
         :root {
@@ -743,25 +745,25 @@
         <!-- Solicitar Salida -->
         <div class="sidebar-section">
             <div class="sidebar-title">Solicitar Salida</div>
-            <a href="/vacacion" class="sidebar-item">
+            <a href="/vacacion/usuario" class="sidebar-item">
                 <div class="item-icon" style="background:rgba(39,174,96,0.1); color:var(--accent-green);">
                     <i class="fas fa-umbrella-beach"></i>
                 </div>
                 <span>Vacaciones</span>
             </a>
-            <a href="/comision" class="sidebar-item">
+            <a href="/comision/usuario" class="sidebar-item">
                 <div class="item-icon" style="background:rgba(230,126,34,0.1); color:var(--accent-orange);">
                     <i class="fas fa-person-walking-arrow-right"></i>
                 </div>
                 <span>Comisiones</span>
             </a>
-            <a href="/particular" class="sidebar-item">
+            <a href="/salida/particular" class="sidebar-item">
                 <div class="item-icon" style="background:rgba(142,68,173,0.1); color:var(--accent-purple);">
                     <i class="fas fa-person-walking-arrow-loop-left"></i>
                 </div>
                 <span>Salida Particular</span>
             </a>
-            <a href="/salud" class="sidebar-item">
+            <a href="/salud/usuario" class="sidebar-item">
                 <div class="item-icon" style="background:rgba(231,76,60,0.1); color:var(--accent-red);">
                     <i class="fas fa-truck-medical"></i>
                 </div>
@@ -772,13 +774,13 @@
         <!-- Visto Bueno -->
         <div class="sidebar-section">
             <div class="sidebar-title">Visto Bueno</div>
-            <a href="/solicitudes-pendientes" class="sidebar-item">
+            <button class="sidebar-item" id="listSol">
                 <div class="item-icon" style="background:rgba(40,116,166,0.1); color:var(--primary);">
                     <i class="fas fa-check-circle"></i>
                 </div>
                 <span>Solicitudes Pendientes</span>
                 <span class="item-badge" id="badgePendientes">0</span>
-            </a>
+            </button>
         </div>
 
         <!-- Reportes -->
@@ -825,7 +827,7 @@
 
     <!-- ===== FOOTER ===== -->
     <footer class="app-footer">
-        <i class="fas fa-code-branch me-1"></i> Desarrollado por UGE © 2024 - GADC
+        <i class="fas fa-code-branch me-1"></i> Desarrollado por UGRH © 2026 - GADC
     </footer>
 
     <!-- ===== MODAL: Vacaciones Registradas (ejemplo del tipo tabla) ===== -->

@@ -353,8 +353,51 @@ document.addEventListener('DOMContentLoaded', () => {
 
     listSolButton.addEventListener('click', async () => {
         try {
-            const response = await axios.post('/listar-solicitudes', { idserv: idserv });
-            const tbody = document.querySelector('#IdListSol tbody');
+            const response = await axios.get('/listar-solicitudes/usuario', { idserv: idserv });
+            
+            // ---- Opción 2: Crear contenedor y tabla si no existen ----
+            let container = document.getElementById('IdListSol');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'IdListSol';
+                container.className = 'table-responsive mt-4';
+                // Lo insertamos donde quieras, por ejemplo después del banner de bienvenida
+                const banner = document.querySelector('.welcome-banner');
+                if (banner) {
+                    banner.parentNode.insertBefore(container, banner.nextSibling);
+                } else {
+                    document.querySelector('.main-content').appendChild(container);
+                }
+            }
+
+            let table = container.querySelector('table');
+            if (!table) {
+                table = document.createElement('table');
+                table.className = 'table table-modern';
+                table.innerHTML = `
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Fecha Solicitud</th>
+                            <th>Nombre</th>
+                            <th>Descripción</th>
+                            <th>Fecha Salida</th>
+                            <th>Hora Salida</th>
+                            <th>Fecha Retorno</th>
+                            <th>Hora Retorno</th>
+                            <th>Motivo</th>
+                            <th>Cantidad</th>
+                            <th>Visto Bueno</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                `;
+                container.appendChild(table);
+            }
+
+            const tbody = table.querySelector('tbody');
+            // ---- Fin de creación dinámica ----
+
             const voboClass = {
                 pendiente: 'text-warning',
                 aprobado: 'text-success',
@@ -363,6 +406,7 @@ document.addEventListener('DOMContentLoaded', () => {
             tbody.innerHTML = '';
 
             response.data.salidas.forEach((item, index) => {
+                // ... (todo igual que antes)
                 const [yearSol, monthSol, daySol] = item.fechasol.split('-');
                 const fechaSol = `${daySol}-${monthSol}-${yearSol}`;
 
@@ -403,7 +447,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 tbody.appendChild(row);
             });
 
-            // Escuchar clic en los botones individuales
+            // Escuchar clic en los botones individuales (igual)
             tbody.addEventListener('click', async (event) => {
                 if (event.target.classList.contains('btn-aprobar')) {
                     const id = event.target.getAttribute('data-id');
@@ -428,8 +472,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         alert('Error al rechazar la solicitud');
                     }
                 }
-
-
             });
 
         } catch (error) {

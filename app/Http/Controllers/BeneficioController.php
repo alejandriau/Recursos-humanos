@@ -2,23 +2,31 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Beneficio;
+use App\Models\BeneficioPeriodo;
 use App\Models\Gestion;
 use App\Models\Persona;
-use App\Models\Tiposalida;
+use App\Models\TipoSalida;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 class BeneficioController extends Controller
 {
     public function asignarVista()
     {
-        // Obtener las 3 gestiones más recientes sin importar el estado
-        $gestiones = Gestion::orderBy('anio', 'desc')->take(2)->get();
 
-        $tiposalidas = Tiposalida::all();
+        // Obtener tipos de salida activos que NO son padres (hojas)
+        $tiposalidas = Tiposalida::where('activo', true)
+            ->whereDoesntHave('hijos')
+            ->get();
 
-        return view('admin.beneficio.asigBeneficio', compact('gestiones', 'tiposalidas'));
+        // Si necesitas incluir algún tipo que sea padre pero quieras asignarlo (excepción),
+        // podrías agregarlo con orWhere, pero según tu regla no.
+
+        $gestiones = Gestion::where('estado', 'habilitado')->get();
+
+        return view('admin.beneficio.asigBeneficio', compact('tiposalidas', 'gestiones'));
+
     }
     public function buscarPersonal(Request $request)
     {
@@ -32,34 +40,62 @@ class BeneficioController extends Controller
     // Guardar beneficios
     public function guardarBeneficios(Request $request)
     {
-        $data = $request->validate([
-            'persona_id' => 'required|exists:persona,id',
-            'gestion_id' => 'required|exists:gestions,id',
-            'beneficios' => 'required|array',
-            'beneficios.*.tiposalida_id' => 'required|exists:tiposalidas,id',
-            'beneficios.*.cantidad' => 'nullable|numeric|min:0',
-        ]);
+    $validator = Validator::make($request->all(), [
+        'persona_id' => 'required|exists:persona,id',
+        'gestion_id' => 'required|exists:gestions,id',
+        'beneficios' => 'required|array|min:1',
+        'beneficios.*.tiposalida_id' => 'required|exists:tiposalidas,id',
+        'beneficios.*.cantidad' => 'numeric|nullable',
+        'beneficios.*.unidad' => 'nullable|in:dias,horas',
+    ]);
 
-        $beneficiosAsignados = [];
+if ($validator->fails()) {
+    return response()->json([
+        'request' => $request->all(),
+        'errors' => $validator->errors()->toArray(),
+        'failed' => $validator->failed(),
+    ], 422);
+}
 
-        foreach ($data['beneficios'] as $b) {
-            $beneficio = Beneficio::updateOrCreate(
-                [
-                    'persona_id' => $data['persona_id'],
-                    'gestion_id' => $data['gestion_id'],
-                    'tiposalida_id' => $b['tiposalida_id']
-                ],
-                ['cantidad' => $b['cantidad']]
-            );
-            $beneficiosAsignados[] = $beneficio->load('tiposalida', 'persona', 'gestion');
+    foreach ($request->beneficios as $b) {
+        $tipo = Tiposalida::find($b['tiposalida_id']);
+        // Verificar que el tipo no tenga hijos (asignable)
+        if ($tipo->hijos()->exists()) {
+            return response()->json(['message' => 'El tipo seleccionado no es asignable.'], 422);
         }
 
-        return response()->json($beneficiosAsignados);
+        // Determinar unidad: si no viene en request, usar la del tipo o 'dias'
+        $unidad = $b['unidad'] ?? $tipo->unidad ?? 'dias';
+
+        // Crear el beneficio
+        BeneficioPeriodo::create([
+            'persona_id' => $request->persona_id,
+            'tiposalida_id' => $tipo->id,
+            'gestion_id' => $request->gestion_id,
+            'mes' => null, // según lógica
+            'unidad' => $unidad,
+            'cantidad_asignada' => $b['cantidad'] ?? 0,
+            'cantidad_usada' => 0,
+            'cantidad_vencida' => 0,
+            'arrastre' => 0,
+            'saldo_disponible' => $b['cantidad'] ?? 0,
+            'fecha_habilitacion' => now(),
+            'estado' => 'activo',
+        ]);
+    }
+
+        // Retornar los beneficios creados para refrescar tabla
+        $beneficios = BeneficioPeriodo::with(['tiposalida', 'gestion', 'persona'])
+            ->where('persona_id', $request->persona_id)
+            ->where('gestion_id', $request->gestion_id)
+            ->get();
+
+        return response()->json($beneficios);
     }
     // Elimina un beneficio despues de asignar el beneficio al personal
     public function eliminar($id)
     {
-        $beneficio = Beneficio::findOrFail($id);
+        $beneficio = BeneficioPeriodo::findOrFail($id);
         $beneficio->delete();
 
         return response()->json(['mensaje' => 'Beneficio eliminado correctamente']);
@@ -71,7 +107,7 @@ class BeneficioController extends Controller
             'cantidad' => 'nullable|numeric|min:0'
         ]);
 
-        $beneficio = Beneficio::findOrFail($id);
+        $beneficio = BeneficioPeriodo::findOrFail($id);
         $beneficio->cantidad = $request->cantidad;
         $beneficio->save();
 
@@ -95,7 +131,7 @@ class BeneficioController extends Controller
             return response()->json(['data' => []]);
         }
 
-        $query = \App\Models\Beneficio::with(['gestion', 'tiposalida'])
+        $query = \App\Models\BeneficioPeriodo::with(['gestion', 'tiposalida'])
             ->where('personal_id', $personal->id);
 
         // Filtro por gestión

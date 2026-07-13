@@ -12,6 +12,9 @@ use App\Models\UnidadOrganizacional;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
+use App\Models\Salida;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule;
 
 
 class PersonaController extends Controller
@@ -625,4 +628,87 @@ public function actualizarRutasArchivos()
     {
         return Carbon::parse($fechaNacimiento)->age;
     }
+
+
+    // ************** Funcion lista de solicitudes del personal *******************
+public function listarSolicitudes(Request $request)
+{
+    try {
+        // Obtener la persona autenticada (suponiendo que el usuario tiene relación con Persona)
+        $user = auth()->user();
+        $personal = Persona::where('user_id', $user->id)->first();
+
+        // O si el request envía el id de la persona (más inseguro, pero a veces usado)
+        // $personal = Persona::find($request->input('persona_id'));
+
+        if (!$personal) {
+            return response()->json(['message' => 'Servidor no encontrado'], 404);
+        }
+
+        $salidas = Salida::with(['persona', 'tiposalida'])
+            ->where('vobo', 'pendiente')
+            ->where('id_vobo', $personal->id) // el superior es esta persona
+            ->get()
+            ->map(function ($salida) {
+                $personal = optional($salida->persona);
+                $tipoSalida = optional($salida->tiposalida);
+
+                $nombreCompleto = trim(
+                    ($personal->nombre ?? '') . ' ' .
+                    ($personal->apellidoPat ?? '') . ' ' . // Ajusta el nombre del campo
+                    ($personal->apellidoMat ?? '')
+                );
+
+                return [
+                    'id' => $salida->id,
+                    'fechasol' => $salida->fechasol ?? '',
+                    'nombre' => $nombreCompleto,
+                    'descripcion' => $tipoSalida->descripcion ?? '',
+                    'fechasal' => $salida->fechasal ?? '',
+                    'horasal' => $salida->horasal ?? '',
+                    'fecharet' => $salida->fecharet ?? '',
+                    'horaret' => $salida->horaret ?? '',
+                    'motivo' => $salida->motivo ?? '',
+                    'vobo' => $salida->vobo ?? '',
+                    'cantidad' => $salida->cantidad ?? ''
+                ];
+            });
+
+        if ($salidas->isEmpty()) {
+            return response()->json(['message' => 'No existen solicitudes registradas'], 404);
+        }
+
+        return response()->json(['salidas' => $salidas], 200);
+    } catch (\Illuminate\Validation\ValidationException $ve) {
+        return response()->json(['error' => 'Parámetros inválidos: ' . $ve->getMessage()], 422);
+    } catch (\Exception $e) {
+        return response()->json(['error' => 'Error interno: ' . $e->getMessage()], 500);
+    }
+}
+    public function aprobarSolicitud(Request $request)
+    {
+        try {
+            $salida = Salida::findOrFail($request->id);
+            $salida->vobo = 'aprobado';
+            $salida->save();
+
+            return response()->json(['message' => 'Solicitud aprobada correctamente'], 200);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Error al aprobar la solicitud: ' . $e->getMessage()], 500);
+        }
+    }
+    public function rechazarSolicitud(Request $request)
+    {
+        try {
+            $salida = Salida::findOrFail($request->id);
+            $salida->vobo = 'rechazado';
+            $salida->estado = 'rechazado';
+            $salida->save();
+
+            return response()->json(['message' => 'Solicitud rechazada correctamente'], 200);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Error al rechazar la solicitud: ' . $e->getMessage()], 500);
+        }
+    }
+
 }

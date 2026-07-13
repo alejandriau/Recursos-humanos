@@ -633,9 +633,9 @@
                 <div class="nav-item dropdown">
                     <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown"><i class="fas fa-cog"></i> <span>Opciones</span></a>
                     <div class="dropdown-menu">
-                        <a href="{{ asset('/gestion') }}" class="dropdown-item"><i class="fas fa-calendar"></i> Gestión</a>
-                        <a href="{{ asset('/feriado') }}" class="dropdown-item"><i class="fas fa-calendar-day"></i> Feriados</a>
-                        <a href="{{ asset('/tsalida') }}" class="dropdown-item"><i class="fas fa-sign-out-alt"></i> Tipo de salida</a>
+                        <a href="{{ asset('/apertura-gestion/gestion') }}" class="dropdown-item"><i class="fas fa-calendar"></i> Gestión</a>
+                        <a href="{{ asset('/feriado-gestion/feriado') }}" class="dropdown-item"><i class="fas fa-calendar-day"></i> Feriados</a>
+                        <a href="{{ asset('/tipo-salida/salida') }}" class="dropdown-item"><i class="fas fa-sign-out-alt"></i> Tipo de salida</a>
                         <a href="{{ asset('/beneficios/asignar') }}" class="dropdown-item"><i class="fas fa-gift"></i> Beneficios</a>
                         <a href="{{ asset('/cas') }}" class="dropdown-item"><i class="fas fa-id-badge"></i> CAS</a>
                         <a href="{{ asset('/kardex') }}" class="dropdown-item"><i class="fas fa-clipboard-list"></i> Kardex</a>

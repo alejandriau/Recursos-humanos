@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Beneficio;
+use App\Models\BeneficioPeriodo;
 use App\Models\Feriado;
 use App\Models\Gestion;
 use App\Models\Persona;
@@ -64,25 +64,34 @@ class SalidaController extends Controller
         $feriado = Feriado::where('gestion_id', $idg)->get();
         $tipoSal = Tiposalida::get();
 
-        // Buscar el ID del tipo PARTICULAR
         $particular = Tiposalida::where('descripcion', 'PARTICULAR')->first();
         $hijos = collect();
         if ($particular) {
             $hijos = Tiposalida::where('id_padre', $particular->id)->get();
         }
 
-        return view("usuario.salidas.salidaParticular", [
-            "tipoSal" => $tipoSal,
-            "gestion" => $gestion,
-            "feriado" => $feriado,
-            "hijos" => $hijos
-        ]);
+        // Obtener la persona vinculada al usuario autenticado
+        $user = auth()->user();
+        $persona = Persona::where('user_id', $user->id)->first();
+
+        // Si no existe persona, redirigir o mostrar error
+        if (!$persona) {
+            return redirect('/homeusr')->with('error', 'No se encontró su registro de persona.');
+        }
+
+        return view("empleado.salidas.salidaParticular", compact(
+            "tipoSal",
+            "gestion",
+            "feriado",
+            "hijos",
+            "persona"
+        ));
     }
     // ========================== REGISTRAR SALIDA PARTICULAR ==========================
     public function registrarParticular(Request $request)
     {
-        // Buscar al servidor
-        $personal = Persona::where('idservidor', $request->idserv)->first();
+        // Buscar al servidor por su id (clave primaria de persona)
+        $personal = Persona::find($request->idserv);
         if (!$personal) {
             return response()->json(['error' => 'Servidor público no encontrado'], 404);
         }
@@ -96,7 +105,7 @@ class SalidaController extends Controller
         }
 
         // Validar cruce de fechas
-        $cruceFechas = Salida::where('personal_id', $personal->id)
+        $cruceFechas = Salida::where('persona_id', $personal->id)
             ->where('vobo', '!=', 'rechazado')
             ->where('estado', '!=', 'rechazado')
             ->where(function ($q) use ($fsalida, $fretorno) {
@@ -113,7 +122,7 @@ class SalidaController extends Controller
         }
 
         // Validar cruce de horarios en misma fecha
-        $cruceHorario = Salida::where('personal_id', $personal->id)
+        $cruceHorario = Salida::where('persona_id', $personal->id)
             ->where('tiposalida_id', $request->tipoSal)
             ->where('vobo', '!=', 'rechazado')
             ->where('estado', '!=', 'rechazado')
@@ -133,7 +142,7 @@ class SalidaController extends Controller
         }
 
         // Validar que no haya solicitud pendiente
-        $pendiente = Salida::where('personal_id', $personal->id)
+        $pendiente = Salida::where('persona_id', $personal->id)
             ->where('tiposalida_id', $request->tipoSal)
             ->where('estado', 'espera')
             ->where('vobo', '!=', 'rechazado')
@@ -145,7 +154,7 @@ class SalidaController extends Controller
 
         // Validar beneficios según subtipo
         $gestion = Gestion::where('estado', 'Habilitado')->first();
-        $beneficio = Beneficio::where('personal_id', $personal->id)
+        $beneficio = BeneficioPeriodo::where('persona_id', $personal->id)
             ->where('tiposalida_id', $request->tipoSal)
             ->where('gestion_id', $gestion->id)
             ->first();
@@ -161,71 +170,80 @@ class SalidaController extends Controller
         $salida->fecharet = $fretorno;
         $salida->horaret = $request->horaret;
         $salida->fechasol = $request->fechasol;
-        $salida->cantidad = $request->cantidad;
+        $salida->cantidad = $request->cantidad ?? 1; // valor por defecto
         $salida->vobo = "pendiente";
         $salida->id_vobo = $request->idSup;
         $salida->estado = "espera";
-        $salida->personal_id = $personal->id;
+        $salida->persona_id = $personal->id;
         $salida->tiposalida_id = $request->tipoSal;
         $salida->save();
 
         return response()->json(['mensaje' => 'Salida particular registrada correctamente'], 201);
     }
-    public function funcSalud()
-    {
-        $idg = 0;
-        $gestion = Gestion::where('estado', 'Habilitado')->get();
-        foreach ($gestion as $ges) {
-            $idg = $ges->id;
-        }
-        $feriado = Feriado::where('gestion_id', $idg)->get();
-        $tipoSal = Tiposalida::get();
-        return view("usuario.salidas.salidaSalud", ["tipoSal" => $tipoSal, "gestion" => $gestion, "feriado" => $feriado]);
-    }
 
-public function index(Request $request)
+public function funcSalud()
 {
-    // Obtener la gestión habilitada actual
     $gestion = Gestion::where('estado', 'Habilitado')->get();
-    $idg = $gestion->first()?->id ?? null;
+    $idg = $gestion->first()?->id ?? 0;
+    $feriado = Feriado::where('gestion_id', $idg)->get();
+    $tipoSal = Tiposalida::get();
 
-    // Obtener feriados para la gestión actual
-    $feriado = $idg ? Feriado::where('gestion_id', $idg)->get() : collect();
-
-    // Obtener la persona autenticada (idpersona)
-    $user = auth()->user(); // Asumiendo que el modelo User tiene relación con Persona o es la misma tabla
-    // Si el modelo User no es Persona, se debe obtener la persona asociada al usuario
-    // Ejemplo: $persona = Persona::where('user_id', auth()->id())->first();
+    // Obtener la persona vinculada al usuario autenticado
+    $user = auth()->user();
     $persona = Persona::where('user_id', $user->id)->first();
 
-    // Si no se encuentra la persona, redirigir o mostrar error
     if (!$persona) {
-        return redirect('/')->withErrors('No se encontró información del usuario.');
+        return redirect('/homeusr')->with('error', 'No se encontró su registro de persona.');
     }
 
-    // Inicializar beneficios con colección vacía
-    $beneficios = collect();
-
-    if ($persona && $idg) {
-        $beneficios = Beneficio::where('persona_id', $persona->id)
-            ->where('gestion_id', $idg)
-            ->whereHas('tiposalida', function ($query) {
-                $query->where('descripcion', 'VACACION');
-            })
-            ->get();
-    }
-
-    // Obtener todos los tipos de salida
-    $tipoSal = Tiposalida::all();
-
-    return view('empleado.vacaciones.index', [
-        'tipoSal'   => $tipoSal,
-        'gestion'   => $gestion,
-        'feriado'   => $feriado,
-        'beneficios'=> $beneficios,
-        'persona'   => $persona, // Pasamos la persona a la vista
-    ]);
+    return view("empleado.salidas.salidaSalud", compact(
+        "tipoSal",
+        "gestion",
+        "feriado",
+        "persona"
+    ));
 }
+
+    public function index(Request $request)
+    {
+        // Obtener la gestión habilitada actual
+        $gestion = Gestion::where('estado', 'Habilitado')->get();
+        $idg = $gestion->first()?->id ?? null;
+
+        // Obtener feriados para la gestión actual
+        $feriado = $idg ? Feriado::where('gestion_id', $idg)->get() : collect();
+
+        // Obtener la persona autenticada
+        $user = auth()->user();
+        $persona = Persona::where('user_id', $user->id)->first();
+
+        if (!$persona) {
+            return redirect('/')->withErrors('No se encontró información del usuario.');
+        }
+
+        // Beneficios de vacación
+        $beneficios = collect();
+        if ($persona && $idg) {
+            $beneficios = BeneficioPeriodo::where('persona_id', $persona->id)
+                ->where('gestion_id', $idg)
+                ->whereHas('tiposalida', function ($query) {
+                    $query->where('descripcion', 'VACACION');
+                })
+                ->get();
+        }
+
+        // Todos los tipos de salida (para el select, aunque solo se usará VACACION)
+        $tipoSal = Tiposalida::all();
+
+        return view('empleado.vacaciones.index', [
+            'tipoSal'    => $tipoSal,
+            'gestion'    => $gestion,
+            'feriado'    => $feriado,
+            'beneficios' => $beneficios,
+            'persona'    => $persona,
+        ]);
+    }
+
     // *********************** obtiene dias disponibles para vacaion *********************************
 
 public function obtenerDiasDisponibles(Request $request)
@@ -238,7 +256,7 @@ public function obtenerDiasDisponibles(Request $request)
             return response()->json(['dias' => 0]);
         }
 
-        $beneficio = Beneficio::where('persona_id', $request->idpersona)
+        $beneficio = BeneficioPeriodo::where('persona_id', $request->idpersona)
             ->where('gestion_id', $gestion->id)
             ->whereHas('tiposalida', function ($q) {
                 $q->where('descripcion', 'VACACION');
@@ -273,7 +291,7 @@ public function obtenerDiasDisponibles(Request $request)
     public function diasDisponibles(Request $request)
     {
         $personalId = Persona::where('idservidor', $request->idservidor)->value('id');
-        $beneficio = Beneficio::where('personal_id', $personalId)
+        $beneficio = BeneficioPeriodo::where('personal_id', $personalId)
             ->where('tiposalida_id', $request->tiposalida_id)
             ->first();
 
@@ -340,7 +358,7 @@ public function registrarVacacion(Request $request)
     }
 
     // Obtener beneficio de vacación
-    $beneficio = Beneficio::where('persona_id', $personal->id)
+    $beneficio = BeneficioPeriodo::where('persona_id', $personal->id)
         ->where('tiposalida_id', $request->tipoSal)
         ->where('gestion_id', $gestion->id)
         ->first();
@@ -490,67 +508,68 @@ public function registrarComision(Request $request)
         $salida->save();
         return response()->json(['mensaje' => 'datos guardados correctamente'], 201);
     }*/
-    public function registarSalSalud(Request $request)
-    {
-        $personal = Persona::where('idservidor', $request->idserv)->first();
-        if (!$personal) {
-            return response()->json(['error' => 'Servidor público no encontrado'], 404);
-        }
-
-        $fsalida = Carbon::parse($request->fsalida);
-        $fretorno = Carbon::parse($request->fretorno);
-
-        if ($fretorno->lt($fsalida)) {
-            return response()->json(['error' => 'La fecha de retorno no puede ser menor que la de salida'], 400);
-        }
-
-        // 🚫 Nueva validación: evitar sobreposición de horarios en las mismas fechas (de cualquier tipo de salida)
-        $cruceHorarioGeneral = Salida::where('personal_id', $personal->id)
-            ->where(function ($q) use ($fsalida, $fretorno, $request) {
-                $q->whereDate('fechasal', $fsalida->format('Y-m-d'))
-                    ->orWhereDate('fecharet', $fretorno->format('Y-m-d'));
-            })
-            ->where('vobo', '!=', 'rechazado')
-            ->where('estado', '!=', 'rechazado')
-            ->where(function ($q) use ($request) {
-                $q->where(function ($sub) use ($request) {
-                    $sub->where('horasal', '<', $request->horaret)
-                        ->where('horaret', '>', $request->horasal);
-                });
-            })
-            ->exists();
-
-        if ($cruceHorarioGeneral) {
-            return response()->json(['error' => 'Existe otra salida registrada con cruce de horario en la misma fecha.'], 422);
-        }
-
-        // Verificar si ya tiene SALUD pendiente
-        $pendiente = Salida::where('personal_id', $personal->id)
-            ->where('tiposalida_id', $request->tipoSal)
-            ->where('estado', 'espera')
-            ->where('vobo', '!=', 'rechazado')
-            ->exists();
-
-        if ($pendiente) {
-            return response()->json(['error' => 'Ya tiene una salida médica pendiente por validar'], 409);
-        }
-
-        // ✅ Registrar salida médica
-        $salida = new Salida();
-        $salida->fechasal = $fsalida;
-        $salida->horasal = $request->horasal;
-        $salida->fecharet = $fretorno;
-        $salida->horaret = $request->horaret;
-        $salida->fechasol = $request->fechasol;
-        $salida->vobo = "pendiente";
-        $salida->id_vobo = $request->idSup;
-        $salida->estado = "espera";
-        $salida->personal_id = $personal->id;
-        $salida->tiposalida_id = $request->tipoSal;
-        $salida->save();
-
-        return response()->json(['mensaje' => 'Salida médica registrada correctamente'], 201);
+public function registarSalSalud(Request $request)
+{
+    // Buscar por ID de la tabla persona (no por idservidor)
+    $personal = Persona::find($request->idserv);
+    if (!$personal) {
+        return response()->json(['error' => 'Servidor público no encontrado'], 404);
     }
+
+    $fsalida = Carbon::parse($request->fsalida);
+    $fretorno = Carbon::parse($request->fretorno);
+
+    if ($fretorno->lt($fsalida)) {
+        return response()->json(['error' => 'La fecha de retorno no puede ser menor que la de salida'], 400);
+    }
+
+    // Validar cruce de horarios (cualquier tipo de salida)
+    $cruceHorarioGeneral = Salida::where('persona_id', $personal->id)
+        ->where(function ($q) use ($fsalida, $fretorno, $request) {
+            $q->whereDate('fechasal', $fsalida->format('Y-m-d'))
+              ->orWhereDate('fecharet', $fretorno->format('Y-m-d'));
+        })
+        ->where('vobo', '!=', 'rechazado')
+        ->where('estado', '!=', 'rechazado')
+        ->where(function ($q) use ($request) {
+            $q->where(function ($sub) use ($request) {
+                $sub->where('horasal', '<', $request->horaret)
+                    ->where('horaret', '>', $request->horasal);
+            });
+        })
+        ->exists();
+
+    if ($cruceHorarioGeneral) {
+        return response()->json(['error' => 'Existe otra salida registrada con cruce de horario en la misma fecha.'], 422);
+    }
+
+    // Verificar si ya tiene una solicitud de SALUD pendiente
+    $pendiente = Salida::where('persona_id', $personal->id)
+        ->where('tiposalida_id', $request->tipoSal)
+        ->where('estado', 'espera')
+        ->where('vobo', '!=', 'rechazado')
+        ->exists();
+
+    if ($pendiente) {
+        return response()->json(['error' => 'Ya tiene una salida médica pendiente por validar'], 409);
+    }
+
+    // Registrar la salida
+    $salida = new Salida();
+    $salida->fechasal = $fsalida;
+    $salida->horasal = $request->horasal;
+    $salida->fecharet = $fretorno;
+    $salida->horaret = $request->horaret;
+    $salida->fechasol = $request->fechasol;
+    $salida->vobo = "pendiente";
+    $salida->id_vobo = $request->idSup;
+    $salida->estado = "espera";
+    $salida->persona_id = $personal->id;
+    $salida->tiposalida_id = $request->tipoSal;
+    $salida->save();
+
+    return response()->json(['mensaje' => 'Salida médica registrada correctamente'], 201);
+}
     /**
      * Show the form for creating a new resource.
      */

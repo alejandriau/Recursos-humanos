@@ -423,6 +423,18 @@ public function planillas()
     //beneficios asignar 
     public function beneficios()
     {
-        return $this->hasMany(Beneficio::class);
+        return $this->hasMany(BeneficioPeriodo::class);
     }
+    //nuva integracion 
+    public function vacacionPeriodos()
+    {
+        return $this->hasMany(VacacionPeriodo::class, 'persona_id');
+    }
+
+    public function salidas()
+    {
+        return $this->hasMany(Salida::class, 'persona_id');
+    }
+
+
 }

@@ -59,24 +59,51 @@
             <div class="col-md-12">
                 <div class="container-fluid">
                     {{-- Selección de tipos de salida con cantidad --}}
-                    <div class="mb-3">
-                        <label>Tipos de Salidas:</label>
-                        <div class="row">
-                            @foreach ($tiposalidas as $tipo)
-                                <div class="col-md-4 mb-2">
-                                    <div class="form-check">
-                                        <input class="form-check-input tipo-check" type="checkbox"
-                                            value="{{ $tipo->id }}" id="tipo_{{ $tipo->id }}">
-                                        <label class="form-check-label"
-                                            for="tipo_{{ $tipo->id }}">{{ $tipo->descripcion }}</label>
-                                    </div>
-                                    <input type="number" min="0" step="0.1"
-                                        class="form-control mt-1 cantidad-input" placeholder="Cantidad"
-                                        id="cantidad_{{ $tipo->id }}" disabled>
-                                </div>
-                            @endforeach
+<div class="mb-3">
+    <label>Tipos de Salidas Asignables:</label>
+    <div class="row">
+        @foreach ($tiposalidas as $tipo)
+            <div class="col-md-4 mb-3">
+                <div class="card p-2">
+                    <div class="form-check">
+                        <input class="form-check-input tipo-check" type="checkbox"
+                               value="{{ $tipo->id }}" id="tipo_{{ $tipo->id }}"
+                               data-unidad="{{ $tipo->unidad }}"
+                               data-periodicidad="{{ $tipo->periodicidad }}"
+                               data-default="{{ $tipo->cantidad_default }}">
+                        <label class="form-check-label" for="tipo_{{ $tipo->id }}">
+                            <strong>{{ $tipo->descripcion }}</strong>
+                            @if ($tipo->usa_tabla_antiguedad)
+                                <span class="badge bg-warning text-dark">Antigüedad</span>
+                            @endif
+                        </label>
+                    </div>
+                    <div class="row mt-1">
+                        <div class="col-6">
+                            <small class="text-muted">Unidad: {{ ucfirst($tipo->unidad ?? 'N/A') }}</small>
+                        </div>
+                        <div class="col-6">
+                            <small class="text-muted">Periodicidad: {{ ucfirst($tipo->periodicidad ?? 'N/A') }}</small>
                         </div>
                     </div>
+                    @if ($tipo->cantidad_default !== null)
+                        <div class="row">
+                            <div class="col-12">
+                                <small class="text-muted">Cantidad por defecto: {{ $tipo->cantidad_default }}</small>
+                            </div>
+                        </div>
+                    @endif
+                    <div class="mt-2">
+                        <input type="number" min="0" step="0.1"
+                               class="form-control form-control-sm cantidad-input"
+                               placeholder="Cantidad a asignar"
+                               id="cantidad_{{ $tipo->id }}" disabled>
+                    </div>
+                </div>
+            </div>
+        @endforeach
+    </div>
+</div>
                 </div>
 
             </div>
@@ -137,7 +164,16 @@
 
         document.querySelectorAll('.tipo-check').forEach(checkbox => {
             checkbox.addEventListener('change', function() {
-                document.getElementById('cantidad_' + this.value).disabled = !this.checked;
+                const cantidadInput = document.getElementById('cantidad_' + this.value);
+                cantidadInput.disabled = !this.checked;
+                if (this.checked) {
+                    if (this.dataset.default) {
+                        cantidadInput.value = this.dataset.default;
+                    }
+                    cantidadInput.focus();
+                } else {
+                    cantidadInput.value = '';
+                }
             });
         });
 
@@ -233,6 +269,8 @@
                     gestion_id: gestionId,
                     beneficios: tiposSeleccionados
                 });
+                
+
 
                 Swal.fire('¡Éxito!', 'Beneficios asignados correctamente.', 'success');
 
@@ -241,20 +279,32 @@
                 limpiarFormulario();
 
             } catch (error) {
-
-                console.log(error);
+                    console.log(error.response);
+                    console.log(error.response.data);
+                    console.log(error.response.data.errors);
+                    console.log(error.response.data.failed);
+                    console.log(error.response.data.request);
 
                 let mensaje = 'Ocurrió un error al guardar';
 
-                if (error.response && error.response.data) {
-                    console.log(error.response.data);
+                if (error.response?.data) {
 
-                    mensaje = error.response.data.message ?? mensaje;
+                    if (error.response.data.errors) {
+
+                        mensaje = Object.values(error.response.data.errors)
+                            .flat()
+                            .join('<br>');
+
+                    } else {
+
+                        mensaje = error.response.data.message ?? mensaje;
+
+                    }
                 }
 
                 Swal.fire({
-                    title: 'Error',
-                    text: mensaje,
+                    title: 'Error de validación',
+                    html: mensaje,
                     icon: 'error'
                 });
             }
@@ -270,7 +320,7 @@
                 fila.id = `beneficio-${beneficio.id}`;
                 fila.innerHTML = `
             <td>${beneficio.tiposalida.descripcion}</td>
-            <td>${beneficio.cantidad !== null ? beneficio.cantidad : 'N/A'}</td>
+            <td>${beneficio.cantidad_asignada !== null ? beneficio.cantidad_asignada : 'N/A'}</td>
             <td>${beneficio.gestion.anio}</td>
             <td>${beneficio.persona.nombre} ${beneficio.persona.apellidoPat}</td>
             <td>

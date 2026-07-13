@@ -941,7 +941,7 @@ Route::prefix('catalogos')->name('catalogos.')->group(function () {
     // tipo de salida
     Route::get('/tipo-salida/salida', [TiposalidaController::class, "funListar"])->name('tipo-salida.salida');
     Route::get('/tipo-salida/salida/crear', [TiposalidaController::class, "funCrear"]);
-    Route::post('/tipo-salida/salida', [TiposalidaController::class, "funGuardar"]);
+    Route::post('/tipo-salida/salida', [TiposalidaController::class, "funGuardar"])->name('tipo-salida.salida');
     Route::get('/tipo-salida/salida/{id}', [TiposalidaController::class, "funEditar"]);
     Route::put('/tipo-salida/salida/{id}', [TiposalidaController::class, "funModificar"]);
     Route::delete('/tipo-salida/salida/{id}', [TiposalidaController::class, "funEliminar"]);
@@ -1016,7 +1016,7 @@ Route::prefix('catalogos')->name('catalogos.')->group(function () {
         Route::post('/list-comision', [PersonaController::class, "listarComision"]); // listar comisiones  por api
         Route::post('/list-salud', [PersonaController::class, "listarSalud"]); // listar salida de salud  por api
         Route::post('/list-particular', [PersonaController::class, 'listParticular']); // listar salida paricular por api
-        Route::post('/listar-solicitudes', [PersonaController::class, "listarSolicitudes"]); // listar salida de salud  por api
+        Route::get('/listar-solicitudes/usuario', [PersonaController::class, "listarSolicitudes"]); // listar salida de salud  por api
         Route::post('/aprobar-solicitud', [PersonaController::class, "aprobarSolicitud"]); // aprobar solicitudes pendientes para vobo por api
         Route::post('/rechazar-solicitud', [PersonaController::class, "rechazarSolicitud"]); // rechaza la solicitud de salidas pendiente de vobo
         Route::get('/detalle-pdf/{id}', [PersonaController::class, 'generarPDF']);
@@ -1037,8 +1037,8 @@ Route::prefix('catalogos')->name('catalogos.')->group(function () {
 
         // ************************ salidas *****************************************
         Route::get('/comision/usuario', [SalidaController::class, "funComision"]);
-        Route::get('/salud', [SalidaController::class, "funcSalud"]);
-        Route::get('/particular', [SalidaController::class, "funcParicular"]);
+        Route::get('/salud/usuario', [SalidaController::class, "funcSalud"]);
+        Route::get('/salida/particular', [SalidaController::class, "funcParicular"]);
         //  *************************** USUARIO ****************************************
 
         //Route::resource('/vacacion',SalidaController::class);
@@ -1053,12 +1053,12 @@ Route::prefix('catalogos')->name('catalogos.')->group(function () {
     });
 });
 
-Route::fallback(function () {
-    if (auth()->check()) {
-        // Si está autenticado, redirigir al dashboard
-        return redirect()->route('dashboard');
-    }
-
-    // Si no está autenticado, redirigir al login
-    return redirect('/login');
-});
+//Route::fallback(function () {
+//    if (auth()->check()) {
+//        // Si está autenticado, redirigir al dashboard
+//        return redirect()->route('dashboard');
+//    }
+//
+//    // Si no está autenticado, redirigir al login
+//    return redirect('/login');
+//});
