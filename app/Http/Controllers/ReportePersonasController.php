@@ -4,10 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\Persona;
 use App\Models\Puesto;
+use App\Models\Salida;
+use App\Models\TipoSalida;
+use App\Models\VacacionPeriodo;
 use App\Models\UnidadOrganizacional;
 use App\Exports\ReportePersonalizadoExport;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
+use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 
@@ -408,5 +412,262 @@ public function exportarPDF(Request $request)
         }
 
         return $filtros;
+    }
+
+        /**
+     * Vista principal del reporte de salidas de un empleado----------------------------------------------------------------------------
+     */
+    public function indexEmpleado()
+    {
+        $user = auth()->user();
+        $persona = Persona::where('user_id', $user->id)->firstOrFail();
+
+        // 1. Estadísticas principales
+        $estadisticas = $this->getEstadisticas($persona);
+
+        // 2. Saldo de vacaciones por período
+        $saldoVacaciones = VacacionPeriodo::where('persona_id', $persona->id)
+            ->where('estado', 'activo')
+            ->select('numero_periodo', 'fecha_habilitacion', 'dias_asignados', 'dias_usados', 'saldo_disponible')
+            ->orderBy('numero_periodo')
+            ->get();
+
+        // 3. Últimas salidas (todas, no solo vacaciones)
+        $ultimasSalidas = Salida::with(['tipoSalida'])
+            ->where('persona_id', $persona->id)
+            ->where('estado', 'aprobado')
+            ->orderBy('fechasal', 'desc')
+            ->limit(10)
+            ->get();
+
+        // 4. Resumen por tipo de salida (año actual)
+        $anioActual = Carbon::now()->year;
+        $resumenPorTipo = $this->getResumenPorTipo($persona, $anioActual);
+
+        // 5. Resumen anual (histórico)
+        $resumenAnual = $this->getResumenAnual($persona);
+
+        // 6. Solicitudes pendientes
+        $pendientes = Salida::where('persona_id', $persona->id)
+            ->whereIn('estado', ['pendiente_jefe', 'pendiente_rrhh'])
+            ->with(['tipoSalida'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return view('empleado.reportes.index', compact(
+            'persona',
+            'estadisticas',
+            'saldoVacaciones',
+            'ultimasSalidas',
+            'resumenPorTipo',
+            'resumenAnual',
+            'pendientes'
+        ));
+    }
+
+    protected function getEstadisticas($persona)
+    {
+        // Días de vacaciones disponibles
+        $diasVacaciones = VacacionPeriodo::where('persona_id', $persona->id)
+            ->where('estado', 'activo')
+            ->sum('saldo_disponible');
+
+        // Total de salidas aprobadas
+        $totalSalidas = Salida::where('persona_id', $persona->id)
+            ->where('estado', 'aprobado')
+            ->count();
+
+        // Total de días/horas usados
+        $totalUsado = Salida::where('persona_id', $persona->id)
+            ->where('estado', 'aprobado')
+            ->sum('cantidad');
+
+        // Solicitudes pendientes
+        $pendientes = Salida::where('persona_id', $persona->id)
+            ->whereIn('estado', ['pendiente_jefe', 'pendiente_rrhh'])
+            ->count();
+
+        // Salidas por tipo
+        $porTipo = Salida::where('persona_id', $persona->id)
+            ->where('estado', 'aprobado')
+            ->with('tipoSalida')
+            ->select('tiposalida_id', DB::raw('COUNT(*) as total'))
+            ->groupBy('tiposalida_id')
+            ->get()
+            ->map(function($item) {
+                return [
+                    'tipo' => $item->tipoSalida->descripcion ?? 'N/A',
+                    'total' => $item->total
+                ];
+            });
+
+        return [
+            'dias_vacaciones' => $diasVacaciones,
+            'total_salidas' => $totalSalidas,
+            'total_usado' => $totalUsado,
+            'pendientes' => $pendientes,
+            'por_tipo' => $porTipo,
+        ];
+    }
+
+    protected function getResumenPorTipo($persona, $anio)
+    {
+        return Salida::where('persona_id', $persona->id)
+            ->whereYear('fechasal', $anio)
+            ->where('estado', 'aprobado')
+            ->with('tipoSalida')
+            ->select(
+                'tiposalida_id',
+                DB::raw('COUNT(*) as total_solicitudes'),
+                DB::raw('SUM(cantidad) as total')
+            )
+            ->groupBy('tiposalida_id')
+            ->get()
+            ->map(function($item) {
+                $tipo = $item->tipoSalida;
+                return [
+                    'tipo' => $tipo->descripcion ?? 'N/A',
+                    'total_solicitudes' => $item->total_solicitudes,
+                    'total' => $item->total,
+                    'unidad' => $tipo->unidad ?? 'días',
+                    'color' => $this->getColorTipo($tipo->descripcion ?? '')
+                ];
+            });
+    }
+
+    protected function getResumenAnual($persona)
+    {
+        return Salida::where('persona_id', $persona->id)
+            ->where('estado', 'aprobado')
+            ->select(
+                DB::raw('YEAR(fechasal) as anio'),
+                DB::raw('COUNT(*) as total_solicitudes'),
+                DB::raw('SUM(cantidad) as total_dias')
+            )
+            ->groupBy('anio')
+            ->orderBy('anio', 'desc')
+            ->get();
+    }
+
+    protected function getColorTipo($descripcion)
+    {
+        $colores = [
+            'VACACIONES' => 'primary',
+            'CUMPLEAÑOS' => 'success',
+            'LICENCIA' => 'warning',
+            'COMISIÓN' => 'info',
+            'MATERNIDAD' => 'danger',
+            'PATERNIDAD' => 'info',
+            'FALLECIMIENTO' => 'dark',
+            'HORAS' => 'secondary',
+        ];
+
+        foreach ($colores as $key => $color) {
+            if (str_contains(strtoupper($descripcion), $key)) {
+                return $color;
+            }
+        }
+        return 'secondary';
+    }
+
+    protected function getAsistenciasMes($persona, $mes, $anio)
+    {
+        // Si tienes tabla de asistencias
+        // return Asistencia::where('persona_id', $persona->id)
+        //     ->whereMonth('fecha', $mes)
+        //     ->whereYear('fecha', $anio)
+        //     ->count();
+
+        // Temporal: contar días hábiles del mes actual
+        $diasHabiles = 0;
+        $fecha = Carbon::create($anio, $mes, 1);
+        while ($fecha->month == $mes) {
+            if ($fecha->isWeekday()) {
+                $diasHabiles++;
+            }
+            $fecha->addDay();
+        }
+        return $diasHabiles;
+    }
+
+    protected function getHorasExtrasMes($persona, $mes, $anio)
+    {
+        // Si tienes tabla de horas extras
+        // return HoraExtra::where('persona_id', $persona->id)
+        //     ->whereMonth('fecha', $mes)
+        //     ->whereYear('fecha', $anio)
+        //     ->sum('horas');
+
+        return 0; // Temporal
+    }
+
+    protected function getAsistenciasRecientes($persona)
+    {
+        // Si tienes tabla de asistencias
+        // return Asistencia::where('persona_id', $persona->id)
+        //     ->orderBy('fecha', 'desc')
+        //     ->limit(5)
+        //     ->get();
+
+        return collect([]); // Temporal
+    }
+
+    /**
+     * Resumen de salidas por tipo
+     */
+
+
+    /**
+     * Resumen anual de salidas
+     */
+
+
+    /**
+     * Reporte detallado en PDF
+     */
+    public function pdf(Persona $persona, Request $request)
+    {
+        $anio = $request->get('anio', Carbon::now()->year);
+
+        $salidas = Salida::with(['tipoSalida'])
+            ->where('persona_id', $persona->id)
+            ->whereYear('fechasal', $anio)
+            ->where('estado', 'aprobado')
+            ->orderBy('fechasal', 'desc')
+            ->get();
+
+        $resumen = $this->getResumenPorTipo($persona, $anio);
+        $totalDias = $salidas->sum('cantidad');
+
+        $pdf = app('dompdf.wrapper');
+        $pdf->loadView('reportes.salidas.pdf', compact(
+            'persona', 'salidas', 'resumen', 'totalDias', 'anio'
+        ));
+
+        return $pdf->download("reporte_salidas_{$persona->nombre}_{$anio}.pdf");
+    }
+
+    /**
+     * Exportar a Excel
+     */
+    public function excel(Persona $persona, Request $request)
+    {
+        $anio = $request->get('anio', Carbon::now()->year);
+
+        $salidas = Salida::with(['tipoSalida', 'periodo'])
+            ->where('persona_id', $persona->id)
+            ->whereYear('fechasal', $anio)
+            ->where('estado', 'aprobado')
+            ->orderBy('fechasal', 'desc')
+            ->get();
+
+        // Usar Laravel Excel o exportar manualmente
+        return $this->exportarExcel($persona, $salidas, $anio);
+    }
+
+    protected function exportarExcelEmpleado($persona, $salidas, $anio)
+    {
+        // Implementación con Maatwebsite Excel
+        // O exportación manual con CSV
     }
 }

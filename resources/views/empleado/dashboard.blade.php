@@ -1,262 +1,264 @@
+{{-- resources/views/empleado/dashboard.blade.php --}}
 @extends('layouts.baseusr')
 
-@section('title', 'Mi Panel - Empleado')
-
-@section('contenido')
-<div class="container-fluid">
-    <!-- Header del Dashboard -->
+@section('cuerpo')
+<div class="container-fluid px-4">
+    <!-- Encabezado de bienvenida -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card bg-gradient-primary text-white">
-                <div class="card-body">
-                    <div class="row align-items-center">
-                        <div class="col-md-8">
-                            <h2 class="mb-1">Bienvenido/a, {{ Auth::user()->persona->nombre ?? 'Empleado' }}</h2>
-                            <p class="mb-0">Panel de control personal - {{ now()->format('d/m/Y') }}</p>
-                        </div>
-                        <div class="col-md-4 text-end">
-                            @if(Auth::user()->persona && Auth::user()->persona->foto)
-                                <img src="{{ asset('storage/' . Auth::user()->persona->foto) }}"
-                                     alt="Foto" class="rounded-circle" width="80" height="80">
-                            @else
-                                <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center"
-                                     style="width: 80px; height: 80px;">
-                                    <i class="fas fa-user text-primary fa-2x"></i>
-                                </div>
-                            @endif
-                        </div>
-                    </div>
+            <div class="d-flex flex-wrap justify-content-between align-items-center">
+                <div>
+                    <h1 class="display-6 mb-0">
+                        <i class="fas fa-hand-peace text-primary me-2"></i>
+                        ¡Bienvenido, {{ Auth::user()->name }}!
+                    </h1>
+                    <p class="text-muted mt-2">
+                        <i class="fas fa-calendar-day me-1"></i>
+                        Hoy es {{ \Carbon\Carbon::now()->locale('es')->isoFormat('dddd, D [de] MMMM [de] YYYY') }}
+                        @if($puestoActual)
+                        <span class="mx-2">|</span>
+                        <i class="fas fa-briefcase me-1"></i>
+                        {{ $puestoActual->nombre }} - {{ $puestoActual->unidadOrganizacional->nombre ?? '' }}
+                        @endif
+                    </p>
+                </div>
+                <div class="mt-2 mt-sm-0">
+                    <span class="badge bg-primary bg-opacity-10 text-primary p-3">
+                        <i class="fas fa-clock me-2"></i>
+                        {{ now()->format('H:i') }} hrs
+                    </span>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Tarjetas de Resumen -->
+    <!-- Tarjetas de resumen -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3 col-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center py-3">
+                    <div class="d-flex justify-content-center align-items-center mb-2">
+                        <div class="bg-primary bg-opacity-10 rounded-circle p-3">
+                            <i class="fas fa-umbrella-beach text-primary fs-4"></i>
+                        </div>
+                    </div>
+                    <h5 class="mb-0">{{ $estadisticas['dias_vacaciones'] ?? 0 }}</h5>
+                    <small class="text-muted">Días de vacación disponibles</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center py-3">
+                    <div class="d-flex justify-content-center align-items-center mb-2">
+                        <div class="bg-success bg-opacity-10 rounded-circle p-3">
+                            <i class="fas fa-check-circle text-success fs-4"></i>
+                        </div>
+                    </div>
+                    <h5 class="mb-0">{{ $estadisticas['asistencias_mes'] ?? 0 }}</h5>
+                    <small class="text-muted">Asistencias este mes</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center py-3">
+                    <div class="d-flex justify-content-center align-items-center mb-2">
+                        <div class="bg-warning bg-opacity-10 rounded-circle p-3">
+                            <i class="fas fa-clock text-warning fs-4"></i>
+                        </div>
+                    </div>
+                    <h5 class="mb-0">{{ $estadisticas['horas_extras_mes'] ?? 0 }}</h5>
+                    <small class="text-muted">Horas extras este mes</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body text-center py-3">
+                    <div class="d-flex justify-content-center align-items-center mb-2">
+                        <div class="bg-info bg-opacity-10 rounded-circle p-3">
+                            <i class="fas fa-bell text-info fs-4"></i>
+                        </div>
+                    </div>
+                    <h5 class="mb-0">{{ $vacacionesPendientes->count() + $comisionesPendientes ?? 0 }}</h5>
+                    <small class="text-muted">Solicitudes pendientes</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Acciones rápidas -->
     <div class="row mb-4">
-        <!-- Asistencias del Mes -->
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-primary shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                Asistencias Este Mes
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $estadisticas['asistencias_mes'] }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-calendar-check fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Vacaciones Disponibles -->
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-success shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                Días Vacaciones Disp.
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $estadisticas['dias_vacaciones'] }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-umbrella-beach fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Horas Extras Mes -->
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-info shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                Horas Extras (Mes)
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $estadisticas['horas_extras_mes'] }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-clock fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Puesto Actual -->
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-warning shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                Puesto Actual
-                            </div>
-                            <div class="h6 mb-0 font-weight-bold text-gray-800 text-truncate">
-                                {{ $puestoActual->denominacion ?? 'No asignado' }}
-                            </div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-briefcase fa-2x text-gray-300"></i>
-                        </div>
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-body p-3">
+                    <h6 class="mb-3">
+                        <i class="fas fa-rocket text-primary me-2"></i>
+                        Acciones rápidas
+                    </h6>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="{{ route('vacacion.index') }}" class="btn btn-outline-primary">
+                            <i class="fas fa-umbrella-beach me-2"></i>Solicitar Vacación
+                        </a>
+                        <a href="#" class="btn btn-outline-success">
+                            <i class="fas fa-briefcase me-2"></i>Solicitar Comisión
+                        </a>
+                        <a href="#" class="btn btn-outline-warning">
+                            <i class="fas fa-user-clock me-2"></i>Salida Particular
+                        </a>
+                        <a href="{{ route('beneficios.index') }}" class="btn btn-outline-info">
+                            <i class="fas fa-gift me-2"></i>Mis Beneficios
+                        </a>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="row">
-        <!-- Asistencias Recientes -->
-        <div class="col-lg-6 mb-4">
-            <div class="card shadow">
-                <div class="card-header bg-white py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">
-                        <i class="fas fa-history me-2"></i>Mis Asistencias Recientes
-                    </h6>
+    <!-- Alertas importantes -->
+    @if($vacacionesPendientes->count() > 0 || ($comisionesPendientes ?? 0) > 0)
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-warning border-0 shadow-sm d-flex align-items-center" role="alert">
+                <i class="fas fa-exclamation-triangle me-3 fs-4"></i>
+                <div>
+                    <strong>Tienes solicitudes pendientes de aprobación:</strong>
+                    @if($vacacionesPendientes->count() > 0)
+                    <span class="badge bg-warning ms-1">{{ $vacacionesPendientes->count() }} vacación(es)</span>
+                    @endif
+                    @if(($comisionesPendientes ?? 0) > 0)
+                    <span class="badge bg-warning ms-1">{{ $comisionesPendientes }} comisión(es)</span>
+                    @endif
+                    <a href="{{ route('empleado.vacaciones.mi-historial') }}" class="alert-link ms-2">Ver todas</a>
                 </div>
-                <div class="card-body">
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- Próximos vencimientos (beneficios) -->
+    @if(isset($proximosVencimientos) && $proximosVencimientos->count() > 0)
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-info border-0 shadow-sm d-flex align-items-center" role="alert">
+                <i class="fas fa-calendar-alt me-3 fs-4"></i>
+                <div>
+                    <strong>Próximos vencimientos:</strong>
+                    @foreach($proximosVencimientos->take(3) as $vencimiento)
+                    <span class="badge bg-info ms-1">{{ $vencimiento->tipo }}: {{ $vencimiento->dias_restantes }} días</span>
+                    @endforeach
+                    @if($proximosVencimientos->count() > 3)
+                    <span class="badge bg-secondary ms-1">+{{ $proximosVencimientos->count() - 3 }} más</span>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    <!-- Últimas solicitudes recientes -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white border-0 py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">
+                        <i class="fas fa-history text-primary me-2"></i>
+                        Últimas solicitudes
+                    </h6>
+                    <a href="#" class="btn btn-sm btn-link">
+                        Ver todas <i class="fas fa-arrow-right ms-1"></i>
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    @if($solicitudesRecientes->count() > 0)
                     <div class="table-responsive">
-                        <table class="table table-sm table-borderless">
-                            <thead>
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
                                 <tr>
-                                    <th>Fecha</th>
-                                    <th>Entrada</th>
-                                    <th>Salida</th>
-                                    <th>Estado</th>
+                                    <th class="ps-3">Tipo</th>
+                                    <th>Desde</th>
+                                    <th>Hasta</th>
+                                    <th>Cantidad</th>
+                                    <th class="text-center">Estado</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @forelse($asistenciasRecientes as $asistencia)
-                                    <tr>
-                                        <td>{{ \Carbon\Carbon::parse($asistencia->fecha)->format('d/m') }}</td>
-                                        <td>
-                                            @if($asistencia->hora_entrada)
-                                                <span class="badge bg-success">{{ $asistencia->hora_entrada }}</span>
-                                            @else
-                                                <span class="badge bg-secondary">--:--</span>
-                                            @endif
-                                        </td>
-                                        <td>
-                                            @if($asistencia->hora_salida)
-                                                <span class="badge bg-info">{{ $asistencia->hora_salida }}</span>
-                                            @else
-                                                <span class="badge bg-secondary">--:--</span>
-                                            @endif
-                                        </td>
-                                        <td>
-                                            <span class="badge badge-{{ $asistencia->estado == 'presente' ? 'success' : ($asistencia->estado == 'tardanza' ? 'warning' : 'danger') }}">
-                                                {{ $asistencia->estado }}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="4" class="text-center text-muted">No hay asistencias registradas</td>
-                                    </tr>
-                                @endforelse
+                                @foreach($solicitudesRecientes->take(5) as $solicitud)
+                                <tr>
+                                    <td class="ps-3">
+                                        <span class="badge bg-{{ $solicitud->tipoSalida->color ?? 'secondary' }}">
+                                            {{ $solicitud->tipoSalida->descripcion ?? 'N/A' }}
+                                        </span>
+                                    </td>
+                                    <td>{{ \Carbon\Carbon::parse($solicitud->fechasal)->format('d/m/Y') }}</td>
+                                    <td>{{ \Carbon\Carbon::parse($solicitud->fecharet)->format('d/m/Y') }}</td>
+                                    <td>{{ $solicitud->cantidad }}</td>
+                                    <td class="text-center">
+                                        @php
+                                            $estados = [
+                                                'aprobado' => ['class' => 'success', 'text' => 'Aprobado'],
+                                                'pendiente_jefe' => ['class' => 'warning', 'text' => 'Pendiente Jefe'],
+                                                'pendiente_rrhh' => ['class' => 'warning', 'text' => 'Pendiente RRHH'],
+                                                'rechazado' => ['class' => 'danger', 'text' => 'Rechazado'],
+                                            ];
+                                            $estado = $estados[$solicitud->estado] ?? ['class' => 'secondary', 'text' => $solicitud->estado];
+                                        @endphp
+                                        <span class="badge bg-{{ $estado['class'] }}">
+                                            {{ $estado['text'] }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                @endforeach
                             </tbody>
                         </table>
                     </div>
-                    <div class="text-center mt-2">
-                        <a href="{{ route('empleado.asistencias.index') }}" class="btn btn-sm btn-outline-primary">
-                            Ver Todas las Asistencias
-                        </a>
+                    @else
+                    <div class="text-center py-4 text-muted">
+                        <i class="fas fa-inbox fs-3 mb-2 d-block"></i>
+                        <p class="mb-0">No tienes solicitudes recientes</p>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Vacaciones y Solicitudes -->
-        <div class="col-lg-6 mb-4">
-            <div class="card shadow">
-                <div class="card-header bg-white py-3">
-                    <h6 class="m-0 font-weight-bold text-success">
-                        <i class="fas fa-umbrella-beach me-2"></i>Mis Vacaciones
-                    </h6>
-                </div>
-                <div class="card-body">
-                    @if($vacacionesPendientes->count() > 0)
-                        <div class="alert alert-info">
-                            <strong>Tienes {{ $vacacionesPendientes->count() }} solicitud(es) pendiente(s)</strong>
-                        </div>
                     @endif
-
-                    <div class="list-group list-group-flush">
-                        @forelse($vacacionesRecientes as $vacacion)
-                            <div class="list-group-item d-flex justify-content-between align-items-center">
-                                <div>
-                                    <small class="text-muted">{{ \Carbon\Carbon::parse($vacacion->fecha_inicio)->format('d/m/Y') }} - {{ \Carbon\Carbon::parse($vacacion->fecha_fin)->format('d/m/Y') }}</small>
-                                    <br>
-                                    <span class="badge bg-{{ $vacacion->estado == 'aprobado' ? 'success' : ($vacacion->estado == 'pendiente' ? 'warning' : 'danger') }}">
-                                        {{ $vacacion->estado }}
-                                    </span>
-                                </div>
-                                <span class="badge bg-primary">{{ $vacacion->dias_tomados }} días</span>
-                            </div>
-                        @empty
-                            <div class="text-center text-muted py-3">
-                                No hay registros de vacaciones
-                            </div>
-                        @endforelse
-                    </div>
-
-                    <div class="text-center mt-3">
-                        <a href="{{ route('empleado.vacaciones.create') }}" class="btn btn-sm btn-success me-2">
-                            <i class="fas fa-plus me-1"></i>Solicitar Vacaciones
-                        </a>
-                        <a href="{{ route('empleado.vacaciones.index') }}" class="btn btn-sm btn-outline-success">
-                            Ver Historial
-                        </a>
-                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Información del Puesto Actual -->
-    <div class="row">
+    <!-- Tarjeta de recursos humanos / enlaces útiles -->
+    <div class="row mt-4">
         <div class="col-12">
-            <div class="card shadow">
-                <div class="card-header bg-white py-3">
-                    <h6 class="m-0 font-weight-bold text-primary">
-                        <i class="fas fa-briefcase me-2"></i>Mi Información Laboral
-                    </h6>
-                </div>
-                <div class="card-body">
-                    @if($puestoActual)
-                        <div class="row">
-                            <div class="col-md-6">
-                                <p><strong>Puesto:</strong> {{ $puestoActual->denominacion }}</p>
-                                <p><strong>Nivel Jerárquico:</strong> {{ $puestoActual->nivelJerarquico }}</p>
-                                <p><strong>Unidad:</strong> {{ $puestoActual->unidadOrganizacional->denominacion ?? 'N/A' }}</p>
-                            </div>
-                            <div class="col-md-6">
-                                <p><strong>Tipo de Contrato:</strong> {{ $puestoActual->tipoContrato }}</p>
-                                <p><strong>Haber Básico:</strong> Bs. {{ number_format($puestoActual->haber, 2) }}</p>
-                                <p><strong>Item:</strong> {{ $puestoActual->item ?? 'N/A' }}</p>
-                            </div>
-                        </div>
-                    @else
-                        <div class="alert alert-warning">
-                            No tienes un puesto asignado actualmente.
-                        </div>
-                    @endif
-
-                    <div class="text-center">
-                        <a href="{{ route('empleado.historial') }}" class="btn btn-outline-primary btn-sm">
-                            <i class="fas fa-history me-1"></i>Ver Mi Historial Completo
-                        </a>
-                    </div>
+            <div class="card border-0 shadow-sm bg-light">
+                <div class="card-body p-3 text-center text-muted">
+                    <small>
+                        <i class="fas fa-question-circle me-1"></i>
+                        ¿Necesitas ayuda? Contacta a Recursos Humanos o revisa el
+                        <a href="#" class="text-decoration-none">manual del empleado</a>.
+                    </small>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+    .bg-opacity-10 {
+        --bs-bg-opacity: 0.1;
+    }
+    .btn-outline-primary, .btn-outline-success, .btn-outline-warning, .btn-outline-info {
+        transition: all 0.2s;
+    }
+    .btn-outline-primary:hover, .btn-outline-success:hover, .btn-outline-warning:hover, .btn-outline-info:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0.25rem 0.5rem rgba(0,0,0,0.1);
+    }
+    .card {
+        border-radius: 12px;
+    }
+    .table th {
+        font-weight: 600;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+</style>
 @endsection

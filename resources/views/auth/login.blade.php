@@ -21,7 +21,7 @@
                 <x-label for="email" value="{{ __('Email') }}" class="text-sm font-medium text-gray-700" />
                 <x-input id="email"
                          class="w-full border-gray-300 focus:border-blue-800 focus:ring-blue-800/20"
-                         
+
                          name="email"
                          :value="old('email')"
                          required

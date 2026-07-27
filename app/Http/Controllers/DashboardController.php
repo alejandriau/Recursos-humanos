@@ -8,7 +8,8 @@ use App\Models\Historial;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\Asistencia;
-use App\Models\Vacacion;
+use App\Models\VacacionPeriodo;
+use App\Models\Salida;
 use App\Models\Persona;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
@@ -23,57 +24,71 @@ class DashboardController extends Controller
 
         // Verificar si el usuario tiene el rol de empleado
         if ($user->hasRole('empleado') || $user->role === 'empleado') {
-                $personaId = Auth::user()->persona->id;
+            $user = Auth::user();
+            $persona = Persona::where('user_id', $user->id)->first();
 
-            // Obtener puesto actual
+            if (!$persona) {
+                return redirect('/')->withErrors('No se encontró información del usuario.');
+            }
+
+            // Puesto actual
             $puestoActual = Historial::with(['puesto.unidadOrganizacional'])
-                ->where('persona_id', $personaId)
+                ->where('persona_id', $persona->id)
                 ->where('estado', 'activo')
                 ->first()
                 ?->puesto;
 
-            // Estadísticas
+            // Estadísticas básicas
             $estadisticas = [
-                'asistencias_mes' => Asistencia::where('idPersona', $personaId)
+                'asistencias_mes' => Asistencia::where('idPersona', $persona->id)
                     ->whereMonth('fecha', now()->month)
                     ->whereYear('fecha', now()->year)
                     ->where('estado', 'presente')
                     ->count(),
 
-                'dias_vacaciones' => 30 - Vacacion::where('idPersona', $personaId)
-                    ->whereYear('fecha_inicio', now()->year)
-                    ->where('estado', 'aprobado')
-                    ->sum('dias_tomados'),
+                'dias_vacaciones' => VacacionPeriodo::where('persona_id', $persona->id)
+                    ->where('estado', 'activo')
+                    ->sum('saldo_disponible'),
 
-                'horas_extras_mes' => Asistencia::where('idPersona', $personaId)
+                'horas_extras_mes' => Asistencia::where('idPersona', $persona->id)
                     ->whereMonth('fecha', now()->month)
                     ->whereYear('fecha', now()->year)
                     ->sum('horas_extras'),
             ];
 
-            // Asistencias recientes
-            $asistenciasRecientes = Asistencia::where('idPersona', $personaId)
-                ->orderBy('fecha', 'desc')
+            // Vacaciones pendientes
+            $vacacionesPendientes = Salida::where('persona_id', $persona->id)
+                ->whereHas('tipoSalida', function($q) {
+                    $q->where('descripcion', 'LIKE', '%VACACION%');
+                })
+                ->whereIn('estado', ['pendiente_jefe', 'pendiente_rrhh'])
+                ->get();
+
+            // Comisiones pendientes
+            $comisionesPendientes = Salida::where('persona_id', $persona->id)
+                ->whereHas('tipoSalida', function($q) {
+                    $q->where('descripcion', 'LIKE', '%COMISION%');
+                })
+                ->whereIn('estado', ['pendiente_jefe', 'pendiente_rrhh'])
+                ->count();
+
+            // Solicitudes recientes (todas)
+            $solicitudesRecientes = Salida::where('persona_id', $persona->id)
+                ->with('tipoSalida')
+                ->orderBy('created_at', 'desc')
                 ->limit(5)
                 ->get();
 
-            // Vacaciones recientes
-            $vacacionesRecientes = Vacacion::where('idPersona', $personaId)
-                ->orderBy('fecha_inicio', 'desc')
-                ->limit(3)
-                ->get();
-
-            // Vacaciones pendientes
-            $vacacionesPendientes = Vacacion::where('idPersona', $personaId)
-                ->where('estado', 'pendiente')
-                ->get();
+            // Próximos vencimientos de beneficios (ejemplo)
+            $proximosVencimientos = collect(); // Aquí podrías calcular según tu lógica
 
             return view('empleado.dashboard', compact(
                 'puestoActual',
                 'estadisticas',
-                'asistenciasRecientes',
-                'vacacionesRecientes',
-                'vacacionesPendientes'
+                'vacacionesPendientes',
+                'comisionesPendientes',
+                'solicitudesRecientes',
+                'proximosVencimientos'
             ));
         }
 

@@ -140,6 +140,51 @@ class VacacionAdminController extends Controller
         ));
     }
 
+    //aprobar jefe imediato solo par vacion
+    public function aprobarJefe(Request $request, $id)
+    {
+        $salida = Salida::with('periodo')->find($id);
+        if (!$salida) {
+            return response()->json(['error' => 'Solicitud no encontrada'], 404);
+        }
+
+        // Validar que sea jefe de la persona
+        $jefe = Persona::find(auth()->user()->persona_id);
+        if ($salida->jefe_id != $jefe->id) {
+            return response()->json(['error' => 'No autorizado'], 403);
+        }
+
+        if ($salida->estado_jefe != 'pendiente') {
+            return response()->json(['error' => 'Esta solicitud ya fue procesada'], 400);
+        }
+
+        $request->validate([
+            'aprobado' => 'required|boolean',
+            'observacion' => 'nullable|string'
+        ]);
+
+        $salida->estado_jefe = $request->aprobado ? 'aprobado' : 'rechazado';
+        $salida->fecha_aprobacion_jefe = now();
+        $salida->observacion_jefe = $request->observacion;
+
+        if ($request->aprobado) {
+            // Pasa a revisión de RRHH
+            $salida->estado = 'pendiente_rrhh';
+            $salida->estado_rrhh = 'pendiente';
+        } else {
+            // Rechazado definitivo
+            $salida->estado = 'rechazado';
+            $salida->estado_rrhh = 'rechazado';
+
+            // Actualizar movimiento
+            VacacionMovimiento::where('salida_id', $salida->id)
+                ->update(['descripcion' => 'Solicitud rechazada por jefe']);
+        }
+
+        $salida->save();
+
+        return response()->json(['mensaje' => 'Solicitud procesada por jefe']);
+    }
     /**
      * Calcula los días de vacaciones disponibles para una persona
      */

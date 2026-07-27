@@ -13,9 +13,11 @@ return new class extends Migration
     {
         Schema::create('salidas', function (Blueprint $table) {
             $table->id();
+            $table->bigInteger('codigo')->nullable()->unique();
             $table->integer("persona_id");
             $table->unsignedBigInteger('tiposalida_id');
-            $table->unsignedBigInteger('beneficio_periodo_id')->nullable(); // null si el tipo no tiene cupo
+            $table->unsignedBigInteger('periodo_id')->nullable();
+            $table->string('periodo_type')->nullable(); // App\Models\BeneficioPeriodo o App\Models\VacacionPeriodo
 
             $table->date('fechasal');
             $table->time('horasal')->nullable();
@@ -38,13 +40,14 @@ return new class extends Migration
             $table->timestamp('fecha_aprobacion_rrhh')->nullable();
             $table->string('observacion_rrhh')->nullable();
 
+            $table->index(['created_at', 'codigo']); // índice compuesto para rapidez
             // Estado consolidado para consultas rápidas
             $table->enum('estado', ['pendiente_jefe', 'pendiente_rrhh', 'aprobado', 'rechazado'])
                 ->default('pendiente_jefe');
 
             $table->foreign('persona_id')->references('id')->on('persona')->onDelete('cascade');
             $table->foreign('tiposalida_id')->references('id')->on('tiposalidas');
-            $table->foreign('beneficio_periodo_id')->references('id')->on('beneficio_periodo');
+            $table->index(['periodo_id', 'periodo_type']);
             $table->foreign('jefe_id')->references('id')->on('persona');
             $table->foreign('rrhh_id')->references('id')->on('persona');
             $table->timestamps();

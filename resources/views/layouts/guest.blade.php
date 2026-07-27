@@ -18,6 +18,11 @@
         @livewireStyles
     </head>
     <body>
+            <div class="w-full bg-blue-800 text-white py-2 sm:py-3 px-4 shadow-lg flex flex-col
+                border-b-4 border-blue-600" style="background-color: #4DA3FF;">
+                <h1 class="text-lg sm:text-2xl font-bold tracking-wide">Sistema de Salidas</h1>
+                <p class="text-xs sm:text-sm font-medium text-blue-100">Unidad de Gestión de Recursos Humanos</p>
+            </div>
         <div class="font-sans text-gray-900 antialiased">
             {{ $slot }}
         </div>

@@ -325,6 +325,18 @@ public function mostrarFoto($id)
 
     abort(404, 'Archivo no encontrado');
 }
+public function usuarioMostrarFoto($id)
+{
+    $persona = Persona::where('user_id', $id)->firstOrFail();
+
+    if (Storage::exists($persona->foto)) {
+        $contenido = Storage::get($persona->foto);
+        $tipo = Storage::mimeType($persona->foto);
+        return response($contenido)->header('Content-Type', $tipo);
+    }
+
+    abort(404, 'Archivo no encontrado');
+}
 
     public function delete($id)
     {

@@ -69,11 +69,11 @@ class BeneficioPeriodo extends Model
     // Método para calcular saldo disponible (actualiza el campo)
     public function recalcularSaldo()
     {
-        $this->saldo_disponible = $this->cantidad_asignada 
-                                   - $this->cantidad_usada 
-                                   - $this->cantidad_vencida 
+        $this->saldo_disponible = $this->cantidad_asignada
+                                   - $this->cantidad_usada
+                                   - $this->cantidad_vencida
                                    + $this->arrastre;
-        
+
         // Actualizar estado según saldo
         if ($this->saldo_disponible <= 0) {
             $this->estado = 'agotado';
@@ -156,4 +156,5 @@ class BeneficioPeriodo extends Model
             }
         });
     }
+
 }

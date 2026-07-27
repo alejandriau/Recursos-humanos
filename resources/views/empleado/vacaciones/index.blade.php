@@ -337,8 +337,8 @@
                             tr.innerHTML = `
                                 <td>${nombreCompleto}</td>
                                 <td>
-                                    <button class="btn btn-primary btn-sm asignar-sup" 
-                                            data-id="${p.id}" 
+                                    <button class="btn btn-primary btn-sm asignar-sup"
+                                            data-id="${p.id}"
                                             data-nombre="${nombreCompleto}">
                                         <i class="fa fa-check"></i>
                                     </button>
@@ -427,7 +427,7 @@
                         .then(response => {
                             Swal.fire('Éxito', response.data.message, 'success')
                                 .then(() => {
-                                    window.location.href = '/homeusr';
+                                    window.location.href = '/empleado/vacacion/mi-historial';
                                 });
                         })
                         .catch(error => {

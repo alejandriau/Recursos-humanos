@@ -678,7 +678,7 @@
 
             <!-- Validar salidas -->
             <div class="nav-item validar-salidas">
-                <a href="{{ asset('/reporte/salidas-aprobadas') }}" class="nav-link">
+                <a href="{{ asset('/solicitudes/dashboard') }}" class="nav-link">
                     <i class="fas fa-check-double"></i> <span>Validar salidas</span>
                     <span class="badge-salidas">0</span>
                 </a>

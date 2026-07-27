@@ -87,4 +87,5 @@ class TipoSalida extends Model
     {
         return $this->hasMany(TipoSalida::class, 'id_padre');
     }
+
 }

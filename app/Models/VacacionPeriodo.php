@@ -28,4 +28,9 @@ class VacacionPeriodo extends Model
     {
         return $this->hasMany(VacacionMovimiento::class, 'periodo_id');
     }
+    public function persona()
+    {
+        return $this->belongsTo(Persona::class, 'persona_id');
+    }
+
 }

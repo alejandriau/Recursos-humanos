@@ -35,32 +35,61 @@ class EmpleadoController extends Controller
      */
     public function miPerfil()
     {
-        // Verificar autenticación
         if (!Auth::check()) {
             return redirect()->route('login');
         }
 
-        $persona = $this->getEmpleadoAutenticado();
+        $persona = Auth::user()->persona;
 
-        $persona->load([
-            'profesion',
-            'historial' => function ($q) {
-                $q->where(function($query) {
-                    $query->whereNull('fecha_fin')
-                          ->orWhere('fecha_fin', '>', now());
-                })->with([
-                    'puesto.unidadOrganizacional.padre.padre.padre.padre'
-                ]);
+        // Obtener historial activo con toda la jerarquía (igual que en show)
+        $historialActual = Historial::with([
+            'puesto.unidadOrganizacional.padre.padre.padre.padre' // Cargar hasta 4 niveles de jerarquía
+        ])
+        ->where('persona_id', $persona->id)
+        ->where('estado', 'activo')
+        ->first();
+
+        // Obtener toda la jerarquía de la unidad desde el modelo cargado
+        $jerarquiaUnidad = [];
+        if ($historialActual && $historialActual->puesto && $historialActual->puesto->unidadOrganizacional) {
+            $unidad = $historialActual->puesto->unidadOrganizacional;
+
+            // Construir jerarquía desde la unidad actual hacia arriba
+            while ($unidad) {
+                $jerarquiaUnidad[] = $unidad->nombre;
+                $unidad = $unidad->padre; // Esto ahora funciona porque está precargado
             }
-        ]);
+            $jerarquiaUnidad = array_reverse($jerarquiaUnidad);
+        }
 
-        $historial = $persona->historial->first();
-
-        // Calcular edad y antigüedad para la vista
+        // Calcular edad y antigüedad
         $edad = $this->calcularEdad($persona->fechaNacimiento);
         $antiguedad = $this->calcularAntiguedad($persona->fechaIngreso);
 
-        return view('empleado.perfil', compact('persona', 'historial', 'edad', 'antiguedad'));
+        return view('empleado.perfil', compact(
+            'persona',
+            'historialActual',
+            'jerarquiaUnidad',
+            'edad',
+            'antiguedad'
+        ));
+    }
+
+    private function calcularEdad($fechaNacimiento)
+    {
+        if (!$fechaNacimiento) return null;
+        return \Carbon\Carbon::parse($fechaNacimiento)->age;
+    }
+
+    private function calcularAntiguedad($fechaIngreso)
+    {
+        if (!$fechaIngreso) return null;
+        $diff = \Carbon\Carbon::parse($fechaIngreso)->diff(now());
+        return [
+            'anos' => $diff->y,
+            'meses' => $diff->m,
+            'dias' => $diff->d,
+        ];
     }
 
     /**
@@ -164,39 +193,5 @@ class EmpleadoController extends Controller
         return $pdf->download($nombreArchivo);
     }
 
-    /**
-     * Métodos auxiliares
-     */
-    private function calcularAntiguedad($fechaIngreso)
-    {
-        if (!$fechaIngreso) {
-            return [
-                'anos' => 0,
-                'meses' => 0,
-                'dias' => 0,
-                'total_meses' => 0
-            ];
-        }
 
-        $ingreso = Carbon::parse($fechaIngreso);
-        $hoy = Carbon::now();
-
-        $diferencia = $ingreso->diff($hoy);
-
-        return [
-            'anos' => $diferencia->y,
-            'meses' => $diferencia->m,
-            'dias' => $diferencia->d,
-            'total_meses' => ($diferencia->y * 12) + $diferencia->m
-        ];
-    }
-
-    private function calcularEdad($fechaNacimiento)
-    {
-        if (!$fechaNacimiento) {
-            return 'No especificada';
-        }
-
-        return Carbon::parse($fechaNacimiento)->age;
-    }
 }

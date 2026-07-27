@@ -5,8 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
-
+use Illuminate\Support\Facades\Hash;
+use App\Models\User;
 use App\Models\memopuesto;
 use App\Models\Historial;
 use App\Models\Afps;
@@ -46,10 +48,122 @@ class Persona extends Model
         'fechaNacimiento' => 'date',
         'estado' => 'boolean',
     ];
+    //crear usuario para persona--------------------------------------
+    protected static function booted()
+    {
+        // Al crear persona, crear usuario
+        static::created(function ($persona) {
+            $persona->crearUsuario();
+        });
+
+        // Al actualizar, actualizar usuario si cambian datos relevantes
+        static::updated(function ($persona) {
+            if ($persona->isDirty(['ci', 'nombre', 'apellidoPat', 'apellidoMat'])) {
+                $persona->actualizarUsuario();
+            }
+        });
+
+        // Al eliminar persona, eliminar usuario permanentemente (opcional)
+        static::deleted(function ($persona) {
+            if ($persona->user) {
+                $persona->user->forceDelete();
+            }
+        });
+    }
+
+    // Relación
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');
     }
+
+    // Crear usuario nuevo
+    public function crearUsuario()
+    {
+        if ($this->user_id) return;
+
+        // Verificar que el CI no esté en uso (incluso en eliminados)
+        if (User::withTrashed()->where('usuario', $this->ci)->exists()) {
+            throw new \Exception("El CI {$this->ci} ya está registrado como usuario.");
+        }
+
+        $nombreCompleto = trim(
+            ($this->nombre ?? '') . ' ' .
+            ($this->apellidoPat ?? '') . ' ' .
+            ($this->apellidoMat ?? '')
+        );
+
+        $user = User::create([
+            'name'     => $nombreCompleto ?: 'Sin nombre',
+            'email'    => null,
+            'usuario'  => $this->ci,
+            'ci'       => $this->ci,
+            'password' => Hash::make($this->ci), // contraseña = CI
+            'origen'   => 'local',
+        ]);
+
+        $user->assignRole('empleado');
+
+        $this->user_id = $user->id;
+        $this->save(); // guardar referencia
+    }
+
+    // Actualizar usuario existente
+    public function actualizarUsuario()
+    {
+        if (!$this->user) return;
+
+        $user = $this->user;
+
+        // Actualizar nombre
+        $nombreCompleto = trim(
+            ($this->nombre ?? '') . ' ' .
+            ($this->apellidoPat ?? '') . ' ' .
+            ($this->apellidoMat ?? '')
+        );
+        $user->name = $nombreCompleto ?: 'Sin nombre';
+
+        // Si cambió el CI
+        if ($this->isDirty('ci')) {
+            $existing = User::withTrashed()
+                ->where('usuario', $this->ci)
+                ->where('id', '!=', $user->id)
+                ->first();
+
+            if ($existing) {
+                throw new \Exception("El nuevo CI {$this->ci} ya está registrado en otro usuario.");
+            }
+
+            $user->usuario = $this->ci;
+            $user->ci = $this->ci;
+        }
+
+        $user->save();
+    }
+
+    // Método para dar de baja (desactivar usuario y cambiar estado)
+    public function darDeBaja()
+    {
+        $this->estado = 0;
+        $this->save();
+
+        if ($this->user && !$this->user->trashed()) {
+            $this->user->delete(); // soft delete
+        }
+    }
+
+    // Método para reactivar
+    public function reactivar()
+    {
+        $this->estado = 1;
+        $this->save();
+
+        if ($this->user && $this->user->trashed()) {
+            $this->user->restore();
+        }
+    }
+    //********** */
+
         public function vacaciones()
     {
         return $this->hasMany(Vacacion::class, 'idPersona');
@@ -420,12 +534,12 @@ public function planillas()
     return $this->hasMany(Planilla::class);
 }
 
-    //beneficios asignar 
+    //beneficios asignar
     public function beneficios()
     {
         return $this->hasMany(BeneficioPeriodo::class);
     }
-    //nuva integracion 
+    //nuva integracion
     public function vacacionPeriodos()
     {
         return $this->hasMany(VacacionPeriodo::class, 'persona_id');

@@ -35,25 +35,24 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::updateUserProfileInformationUsing(UpdateUserProfileInformation::class);
         Fortify::updateUserPasswordsUsing(UpdateUserPassword::class);
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
-                // 👇 NUEVO: autenticación combinada local + correspondencia
+        // Autenticación local (usuarios de la base de datos)
         Fortify::authenticateUsing(function (Request $request) {
-            $login    = $request->input('email'); // se usa como "usuario"
+            $login    = $request->input('email'); // campo del formulario
             $password = $request->input('password');
 
-            // 1) Admins locales
-            $localUser = User::where('origen', 'local')
+            // Buscar por email o usuario (solo locales, los de soft delete no aparecen)
+            $user = User::where('origen', 'local')
                 ->where(function ($q) use ($login) {
-                    $q->where('email', $login)->orWhere('usuario', $login);
+                    $q->where('email', $login)
+                    ->orWhere('usuario', $login);
                 })
                 ->first();
 
-            if ($localUser && Hash::check($password, $localUser->password)) {
-                return $localUser;
+            if ($user && Hash::check($password, $user->password)) {
+                return $user;
             }
 
-            // 2) Empleados vía API de correspondencia
-            return app(CorrespondenciaAuthService::class)
-                ->autenticarEmpleado($login, $password);
+            return null;
         });
 
         RateLimiter::for('login', function (Request $request) {
