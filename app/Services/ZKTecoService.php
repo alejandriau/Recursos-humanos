@@ -6,6 +6,7 @@ namespace App\Services;
 use Jmrashed\Zkteco\Lib\ZKTeco;
 use App\Models\MarcacionBiometrica;
 use App\Models\SincronizacionLog;
+use App\Models\Persona;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
@@ -15,17 +16,20 @@ class ZKTecoService
     protected $zk;
     protected $ip;
     protected $port;
+    protected $timeout;
 
-    public function __construct($ip, $port = 4370)
+    public function __construct($ip, $port = 4370, $timeout = 60)
     {
+        // OJO: subimos el timeout por defecto a 60s. getAttendance() de esta
+        // librería siempre trae TODO el log del dispositivo (no filtra por
+        // fecha en el equipo), así que la descarga puede tardar según el
+        // volumen de marcaciones almacenadas.
         $this->ip = $ip;
         $this->port = $port;
-        $this->zk = new ZKTeco($ip, $port);
+        $this->timeout = $timeout;
+        $this->zk = new ZKTeco($ip, $port, $timeout);
     }
 
-    /**
-     * Conectar al dispositivo UFace802 Plus
-     */
     public function conectar()
     {
         try {
@@ -42,9 +46,6 @@ class ZKTecoService
         }
     }
 
-    /**
-     * Desconectar del dispositivo
-     */
     public function desconectar()
     {
         try {
@@ -57,12 +58,9 @@ class ZKTecoService
         }
     }
 
-    /**
-     * Obtener información del dispositivo UFace802 Plus
-     */
-    public function obtenerInfoDispositivo()
+    public function obtenerInfoDispositivo($yaConectado = false)
     {
-        if (!$this->conectar()) {
+        if (!$yaConectado && !$this->conectar()) {
             return null;
         }
 
@@ -76,19 +74,19 @@ class ZKTecoService
                 'tipo' => 'UFace802 Plus'
             ];
 
-            $this->desconectar();
+            if (!$yaConectado) {
+                $this->desconectar();
+            }
             return $info;
         } catch (\Exception $e) {
             Log::error("ZKTeco Error obteniendo info: " . $e->getMessage());
-            $this->desconectar();
+            if (!$yaConectado) {
+                $this->desconectar();
+            }
             return null;
         }
     }
 
-    /**
-     * Obtener TODOS los usuarios del biométrico
-     * Devuelve: uid, userid (CI), name, badgenumber, etc.
-     */
     public function obtenerUsuarios()
     {
         if (!$this->conectar()) {
@@ -111,19 +109,12 @@ class ZKTecoService
     }
 
     /**
-     * Obtener TODAS las marcaciones del biométrico UFace802 Plus
-     * Estructura esperada de cada marcación:
-     * [
-     *   'uid' => '1',           // ID único en el dispositivo
-     *   'userid' => '1234567',  // CI del empleado (¡este es el importante!)
-     *   'name' => 'Juan Perez', // Nombre
-     *   'timestamp' => '2026-07-27 08:00:00',
-     *   'type' => '0',          // 0=Entrada, 1=Salida, 255=otros
-     *   'state' => 15,          // 1=Huella, 15=Face, 4=Contraseña, etc.
-     *   'machine_id' => '1',    // ID de la máquina
-     *   'sn' => 12345,          // Número de serie del registro
-     *   'badgenumber' => '1001' // Número de tarjeta
-     * ]
+     * Obtener marcaciones del biométrico.
+     *
+     * IMPORTANTE: la librería jmrashed/zkteco NO soporta filtrar por rango
+     * de fechas en el propio dispositivo. getAttendance() siempre descarga
+     * el log completo. El filtrado por $fechaInicio/$fechaFin se hace acá
+     * en PHP, después de la descarga.
      */
     public function obtenerMarcaciones($fechaInicio = null, $fechaFin = null)
     {
@@ -134,19 +125,29 @@ class ZKTecoService
         try {
             $this->zk->disableDevice();
 
-            // Si se especifican fechas, convertirlas a timestamp para ZKTeco
-            if ($fechaInicio && $fechaFin) {
-                $inicio = Carbon::parse($fechaInicio)->timestamp;
-                $fin = Carbon::parse($fechaFin)->timestamp;
-                $marcaciones = $this->zk->getAttendance($inicio, $fin);
-            } else {
-                $marcaciones = $this->zk->getAttendance();
-            }
+            $inicioDescarga = microtime(true);
+            $marcaciones = $this->zk->getAttendance();
+            $duracion = round(microtime(true) - $inicioDescarga, 2);
 
             $this->zk->enableDevice();
             $this->desconectar();
 
-            Log::info("ZKTeco UFace802 Plus: Obtenidas " . count($marcaciones) . " marcaciones");
+            Log::info("ZKTeco: Descarga completa del dispositivo: " . count($marcaciones) . " registros en {$duracion}s");
+
+            // Filtrar en PHP por el rango solicitado
+            if ($fechaInicio && $fechaFin) {
+                $inicio = Carbon::parse($fechaInicio)->startOfDay();
+                $fin = Carbon::parse($fechaFin)->endOfDay();
+
+                $marcaciones = array_values(array_filter($marcaciones, function ($m) use ($inicio, $fin) {
+                    if (empty($m['timestamp'])) return false;
+                    $fecha = Carbon::parse($m['timestamp']);
+                    return $fecha->betweenIncluded($inicio, $fin);
+                }));
+
+                Log::info("ZKTeco: " . count($marcaciones) . " marcaciones dentro del rango {$fechaInicio} - {$fechaFin}");
+            }
+
             return $marcaciones;
 
         } catch (\Exception $e) {
@@ -157,21 +158,29 @@ class ZKTecoService
     }
 
     /**
-     * Importar marcaciones a la base de datos local
-     * Solo importa las que no existen aún
+     * Importar marcaciones con inserción masiva (bulk insert) y verificación
+     * de duplicados/personas en lote, en vez de una query por registro.
      */
     public function importarMarcaciones($fechaInicio = null, $fechaFin = null)
     {
-        // Crear log de sincronización
+        if (!$fechaInicio || !$fechaFin) {
+            $fechaInicio = Carbon::now()->toDateString();
+            $fechaFin = Carbon::now()->toDateString();
+            Log::info("ZKTeco: No se especificaron fechas, usando hoy: {$fechaInicio}");
+        }
+
         $log = SincronizacionLog::create([
             'ip_biometrico' => $this->ip,
             'puerto' => $this->port,
             'estado' => 'iniciado',
             'fecha_inicio' => now(),
+            'detalles' => [
+                'fecha_inicio' => $fechaInicio,
+                'fecha_fin' => $fechaFin,
+            ]
         ]);
 
         try {
-            // Obtener marcaciones del biométrico
             $marcaciones = $this->obtenerMarcaciones($fechaInicio, $fechaFin);
 
             if ($marcaciones === null) {
@@ -184,28 +193,78 @@ class ZKTecoService
             }
 
             $totalObtenidas = count($marcaciones);
+
+            if ($totalObtenidas === 0) {
+                $log->update([
+                    'estado' => 'exito',
+                    'mensaje' => 'Sin marcaciones nuevas en el rango solicitado',
+                    'total_obtenidas' => 0,
+                    'nuevas_importadas' => 0,
+                    'duplicadas' => 0,
+                    'con_error' => 0,
+                    'fecha_fin' => now(),
+                ]);
+                return [
+                    'mensaje' => 'No hay marcaciones en ese rango',
+                    'total_obtenidas' => 0,
+                    'nuevas_importadas' => 0,
+                    'duplicadas' => 0,
+                    'con_error' => 0,
+                    'log_id' => $log->id,
+                ];
+            }
+
+            // 1) Calcular hash de cada marcación de una sola pasada
+            foreach ($marcaciones as &$m) {
+                $m['_hash'] = MarcacionBiometrica::generarHash($m);
+            }
+            unset($m);
+
+            // Normalizar el campo de CI: getAttendance() de jmrashed/zkteco
+            // devuelve la clave 'id' (no 'userid') para el identificador del
+            // empleado. Se deja 'userid' como fallback por si cambia la lib.
+            foreach ($marcaciones as &$m) {
+                $m['userid'] = $m['id'] ?? $m['userid'] ?? null;
+            }
+            unset($m);
+
+            // 2) UNA sola query para saber cuáles hashes ya existen
+            $todosLosHashes = array_column($marcaciones, '_hash');
+            $hashesExistentes = [];
+            foreach (array_chunk($todosLosHashes, 1000) as $chunkHashes) {
+                $existentes = MarcacionBiometrica::whereIn('hash_unique', $chunkHashes)
+                    ->pluck('hash_unique')
+                    ->toArray();
+                $hashesExistentes = array_merge($hashesExistentes, $existentes);
+            }
+            $hashesExistentes = array_flip($hashesExistentes);
+
+            // 3) UNA sola query para mapear CI -> persona_id (en vez de N queries)
+            $cisEnLote = array_unique(array_filter(array_column($marcaciones, 'userid')));
+            $mapaPersonas = Persona::whereIn('ci', $cisEnLote)
+                ->pluck('id', 'ci')
+                ->toArray();
+
             $nuevasImportadas = 0;
             $duplicadas = 0;
             $conError = 0;
-            $detalles = [];
+            $filasParaInsertar = [];
+            $ahora = now();
 
-            // Procesar cada marcación
             foreach ($marcaciones as $marcacion) {
                 try {
-                    // Generar hash único para evitar duplicados
-                    $hash = MarcacionBiometrica::generarHash($marcacion);
+                    $hash = $marcacion['_hash'];
 
-                    // Verificar si ya existe
-                    $existente = MarcacionBiometrica::where('hash_unique', $hash)->first();
-
-                    if ($existente) {
+                    if (isset($hashesExistentes[$hash])) {
                         $duplicadas++;
                         continue;
                     }
 
-                    // Crear la marcación en la base de datos
-                    MarcacionBiometrica::create([
-                        'ci' => $marcacion['userid'] ?? 'desconocido',
+                    $ci = $marcacion['userid'] ?? null;
+                    $personaId = $ci && isset($mapaPersonas[$ci]) ? $mapaPersonas[$ci] : null;
+
+                    $filasParaInsertar[] = [
+                        'ci' => $ci ?? 'desconocido',
                         'nombre_completo' => $marcacion['name'] ?? null,
                         'uid_biometrico' => $marcacion['uid'],
                         'fecha_hora' => $marcacion['timestamp'],
@@ -213,35 +272,28 @@ class ZKTecoService
                         'estado_verificacion' => $marcacion['state'] ?? null,
                         'sn' => $marcacion['sn'] ?? null,
                         'importada' => true,
-                        'fecha_importacion' => now(),
+                        'fecha_importacion' => $ahora,
                         'hash_unique' => $hash,
-                        'persona_id' => $this->buscarPersonaPorCI($marcacion['userid'] ?? null),
-                    ]);
-
-                    $nuevasImportadas++;
-
-                    $detalles[] = [
-                        'ci' => $marcacion['userid'] ?? 'desconocido',
-                        'nombre' => $marcacion['name'] ?? 'Sin nombre',
-                        'fecha_hora' => $marcacion['timestamp'],
-                        'tipo' => $this->mapearTipoMarcacion($marcacion['type'] ?? null),
-                        'estado' => 'importada'
+                        'persona_id' => $personaId,
+                        'created_at' => $ahora,
+                        'updated_at' => $ahora,
                     ];
+
+                    // Evitar marcar como "no encontrado" dos veces el mismo hash
+                    $hashesExistentes[$hash] = true;
+                    $nuevasImportadas++;
 
                 } catch (\Exception $e) {
                     $conError++;
-                    Log::error("Error importando marcación: " . $e->getMessage(), [
-                        'marcacion' => $marcacion
-                    ]);
-
-                    $detalles[] = [
-                        'error' => $e->getMessage(),
-                        'datos' => $marcacion
-                    ];
+                    Log::error("Error preparando marcación: " . $e->getMessage(), ['marcacion' => $marcacion]);
                 }
             }
 
-            // Actualizar el log
+            // 4) Insertar en bloques de 500 (bulk insert real, no create() por fila)
+            foreach (array_chunk($filasParaInsertar, 500) as $chunkFilas) {
+                DB::table('marcaciones_biometricas')->insert($chunkFilas);
+            }
+
             $log->update([
                 'estado' => $conError > 0 ? 'parcial' : 'exito',
                 'mensaje' => 'Importación completada',
@@ -249,7 +301,6 @@ class ZKTecoService
                 'nuevas_importadas' => $nuevasImportadas,
                 'duplicadas' => $duplicadas,
                 'con_error' => $conError,
-                'detalles' => $detalles,
                 'fecha_fin' => now(),
             ]);
 
@@ -260,23 +311,18 @@ class ZKTecoService
                 'duplicadas' => $duplicadas,
                 'con_error' => $conError,
                 'log_id' => $log->id,
-                'detalles' => $detalles
             ];
 
         } catch (\Exception $e) {
             $log->update([
                 'estado' => 'error',
-                'mensaje' => $e->getMessage(),
+                'mensaje' => mb_substr($e->getMessage(), 0, 250),
                 'fecha_fin' => now(),
             ]);
-
             return ['error' => $e->getMessage()];
         }
     }
 
-    /**
-     * Mapear el tipo de marcación de ZKTeco a formato legible
-     */
     protected function mapearTipoMarcacion($tipo)
     {
         $mapa = [
@@ -292,29 +338,6 @@ class ZKTecoService
         return $mapa[$tipo] ?? 'otro';
     }
 
-    /**
-     * Buscar persona por CI en la base de datos local
-     */
-    protected function buscarPersonaPorCI($ci)
-    {
-        if (!$ci) return null;
-
-        // Buscar en tu tabla persona
-        $persona = \App\Models\Persona::where('ci', $ci)->first();
-
-        if ($persona) {
-            // Opcional: Actualizar UID biométrico
-            $persona->uid_biometrico = $persona->uid_biometrico ?? $ci;
-            $persona->save();
-            return $persona->id;
-        }
-
-        return null;
-    }
-
-    /**
-     * Obtener estadísticas de marcaciones locales
-     */
     public function getEstadisticasLocales()
     {
         return [
@@ -333,9 +356,6 @@ class ZKTecoService
         ];
     }
 
-    /**
-     * Obtener resumen de marcaciones por persona
-     */
     public function getResumenPorPersona($ci, $fechaInicio = null, $fechaFin = null)
     {
         $query = MarcacionBiometrica::where('ci', $ci);
@@ -357,7 +377,7 @@ class ZKTecoService
             'salidas' => $marcaciones->where('tipo', 'salida')->count(),
             'primera_marcacion' => $marcaciones->first()?->fecha_hora,
             'ultima_marcacion' => $marcaciones->last()?->fecha_hora,
-            'marcaciones' => $marcaciones->map(function($m) {
+            'marcaciones' => $marcaciones->map(function ($m) {
                 return [
                     'fecha_hora' => $m->fecha_hora->format('Y-m-d H:i:s'),
                     'tipo' => $m->tipo,
@@ -367,9 +387,6 @@ class ZKTecoService
         ];
     }
 
-    /**
-     * Obtener nombre del método de verificación
-     */
     protected function getNombreVerificacion($codigo)
     {
         $mapa = [
@@ -394,9 +411,6 @@ class ZKTecoService
         return $mapa[(string)$codigo] ?? 'Método desconocido';
     }
 
-    /**
-     * Obtener logs de sincronización
-     */
     public function getLogs($limit = 50)
     {
         return SincronizacionLog::orderBy('created_at', 'desc')

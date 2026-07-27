@@ -46,7 +46,7 @@
             <h5 class="text-center">Formulario de Solicitud de Vacación</h5>
         </div>
 
-        {{-- Contenedor principal --}}
+        {{-- Contenedor principal sin Vue --}}
         <div id="app">
             <div class="row">
                 <div class="col-md-6">
@@ -184,20 +184,14 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/es.js"></script>
 
-    {{-- Script principal --}}
+    {{-- Script principal con JS puro --}}
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-
-            // Configurar token CSRF para axios
-            const tokenMeta = document.querySelector('meta[name="csrf-token"]');
-            if (tokenMeta) {
-                axios.defaults.headers.common['X-CSRF-TOKEN'] = tokenMeta.content;
-            }
 
             // Datos de feriados desde PHP
             const feriados = @json($feriado->pluck('fechaf')->map(fn($f) => \Carbon\Carbon::parse($f)->format('Y-m-d')));
 
-            // Obtener ID de la persona autenticada
+            // Obtener ID de la persona autenticada (desde el campo oculto)
             const idPersona = document.getElementById('idpersona').value;
 
             // Función para parsear fecha local (YYYY-MM-DD)
@@ -251,9 +245,12 @@
                         params: { idpersona: idPersona }
                     })
                     .then(response => {
+                        // Validar que el span exista antes de asignar
                         const spanDias = document.getElementById('diasDisponiblesSpan');
                         if (spanDias) {
                             spanDias.textContent = response.data.dias;
+                        } else {
+                            console.error('Elemento #diasDisponiblesSpan no encontrado');
                         }
                     })
                     .catch(error => {
@@ -279,7 +276,10 @@
                 return esFinDeSemana || esFeriado;
             };
 
-            if (document.getElementById('fsalida')) {
+            const fsalidaInput = document.getElementById('fsalida');
+            const fretornoInput = document.getElementById('fretorno');
+
+            if (fsalidaInput) {
                 flatpickr('#fsalida', {
                     minDate: 'today',
                     disable: [deshabilitarFechas],
@@ -289,7 +289,7 @@
                 });
             }
 
-            if (document.getElementById('fretorno')) {
+            if (fretornoInput) {
                 flatpickr('#fretorno', {
                     minDate: 'today',
                     disable: [deshabilitarFechas],
@@ -308,7 +308,7 @@
             // Cargar días disponibles al inicio
             cargarDiasDisponibles();
 
-            // --- Búsqueda de superior ---
+            // --- Búsqueda de superior (sin Vue) ---
             const btnBuscar = document.getElementById('btnBuscarSup');
             const inputBuscar = document.getElementById('dato');
             const tablaSup = document.getElementById('tablaSup');
@@ -354,8 +354,6 @@
                                 const nombre = this.dataset.nombre;
                                 document.getElementById('idSup').value = id;
                                 document.getElementById('nombreSup').value = nombre;
-                                // Opcional: limpiar resultados después de seleccionar
-                                tablaSup.innerHTML = '';
                             });
                         });
                     })
@@ -376,78 +374,61 @@
                 });
             }
 
-            // --- Registro de solicitud con Axios ---
+            // --- Registro de solicitud ---
             const solicitarBtn = document.getElementById('solicitarVac');
             if (solicitarBtn) {
                 solicitarBtn.addEventListener('click', function() {
-                    // Validar que se haya seleccionado un superior
-                    const idSup = document.getElementById('idSup').value;
-                    if (!idSup) {
-                        Swal.fire('Advertencia', 'Debe seleccionar un inmediato superior.', 'warning');
+
+                    // Validar que el meta CSRF exista
+                    const tokenMeta = document.querySelector('meta[name="csrf-token"]');
+                    let token = '';
+                    if (tokenMeta) {
+                        token = tokenMeta.content;
+                    } else {
+                        console.error('No se encontró el meta tag CSRF');
+                        Swal.fire('Error', 'Falta el token CSRF. Por favor, recargue la página.', 'error');
                         return;
                     }
 
-                    // Validar que las fechas estén completas y días calculados
-                    const fsalida = document.getElementById('fsalida').value;
-                    const fretorno = document.getElementById('fretorno').value;
-                    const totaldias = document.getElementById('totaldias').value;
-                    if (!fsalida || !fretorno || !totaldias) {
-                        Swal.fire('Advertencia', 'Complete las fechas y verifique que los días sean válidos.', 'warning');
-                        return;
-                    }
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '/vacacion/registrar-vacacion';
 
-                    // Obtener el tipo de salida (VACACION)
-                    const tipoSal = document.getElementById('salida').value;
-                    if (!tipoSal) {
-                        Swal.fire('Advertencia', 'Tipo de salida no válido.', 'warning');
-                        return;
-                    }
-
-                    const data = {
+                    const datos = {
+                        _token: token,
                         persona_id: idPersona,
-                        tipoSal: tipoSal,
+                        tipoSal: document.getElementById('salida').value,
                         fechasol: document.getElementById('fechasol').value,
-                        fsalida: fsalida,
-                        fretorno: fretorno,
-                        totaldias: totaldias,
-                        idSup: idSup,
+                        fsalida: document.getElementById('fsalida').value,
+                        fretorno: document.getElementById('fretorno').value,
+                        totaldias: document.getElementById('totaldias').value,
+                        idSup: document.getElementById('idSup').value,
                         observacion: document.getElementById('observacion').value
                     };
 
-                    // Mostrar loading
-                    Swal.fire({
-                        title: 'Registrando...',
-                        allowOutsideClick: false,
-                        didOpen: () => {
-                            Swal.showLoading();
-                        }
-                    });
+                    for (const key in datos) {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = key;
+                        input.value = datos[key];
+                        form.appendChild(input);
+                    }
 
-                    axios.post('/vacacion/registrar-vacacion', data)
-                        .then(response => {
-                            Swal.fire('Éxito', response.data.message, 'success')
-                                .then(() => {
-                                    window.location.href = '/homeusr';
-                                });
-                        })
-                        .catch(error => {
-                            let mensaje = 'Ocurrió un error al registrar la solicitud.';
-                            if (error.response) {
-                                if (error.response.status === 422) {
-                                    const errors = error.response.data.errors;
-                                    if (errors) {
-                                        mensaje = Object.values(errors).flat().join('\n');
-                                    } else {
-                                        mensaje = error.response.data.message || mensaje;
-                                    }
-                                } else {
-                                    mensaje = error.response.data.message || mensaje;
-                                }
-                            }
-                            Swal.fire('Error', mensaje, 'error');
-                        });
+                    document.body.appendChild(form);
+                    form.submit();
                 });
             }
+
+
+                    console.log(idPersona);
+                             console.log(document.getElementById('salida').value),
+                         console.log(document.getElementById('fechasol').value),
+                     console.log(document.getElementById('fsalida').value),
+                         console.log(document.getElementById('fretorno').value),
+                        console.log(document.getElementById('totaldias').value),
+             console.log(document.getElementById('idSup').value),
+                        console.log(document.getElementById('observacion').value)
         });
+
     </script>
 @endsection

@@ -89,25 +89,26 @@ Route::get('/homeusr', function () {
     return view('homeUser');
 });
 
-Route::prefix('zk')->group(function () {
-    // Conexión y sincronización
-    Route::get('/probar', [ZKTecoController::class, 'probarConexion']);
-    Route::get('/usuarios', [ZKTecoController::class, 'obtenerUsuarios']);
-    Route::post('/importar', [ZKTecoController::class, 'importarMarcaciones']);
-    Route::post('/sincronizar-uids', [ZKTecoController::class, 'sincronizarUIDs']);
+    Route::prefix('zk')->group(function () {
+        // Conexión y sincronización
+        Route::get('/probar', [ZKTecoController::class, 'probarConexion']);
+        Route::get('/usuarios', [ZKTecoController::class, 'obtenerUsuarios']);
+        Route::post('/importar', [ZKTecoController::class, 'importarMarcaciones']);
+        Route::post('/sincronizar-uids', [ZKTecoController::class, 'sincronizarUIDs']);
 
-    // Gestión de marcaciones
-    Route::get('/marcaciones', [ZKTecoController::class, 'listarMarcaciones']);
-    Route::get('/marcaciones/{id}', [ZKTecoController::class, 'verMarcacion']);
-    Route::get('/resumen-persona', [ZKTecoController::class, 'resumenPersona']);
+        // Gestión de marcaciones
+        Route::get('/marcaciones', [ZKTecoController::class, 'importarMarcaciones']);
+        Route::get('/marcaciones/{id}', [ZKTecoController::class, 'verMarcacion']);
+        Route::get('/resumen-persona', [ZKTecoController::class, 'resumenPersona']);
 
-    // Estadísticas y logs
-    Route::get('/estadisticas', [ZKTecoController::class, 'estadisticas']);
-    Route::get('/logs', [ZKTecoController::class, 'logs']);
+        // Estadísticas y logs
+        Route::get('/estadisticas', [ZKTecoController::class, 'estadisticas']);
+        Route::get('/logs', [ZKTecoController::class, 'logs']);
 
-    // Mantenimiento
-    Route::delete('/limpiar-duplicados', [ZKTecoController::class, 'limpiarDuplicados']);
-});
+        // Mantenimiento
+        Route::delete('/limpiar-duplicados', [ZKTecoController::class, 'limpiarDuplicados']);
+        Route::get('/importar-dia', [ZKTecoController::class, 'importarDia']);
+    });
 
 Route::get('/boleta/verificar/{id}', [VerificacionBoletaController::class, 'verificar'])->middleware('signed')->name('boleta.verificar');
 

@@ -32,7 +32,8 @@ class ZKTecoController extends Controller
         $zk = new ZKTecoService($ip, $port);
 
         if ($zk->conectar()) {
-            $info = $zk->obtenerInfoDispositivo();
+            // Obtener información SIN reconectar
+            $info = $zk->obtenerInfoDispositivo(true);
             $zk->desconectar();
 
             return response()->json([
@@ -44,7 +45,7 @@ class ZKTecoController extends Controller
 
         return response()->json([
             'success' => false,
-            'mensaje' => '❌ No se pudo conectar al biométrico. Verifica IP y que esté en la red.'
+            'mensaje' => '❌ No se pudo conectar.'
         ], 500);
     }
 
@@ -79,47 +80,6 @@ class ZKTecoController extends Controller
         ]);
     }
 
-    /**
-     * Importar marcaciones del biométrico
-     */
-    public function importarMarcaciones(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'ip' => 'required|ip',
-            'port' => 'nullable|integer',
-            'fecha_inicio' => 'nullable|date',
-            'fecha_fin' => 'nullable|date|after_or_equal:fecha_inicio',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['error' => $validator->errors()], 400);
-        }
-
-        $zk = new ZKTecoService($request->ip, $request->port ?? 4370);
-        $resultado = $zk->importarMarcaciones(
-            $request->fecha_inicio,
-            $request->fecha_fin
-        );
-
-        if (isset($resultado['error'])) {
-            return response()->json([
-                'success' => false,
-                'error' => $resultado['error']
-            ], 500);
-        }
-
-        return response()->json([
-            'success' => true,
-            'mensaje' => $resultado['mensaje'],
-            'data' => [
-                'total_obtenidas' => $resultado['total_obtenidas'],
-                'nuevas_importadas' => $resultado['nuevas_importadas'],
-                'duplicadas' => $resultado['duplicadas'],
-                'con_error' => $resultado['con_error'],
-                'log_id' => $resultado['log_id'],
-            ]
-        ]);
-    }
 
     /**
      * Listar marcaciones importadas con filtros
@@ -352,4 +312,52 @@ class ZKTecoController extends Controller
             ]
         ]);
     }
+
+    /**
+ * IMPORTAR MARCACIONES DE UN DÍA ESPECÍFICO (PRUEBA)
+ */
+public function importarMarcaciones(Request $request)
+{
+    set_time_limit(300); // 5 minutos
+
+    $validator = Validator::make($request->all(), [
+        //'ip' => 'required|ip',
+        'port' => 'nullable|integer',
+        'fecha' => 'nullable|date', // ¡Ahora es un solo parámetro!
+        'fecha_inicio' => 'nullable|date',
+        'fecha_fin' => 'nullable|date|after_or_equal:fecha_inicio',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json(['error' => $validator->errors()], 400);
+    }
+
+    // Si no se envía fecha, usar hoy
+    $fecha = $request->fecha ?? now()->toDateString();
+
+    // Usar fecha_inicio/fecha_fin si se envían, sino usar la fecha única
+    $fechaInicio = $request->fecha_inicio ?? $fecha;
+    $fechaFin = $request->fecha_fin ?? $fecha;
+
+    $zk = new ZKTecoService('172.16.34.6', $request->port ?? 4370, 30);
+    $resultado = $zk->importarMarcaciones($fechaInicio, $fechaFin);
+
+    if (isset($resultado['error'])) {
+        return response()->json(['success' => false, 'error' => $resultado['error']], 500);
+    }
+
+    return response()->json([
+        'success' => true,
+        'mensaje' => $resultado['mensaje'],
+        'data' => [
+            'fecha_inicio' => $fechaInicio,
+            'fecha_fin' => $fechaFin,
+            'total_obtenidas' => $resultado['total_obtenidas'],
+            'nuevas_importadas' => $resultado['nuevas_importadas'],
+            'duplicadas' => $resultado['duplicadas'],
+            'con_error' => $resultado['con_error'],
+            'log_id' => $resultado['log_id'],
+        ]
+    ]);
+}
 }
