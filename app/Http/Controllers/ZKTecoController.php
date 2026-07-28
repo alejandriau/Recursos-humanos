@@ -4,6 +4,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\ZKTecoService;
+use App\Services\ImportarBiometricosService;
 use App\Models\MarcacionBiometrica;
 use App\Models\SincronizacionLog;
 use Illuminate\Http\Request;
@@ -32,7 +33,6 @@ class ZKTecoController extends Controller
         $zk = new ZKTecoService($ip, $port);
 
         if ($zk->conectar()) {
-            // Obtener información SIN reconectar
             $info = $zk->obtenerInfoDispositivo(true);
             $zk->desconectar();
 
@@ -80,7 +80,6 @@ class ZKTecoController extends Controller
         ]);
     }
 
-
     /**
      * Listar marcaciones importadas con filtros
      */
@@ -88,33 +87,29 @@ class ZKTecoController extends Controller
     {
         $query = MarcacionBiometrica::query();
 
-        // Filtros
         if ($request->has('ci')) {
             $query->where('ci', $request->ci);
         }
-
         if ($request->has('fecha_inicio')) {
             $query->where('fecha_hora', '>=', $request->fecha_inicio);
         }
-
         if ($request->has('fecha_fin')) {
             $query->where('fecha_hora', '<=', $request->fecha_fin);
         }
-
         if ($request->has('tipo')) {
             $query->where('tipo', $request->tipo);
         }
-
         if ($request->has('persona_id')) {
             $query->where('persona_id', $request->persona_id);
         }
+        if ($request->has('dispositivo_id')) {
+            $query->where('dispositivo_id', $request->dispositivo_id);
+        }
 
-        // Ordenamiento
         $orderBy = $request->order_by ?? 'fecha_hora';
         $orderDir = $request->order_dir ?? 'desc';
         $query->orderBy($orderBy, $orderDir);
 
-        // Paginación
         $perPage = $request->per_page ?? 50;
         $marcaciones = $query->paginate($perPage);
 
@@ -124,9 +119,6 @@ class ZKTecoController extends Controller
         ]);
     }
 
-    /**
-     * Obtener una marcación específica
-     */
     public function verMarcacion($id)
     {
         $marcacion = MarcacionBiometrica::find($id);
@@ -144,9 +136,6 @@ class ZKTecoController extends Controller
         ]);
     }
 
-    /**
-     * Obtener resumen de marcaciones por persona
-     */
     public function resumenPersona(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -172,9 +161,6 @@ class ZKTecoController extends Controller
         ]);
     }
 
-    /**
-     * Obtener estadísticas generales
-     */
     public function estadisticas()
     {
         $zk = new ZKTecoService('0.0.0.0');
@@ -186,9 +172,6 @@ class ZKTecoController extends Controller
         ]);
     }
 
-    /**
-     * Obtener logs de sincronización
-     */
     public function logs(Request $request)
     {
         $query = SincronizacionLog::query();
@@ -196,11 +179,12 @@ class ZKTecoController extends Controller
         if ($request->has('estado')) {
             $query->where('estado', $request->estado);
         }
-
+        if ($request->has('dispositivo_id')) {
+            $query->where('dispositivo_id', $request->dispositivo_id);
+        }
         if ($request->has('fecha_inicio')) {
             $query->whereDate('created_at', '>=', $request->fecha_inicio);
         }
-
         if ($request->has('fecha_fin')) {
             $query->whereDate('created_at', '<=', $request->fecha_fin);
         }
@@ -214,12 +198,8 @@ class ZKTecoController extends Controller
         ]);
     }
 
-    /**
-     * Eliminar marcaciones duplicadas (limpieza)
-     */
     public function limpiarDuplicados()
     {
-        // Encontrar duplicados por hash_unique
         $duplicados = MarcacionBiometrica::select('hash_unique')
             ->selectRaw('COUNT(*) as count')
             ->groupBy('hash_unique')
@@ -232,8 +212,7 @@ class ZKTecoController extends Controller
                 ->orderBy('id', 'asc')
                 ->get();
 
-            // Mantener el primero, eliminar los demás
-            $registros->shift(); // Quitar el primero
+            $registros->shift();
             foreach ($registros as $registro) {
                 $registro->delete();
                 $eliminados++;
@@ -246,9 +225,6 @@ class ZKTecoController extends Controller
         ]);
     }
 
-    /**
-     * Sincronizar UIDs de biométrico con tabla persona
-     */
     public function sincronizarUIDs(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -275,11 +251,9 @@ class ZKTecoController extends Controller
         $detalles = [];
 
         foreach ($usuarios as $usuario) {
-            // Buscar persona por CI
             $persona = \App\Models\Persona::where('ci', $usuario['userid'])->first();
 
             if ($persona) {
-                // Actualizar UID biométrico
                 $persona->uid_biometrico = $usuario['uid'];
                 $persona->badgenumber = $usuario['badgenumber'] ?? null;
                 $persona->save();
@@ -314,50 +288,74 @@ class ZKTecoController extends Controller
     }
 
     /**
- * IMPORTAR MARCACIONES DE UN DÍA ESPECÍFICO (PRUEBA)
- */
-public function importarMarcaciones(Request $request)
-{
-    set_time_limit(300); // 5 minutos
+     * IMPORTAR MARCACIONES DE UN SOLO DISPOSITIVO (por IP directa)
+     */
+    public function importarMarcaciones(Request $request)
+    {
+        set_time_limit(300);
 
-    $validator = Validator::make($request->all(), [
-        //'ip' => 'required|ip',
-        'port' => 'nullable|integer',
-        'fecha' => 'nullable|date', // ¡Ahora es un solo parámetro!
-        'fecha_inicio' => 'nullable|date',
-        'fecha_fin' => 'nullable|date|after_or_equal:fecha_inicio',
-    ]);
+        $validator = Validator::make($request->all(), [
+            'ip' => 'nullable|ip',
+            'port' => 'nullable|integer',
+            'fecha' => 'nullable|date',
+            'fecha_inicio' => 'nullable|date',
+            'fecha_fin' => 'nullable|date|after_or_equal:fecha_inicio',
+        ]);
 
-    if ($validator->fails()) {
-        return response()->json(['error' => $validator->errors()], 400);
+        if ($validator->fails()) {
+            return response()->json(['error' => $validator->errors()], 400);
+        }
+
+        $fecha = $request->fecha ?? now()->toDateString();
+        $fechaInicio = $request->fecha_inicio ?? $fecha;
+        $fechaFin = $request->fecha_fin ?? $fecha;
+        $ip = $request->ip ?? '172.16.34.6';
+
+        $zk = new ZKTecoService($ip, $request->port ?? 4370, 60);
+        $resultado = $zk->importarMarcaciones($fechaInicio, $fechaFin);
+
+        if (isset($resultado['error'])) {
+            return response()->json(['success' => false, 'error' => $resultado['error']], 500);
+        }
+
+        return response()->json([
+            'success' => true,
+            'mensaje' => $resultado['mensaje'],
+            'data' => [
+                'fecha_inicio' => $fechaInicio,
+                'fecha_fin' => $fechaFin,
+                'total_obtenidas' => $resultado['total_obtenidas'],
+                'nuevas_importadas' => $resultado['nuevas_importadas'],
+                'duplicadas' => $resultado['duplicadas'],
+                'con_error' => $resultado['con_error'],
+                'log_id' => $resultado['log_id'],
+            ]
+        ]);
     }
 
-    // Si no se envía fecha, usar hoy
-    $fecha = $request->fecha ?? now()->toDateString();
+    /**
+     * IMPORTAR MARCACIONES DE TODOS LOS DISPOSITIVOS ACTIVOS
+     * (tabla dispositivos_biometricos)
+     */
+    public function importarTodosDispositivos(Request $request)
+    {
+        set_time_limit(0); // puede tardar varios minutos con 10+ equipos
 
-    // Usar fecha_inicio/fecha_fin si se envían, sino usar la fecha única
-    $fechaInicio = $request->fecha_inicio ?? $fecha;
-    $fechaFin = $request->fecha_fin ?? $fecha;
+        $validator = Validator::make($request->all(), [
+            'fecha_inicio' => 'nullable|date',
+            'fecha_fin' => 'nullable|date|after_or_equal:fecha_inicio',
+        ]);
 
-    $zk = new ZKTecoService('172.16.34.6', $request->port ?? 4370, 30);
-    $resultado = $zk->importarMarcaciones($fechaInicio, $fechaFin);
+        if ($validator->fails()) {
+            return response()->json(['error' => $validator->errors()], 400);
+        }
 
-    if (isset($resultado['error'])) {
-        return response()->json(['success' => false, 'error' => $resultado['error']], 500);
+        $service = new ImportarBiometricosService();
+        $resultados = $service->importarTodos($request->fecha_inicio, $request->fecha_fin);
+
+        return response()->json([
+            'success' => true,
+            'data' => $resultados,
+        ]);
     }
-
-    return response()->json([
-        'success' => true,
-        'mensaje' => $resultado['mensaje'],
-        'data' => [
-            'fecha_inicio' => $fechaInicio,
-            'fecha_fin' => $fechaFin,
-            'total_obtenidas' => $resultado['total_obtenidas'],
-            'nuevas_importadas' => $resultado['nuevas_importadas'],
-            'duplicadas' => $resultado['duplicadas'],
-            'con_error' => $resultado['con_error'],
-            'log_id' => $resultado['log_id'],
-        ]
-    ]);
-}
 }

@@ -161,7 +161,7 @@ class ZKTecoService
      * Importar marcaciones con inserción masiva (bulk insert) y verificación
      * de duplicados/personas en lote, en vez de una query por registro.
      */
-    public function importarMarcaciones($fechaInicio = null, $fechaFin = null)
+    public function importarMarcaciones($fechaInicio = null, $fechaFin = null, $dispositivoId = null)
     {
         if (!$fechaInicio || !$fechaFin) {
             $fechaInicio = Carbon::now()->toDateString();
@@ -170,6 +170,7 @@ class ZKTecoService
         }
 
         $log = SincronizacionLog::create([
+            'dispositivo_id' => $dispositivoId,
             'ip_biometrico' => $this->ip,
             'puerto' => $this->port,
             'estado' => 'iniciado',
@@ -179,6 +180,7 @@ class ZKTecoService
                 'fecha_fin' => $fechaFin,
             ]
         ]);
+
 
         try {
             $marcaciones = $this->obtenerMarcaciones($fechaInicio, $fechaFin);
@@ -214,9 +216,13 @@ class ZKTecoService
                 ];
             }
 
-            // 1) Calcular hash de cada marcación de una sola pasada
+            // 1) Calcular hash de cada marcación de una sola pasada.
+            // Se incorpora el dispositivo_id para que la misma persona
+            // marcando en dos equipos distintos a la misma hora no se
+            // trate como un duplicado.
             foreach ($marcaciones as &$m) {
-                $m['_hash'] = MarcacionBiometrica::generarHash($m);
+                $hashBase = MarcacionBiometrica::generarHash($m);
+                $m['_hash'] = md5($hashBase . '|dispositivo:' . ($dispositivoId ?? '0'));
             }
             unset($m);
 
@@ -264,6 +270,7 @@ class ZKTecoService
                     $personaId = $ci && isset($mapaPersonas[$ci]) ? $mapaPersonas[$ci] : null;
 
                     $filasParaInsertar[] = [
+                        'dispositivo_id' => $dispositivoId,
                         'ci' => $ci ?? 'desconocido',
                         'nombre_completo' => $marcacion['name'] ?? null,
                         'uid_biometrico' => $marcacion['uid'],

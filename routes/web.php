@@ -109,6 +109,15 @@ Route::get('/homeusr', function () {
         Route::delete('/limpiar-duplicados', [ZKTecoController::class, 'limpiarDuplicados']);
         Route::get('/importar-dia', [ZKTecoController::class, 'importarDia']);
     });
+    Route::prefix('dispositivos')->group(function () {
+        Route::get('/', [DispositivoBiometricoController::class, 'index'])->name('dispositivos.index');
+        Route::get('/listar', [DispositivoBiometricoController::class, 'listar']);
+        Route::post('/', [DispositivoBiometricoController::class, 'store']);
+        Route::put('/{id}', [DispositivoBiometricoController::class, 'update']);
+        Route::delete('/{id}', [DispositivoBiometricoController::class, 'destroy']);
+        Route::post('/{id}/toggle-activo', [DispositivoBiometricoController::class, 'toggleActivo']);
+        Route::get('/{id}/probar-conexion', [DispositivoBiometricoController::class, 'probarConexion']);
+    });
 
 Route::get('/boleta/verificar/{id}', [VerificacionBoletaController::class, 'verificar'])->middleware('signed')->name('boleta.verificar');
 
