@@ -1,8 +1,30 @@
 {{-- resources/views/dispositivos/index.blade.php --}}
-@extends('layouts.baseusr')
+@extends('layouts.baseadm')
 
 @section('content')
 <div class="container-fluid py-3">
+    <div class="card mb-3">
+        <div class="card-body">
+            <h6 class="mb-3"><i class="bi bi-download"></i> Importar marcaciones manualmente</h6>
+            <div class="row g-2 align-items-end">
+                <div class="col-auto">
+                    <label class="form-label mb-0">Desde</label>
+                    <input type="date" class="form-control" id="importarFechaInicio">
+                </div>
+                <div class="col-auto">
+                    <label class="form-label mb-0">Hasta</label>
+                    <input type="date" class="form-control" id="importarFechaFin">
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-success" id="btnImportarAhora" onclick="importarAhora()">
+                        <i class="bi bi-cloud-download"></i> Importar de todos los dispositivos
+                    </button>
+                </div>
+            </div>
+            <div id="resultadoImportacion" class="mt-3"></div>
+        </div>
+    </div>
+
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h4 class="mb-0"><i class="bi bi-fingerprint"></i> Dispositivos Biométricos</h4>
         <button class="btn btn-primary" onclick="abrirModalNuevo()">
@@ -51,13 +73,13 @@
                         </td>
                         <td class="text-end">
                             <button class="btn btn-sm btn-outline-secondary" onclick="probarConexion({{ $d->id }})" title="Probar conexión">
-                                <i class="bi bi-wifi"></i>
+                                <i class="fas fa-wifi"></i>
                             </button>
                             <button class="btn btn-sm btn-outline-primary" onclick='abrirModalEditar(@json($d))' title="Editar">
-                                <i class="bi bi-pencil"></i>
+                                <i class="fas fa-edit"></i>
                             </button>
                             <button class="btn btn-sm btn-outline-danger" onclick="eliminarDispositivo({{ $d->id }})" title="Eliminar">
-                                <i class="bi bi-trash"></i>
+                                <i class="fas fa-trash"></i>
                             </button>
                         </td>
                     </tr>
@@ -122,7 +144,9 @@
 </div>
 @endsection
 
-@section('scripts')
+@push('scripts')
+
+
 <script>
 const modalDispositivo = new bootstrap.Modal(document.getElementById('modalDispositivo'));
 
@@ -224,6 +248,52 @@ async function toggleActivo(id) {
     });
 }
 
+async function importarAhora() {
+    const fechaInicio = document.getElementById('importarFechaInicio').value;
+    const fechaFin = document.getElementById('importarFechaFin').value;
+    const boton = document.getElementById('btnImportarAhora');
+    const resultadoDiv = document.getElementById('resultadoImportacion');
+
+    boton.disabled = true;
+    boton.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Importando... puede tardar varios minutos';
+    resultadoDiv.innerHTML = '';
+
+    try {
+        const resp = await fetch('/zkteco/importar-todos', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            },
+            body: JSON.stringify({ fecha_inicio: fechaInicio, fecha_fin: fechaFin }),
+        });
+        const data = await resp.json();
+
+        if (!data.success) {
+            resultadoDiv.innerHTML = `<div class="alert alert-danger">${data.error ?? 'Error al importar'}</div>`;
+            return;
+        }
+
+        let html = '<table class="table table-sm"><thead><tr><th>Dispositivo</th><th>Resultado</th></tr></thead><tbody>';
+        for (const id in data.data) {
+            const r = data.data[id];
+            if (r.error) {
+                html += `<tr><td>${r.dispositivo}</td><td class="text-danger">❌ ${r.error}</td></tr>`;
+            } else {
+                html += `<tr><td>${r.dispositivo}</td><td class="text-success">✅ ${r.nuevas_importadas} nuevas, ${r.duplicadas} duplicadas, ${r.con_error} con error</td></tr>`;
+            }
+        }
+        html += '</tbody></table>';
+        resultadoDiv.innerHTML = html;
+
+    } catch (e) {
+        resultadoDiv.innerHTML = '<div class="alert alert-danger">Error de red al importar.</div>';
+    } finally {
+        boton.disabled = false;
+        boton.innerHTML = '<i class="bi bi-cloud-download"></i> Importar de todos los dispositivos';
+    }
+}
+
 async function probarConexion(id) {
     const boton = event.currentTarget;
     const original = boton.innerHTML;
@@ -244,4 +314,4 @@ async function probarConexion(id) {
     }
 }
 </script>
-@endsection
+@endpush

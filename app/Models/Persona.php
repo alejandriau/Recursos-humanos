@@ -549,6 +549,29 @@ public function planillas()
     {
         return $this->hasMany(Salida::class, 'persona_id');
     }
+    //ASISTENCIA -------------------------
+    public function horariosAsignados()
+    {
+        return $this->hasMany(PersonaHorario::class);
+    }
 
+    // Obtener el horario vigente en una fecha dada
+    public function getHorarioVigente($fecha = null)
+    {
+        $fecha = $fecha ?: now()->toDateString();
+        $asignacion = $this->horariosAsignados()
+            ->where('fecha_inicio', '<=', $fecha)
+            ->where(function ($q) use ($fecha) {
+                $q->where('fecha_fin', '>=', $fecha)
+                  ->orWhereNull('fecha_fin');
+            })
+            ->first();
+        return $asignacion ? $asignacion->horario : null;
+    }
+    public function asignaciones()
+    {
+        return $this->hasMany(PersonaHorario::class);
+    }
 
+    
 }

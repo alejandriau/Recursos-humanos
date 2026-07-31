@@ -19,7 +19,7 @@
     <div class="container-fluid pt-4 pb-2 rounded shadow bg-white">
         <div class="row">
             <div class="col-md-12" style="text-align: left">
-                <form action="/tsalida/{{ $tiposalida->id }}" method="post">
+                <form action="/tipo-salida/salida/{{ $tiposalida->id }}" method="post">
                     @csrf
                     @method('PUT')
                     <div class="row">

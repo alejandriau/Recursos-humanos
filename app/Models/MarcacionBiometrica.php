@@ -3,11 +3,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class MarcacionBiometrica extends Model
 {
+    use HasFactory;
     protected $table = 'marcaciones_biometricas';
 
     protected $fillable = [
@@ -30,11 +32,19 @@ class MarcacionBiometrica extends Model
         'importada' => 'boolean',
     ];
 
-    // Relación con persona (cuando la tengas)
+
+
     public function persona(): BelongsTo
     {
         return $this->belongsTo(Persona::class);
     }
+
+    public function dispositivo(): BelongsTo
+    {
+        return $this->belongsTo(DispositivoBiometrico::class, 'dispositivo_id');
+    }
+    // Relación con persona (cuando la tengas)
+
 
     // Scopes útiles
     public function scopeDeCi($query, $ci)

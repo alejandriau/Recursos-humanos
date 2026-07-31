@@ -16,7 +16,7 @@ class DispositivoBiometricoController extends Controller
     public function index()
     {
         $dispositivos = DispositivoBiometrico::orderBy('nombre')->get();
-        return view('dispositivos.index', compact('dispositivos'));
+        return view('admin.dispositivos.index', compact('dispositivos'));
     }
 
     /**

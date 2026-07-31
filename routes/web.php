@@ -68,13 +68,17 @@ use App\Http\Controllers\BeneficioController;
 use App\Http\Controllers\FeriadoController;
 use App\Http\Controllers\GestionController;
 use App\Http\Controllers\SalidaController;
-use App\Http\Controllers\TiposalidaController;
+use App\Http\Controllers\TipoSalidaController;
 use App\Http\Controllers\VacacionController;
 use App\Http\Controllers\JefeInmediatoController;
 use App\Http\Controllers\SolicitudesController;
 use App\Http\Controllers\VerificacionBoletaController;
 use App\Http\Controllers\ZKTecoController;
-
+use App\Http\Controllers\DispositivoBiometricoController;
+use App\Http\Controllers\HorarioController;
+use App\Http\Controllers\AsistenciaController;
+use App\Http\Controllers\AsignacionHorarioController;
+use App\Http\Controllers\AsistenciaGeneracionController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -109,6 +113,8 @@ Route::get('/homeusr', function () {
         Route::delete('/limpiar-duplicados', [ZKTecoController::class, 'limpiarDuplicados']);
         Route::get('/importar-dia', [ZKTecoController::class, 'importarDia']);
     });
+    Route::post('/zkteco/importar-todos', [ZKTecoController::class, 'importarTodosDispositivos']);
+
     Route::prefix('dispositivos')->group(function () {
         Route::get('/', [DispositivoBiometricoController::class, 'index'])->name('dispositivos.index');
         Route::get('/listar', [DispositivoBiometricoController::class, 'listar']);
@@ -118,8 +124,33 @@ Route::get('/homeusr', function () {
         Route::post('/{id}/toggle-activo', [DispositivoBiometricoController::class, 'toggleActivo']);
         Route::get('/{id}/probar-conexion', [DispositivoBiometricoController::class, 'probarConexion']);
     });
+    Route::get('/horarios/{horario}/get', [HorarioController::class, 'getHorario'])->name('horarios.get');
+    Route::resource('horarios', HorarioController::class);
+    Route::get('asistencias', [AsistenciaController::class, 'index'])->name('asistencias.index');
+    //ASIGNANCION
+    Route::resource('asignacion', AsignacionHorarioController::class)->except(['show']);
+    //asistencia
+    Route::get('/asistencia/generar', [AsistenciaGeneracionController::class, 'index'])->name('asistencia.generar.index');
+    Route::post('/asistencia/generar', [AsistenciaGeneracionController::class, 'generar'])->name('asistencia.generar.store');    
 
-Route::get('/boleta/verificar/{id}', [VerificacionBoletaController::class, 'verificar'])->middleware('signed')->name('boleta.verificar');
+    Route::prefix('asistencia')->group(function () {
+        Route::get('/', [AsistenciaController::class, 'index'])->name('asistencia.index');
+        Route::get('/listar', [AsistenciaController::class, 'listar']);
+        Route::get('/resumen-por-persona', [AsistenciaController::class, 'resumenPorPersona']);
+        Route::get('/{id}/detalle', [AsistenciaController::class, 'detalle']);
+        Route::post('/regenerar', [AsistenciaController::class, 'regenerar']);
+    
+        // Reporte por empleado (uso de RRHH)
+        Route::get('/empleado', [AsistenciaController::class, 'verEmpleado'])->name('asistencia.empleado');
+        Route::get('/buscar-personas', [AsistenciaController::class, 'buscarPersonas']);
+        Route::get('/empleado/{personaId}/reporte', [AsistenciaController::class, 'reportePorEmpleado']);
+    });
+    
+    // "Mi asistencia" — el propio empleado ve la suya
+    Route::get('/mi-asistencia', [AsistenciaController::class, 'miAsistenciaVista'])->name('mi-asistencia');
+    Route::get('/mi-asistencia/datos', [AsistenciaController::class, 'miAsistencia']);
+
+    Route::get('/boleta/verificar/{id}', [VerificacionBoletaController::class, 'verificar'])->middleware('signed')->name('boleta.verificar');
 
 
 Route::get('/test-map-download', function () {
@@ -766,16 +797,7 @@ Route::middleware([
 
     // routes/web.php
 
-// Rutas para administradores
 
-    Route::get('/admin/asistencias', [AsistenciaAdminController::class, 'index'])->name('admin.asistencias.index');
-    Route::get('/admin/asistencias/create', [AsistenciaAdminController::class, 'create'])->name('admin.asistencias.create');
-    Route::post('/admin/asistencias', [AsistenciaAdminController::class, 'store'])->name('admin.asistencias.store');
-    Route::get('/admin/asistencias/{asistencia}/edit', [AsistenciaAdminController::class, 'edit'])->name('admin.asistencias.edit');
-    Route::put('/admin/asistencias/{asistencia}', [AsistenciaAdminController::class, 'update'])->name('admin.asistencias.update');
-    Route::delete('/admin/asistencias/{asistencia}', [AsistenciaAdminController::class, 'destroy'])->name('admin.asistencias.destroy');
-    Route::get('/admin/asistencias/reporte-mensual', [AsistenciaAdminController::class, 'reporteMensual'])->name('admin.asistencias.reporte-mensual');
-    Route::post('/admin/asistencias/marcar-ausentes', [AsistenciaAdminController::class, 'marcarAusentes'])->name('admin.asistencias.marcar-ausentes');
 
 // API para dispositivos biométricos
 
@@ -991,12 +1013,8 @@ Route::prefix('catalogos')->name('catalogos.')->group(function () {
     Route::delete('/beneficio/{id}', [BeneficioController::class, 'eliminar']);
     Route::put('/beneficio/{id}', [BeneficioController::class, 'actualizar']);
     // tipo de salida
-    Route::get('/tipo-salida/salida', [TiposalidaController::class, "funListar"])->name('tipo-salida.salida');
-    Route::get('/tipo-salida/salida/crear', [TiposalidaController::class, "funCrear"]);
-    Route::post('/tipo-salida/salida', [TiposalidaController::class, "funGuardar"])->name('tipo-salida.salida');
-    Route::get('/tipo-salida/salida/{id}', [TiposalidaController::class, "funEditar"]);
-    Route::put('/tipo-salida/salida/{id}', [TiposalidaController::class, "funModificar"]);
-    Route::delete('/tipo-salida/salida/{id}', [TiposalidaController::class, "funEliminar"]);
+
+    Route::resource('/tipos-salidas/gestion', TipoSalidaController::class)->except(['show']);
     // cas
     Route::resource('/cas', CasController::class);
     // kardex

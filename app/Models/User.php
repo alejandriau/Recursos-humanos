@@ -78,4 +78,12 @@ class User extends Authenticatable
     {
         return $this->hasOne(Persona::class, 'user_id');
     }
+    public function currentTeam()
+    {
+        return $this->belongsTo(Team::class, 'current_team_id')
+            ->withDefault([
+                'name' => 'General',
+                'personal_team' => true,
+            ]);
+    }
 }

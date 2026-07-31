@@ -1,13 +1,20 @@
-{{-- resources/views/asistencia/mi-asistencia.blade.php --}}
-@extends('layouts.baseusr')
+{{-- resources/views/asistencia/empleado.blade.php --}}
+@extends('layouts.baseadm')
 
-@section('cuerpo')
+@section('content')
 <div class="container-fluid py-3">
-    <h4 class="mb-3"><i class="bi bi-person-check"></i> Mi Asistencia</h4>
+    <h4 class="mb-3"><i class="bi bi-person-badge"></i> Asistencia por Empleado</h4>
 
     <div class="card mb-3">
         <div class="card-body">
             <div class="row g-2 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label mb-0">Empleado</label>
+                    <input type="text" class="form-control" id="buscarPersona"
+                           placeholder="Escribe CI o nombre..." autocomplete="off">
+                    <div id="listaSugerencias" class="list-group position-absolute" style="z-index:1000; width: 33%;"></div>
+                    <input type="hidden" id="personaSeleccionadaId">
+                </div>
                 <div class="col-auto">
                     <label class="form-label mb-0">Desde</label>
                     <input type="date" class="form-control" id="fFechaInicio">
@@ -18,11 +25,11 @@
                 </div>
                 <div class="col-auto">
                     <button class="btn btn-primary" onclick="buscarReporte()">
-                        <i class="bi bi-search"></i> Consultar
+                        <i class="bi bi-search"></i> Ver asistencia
                     </button>
                 </div>
             </div>
-            <small class="text-muted">Por defecto se muestra desde el día 21 del corte vigente hasta hoy.</small>
+            <small class="text-muted">Por defecto se muestra desde el día 21 (del corte vigente) hasta hoy.</small>
         </div>
     </div>
 
@@ -32,18 +39,47 @@
 
 @push('scripts')
 <script>
+document.getElementById('buscarPersona').addEventListener('input', async function () {
+    const q = this.value;
+    const cont = document.getElementById('listaSugerencias');
+
+    if (q.length < 2) { cont.innerHTML = ''; return; }
+
+    const resp = await fetch(`/asistencia/buscar-personas?q=${encodeURIComponent(q)}`);
+    const data = await resp.json();
+
+    cont.innerHTML = data.data.map(p => `
+        <a href="#" class="list-group-item list-group-item-action"
+           onclick="event.preventDefault(); seleccionarPersona(${p.id}, '${p.ci}', '${p.nombre} ${p.apellidoPat ?? ''} ${p.apellidoMat ?? ''}')">
+            ${p.ci} — ${p.nombre} ${p.apellidoPat ?? ''} ${p.apellidoMat ?? ''}
+        </a>
+    `).join('');
+});
+
+function seleccionarPersona(id, ci, nombre) {
+    document.getElementById('personaSeleccionadaId').value = id;
+    document.getElementById('buscarPersona').value = `${ci} — ${nombre}`;
+    document.getElementById('listaSugerencias').innerHTML = '';
+}
+
 async function buscarReporte() {
+    const personaId = document.getElementById('personaSeleccionadaId').value;
+    if (!personaId) {
+        alert('Selecciona un empleado de la lista.');
+        return;
+    }
+
     const params = new URLSearchParams();
     if (document.getElementById('fFechaInicio').value) params.set('fecha_inicio', document.getElementById('fFechaInicio').value);
     if (document.getElementById('fFechaFin').value) params.set('fecha_fin', document.getElementById('fFechaFin').value);
 
     document.getElementById('contenidoReporte').innerHTML = '<div class="text-center py-4"><span class="spinner-border"></span></div>';
 
-    const resp = await fetch(`/mi-asistencia/datos?${params}`);
+    const resp = await fetch(`/asistencia/empleado/${personaId}/reporte?${params}`);
     const data = await resp.json();
 
     if (!data.success) {
-        document.getElementById('contenidoReporte').innerHTML = `<div class="alert alert-warning">${data.mensaje}</div>`;
+        document.getElementById('contenidoReporte').innerHTML = `<div class="alert alert-danger">${data.mensaje}</div>`;
         return;
     }
 
@@ -164,6 +200,5 @@ function renderReporte(r) {
         </div>
     `;
 }
-document.addEventListener('DOMContentLoaded', buscarReporte);
 </script>
 @endpush

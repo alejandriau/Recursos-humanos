@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Salida extends Model
 {
@@ -35,11 +36,16 @@ class Salida extends Model
         'observacion'
     ];
 
-    // Relaciones existentes
-    public function persona()
+    protected $casts = [
+        'fechasal' => 'date',
+        'fecharet' => 'date',
+    ];
+
+    public function persona(): BelongsTo
     {
-        return $this->belongsTo(Persona::class, 'persona_id');
+        return $this->belongsTo(Persona::class);
     }
+
 
     public function tiposalida()
     {

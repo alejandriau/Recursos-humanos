@@ -5,6 +5,8 @@ namespace App\Console\Commands;
 
 use App\Services\ZKTecoService;
 use Illuminate\Console\Command;
+use App\Jobs\GenerarAsistenciaJob;
+use Carbon\Carbon;
 
 class ImportarZKTeco extends Command
 {
@@ -76,6 +78,25 @@ class ImportarZKTeco extends Command
         $this->newLine();
         $this->info("🎉 Proceso completado!");
 
+
+
+
+
+                
+        $hoy = Carbon::today()->toDateString();
+        $ayer = Carbon::yesterday()->toDateString();
+
+        // Re-procesar hoy (actualizará pendientes si llegaron nuevas marcas)
+        GenerarAsistenciaJob::dispatch($hoy, $hoy);
+
+        // Re-procesar ayer (por si el biométrico se desconectó y llegaron marcas atrasadas)
+        GenerarAsistenciaJob::dispatch($ayer, $ayer);
+
+        \Log::info("Biométrico descargado. Jobs de asistencia encolados para {$hoy} y {$ayer}.");
+
+
         return 0;
     }
+
 }
+

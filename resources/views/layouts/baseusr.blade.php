@@ -1014,6 +1014,12 @@
                 </div>
                 <span>Listar Beneficios</span>
             </a>
+            <a href="/asistencia/empleado" class="sidebar-item">
+                <div class="item-icon" style="background:rgba(46,204,113,0.12); color:#27ae60;">
+                    <i class="fas fa-fingerprint"></i>
+                </div>
+                <span>Asistencia</span>
+            </a>
             <a href="/empleado/perfil" class="sidebar-item">
                 <div class="item-icon" style="background:rgba(129,212,250,0.15); color:#0277BD;">
                     <i class="fas fa-street-view"></i>

@@ -1,4 +1,6 @@
+
 <?php
+// app/Services/ZKTecoService.php
 
 namespace App\Services;
 
@@ -19,6 +21,10 @@ class ZKTecoService
 
     public function __construct($ip, $port = 4370, $timeout = 60)
     {
+        // OJO: subimos el timeout por defecto a 60s. getAttendance() de esta
+        // librería siempre trae TODO el log del dispositivo (no filtra por
+        // fecha en el equipo), así que la descarga puede tardar según el
+        // volumen de marcaciones almacenadas.
         $this->ip = $ip;
         $this->port = $port;
         $this->timeout = $timeout;
@@ -30,13 +36,13 @@ class ZKTecoService
         try {
             $conectado = $this->zk->connect();
             if ($conectado) {
-                Log::info("ZKTeco: Conectado a {$this->ip}:{$this->port}");
+                Log::info("ZKTeco UFace802 Plus: Conectado a {$this->ip}:{$this->port}");
                 return true;
             }
-            Log::error("ZKTeco: No se pudo conectar a {$this->ip}:{$this->port}");
+            Log::error("ZKTeco UFace802 Plus: No se pudo conectar a {$this->ip}:{$this->port}");
             return false;
         } catch (\Exception $e) {
-            Log::error("ZKTeco Error: " . $e->getMessage());
+            Log::error("ZKTeco UFace802 Plus Error: " . $e->getMessage());
             return false;
         }
     }
@@ -45,10 +51,10 @@ class ZKTecoService
     {
         try {
             $this->zk->disconnect();
-            Log::info("ZKTeco: Desconectado de {$this->ip}:{$this->port}");
+            Log::info("ZKTeco UFace802 Plus: Desconectado de {$this->ip}:{$this->port}");
             return true;
         } catch (\Exception $e) {
-            Log::error("ZKTeco Error al desconectar: " . $e->getMessage());
+            Log::error("ZKTeco UFace802 Plus Error al desconectar: " . $e->getMessage());
             return false;
         }
     }
@@ -94,7 +100,7 @@ class ZKTecoService
             $this->zk->enableDevice();
             $this->desconectar();
 
-            Log::info("ZKTeco: Obtenidos " . count($usuarios) . " usuarios");
+            Log::info("ZKTeco UFace802 Plus: Obtenidos " . count($usuarios) . " usuarios");
             return $usuarios;
         } catch (\Exception $e) {
             Log::error("ZKTeco Error obteniendo usuarios: " . $e->getMessage());
@@ -105,10 +111,11 @@ class ZKTecoService
 
     /**
      * Obtener marcaciones del biométrico.
-     * 
-     * IMPORTANTE: Si $fechaInicio/$fechaFin son strings tipo '2026-07-31',
-     * filtra por DÍA completo. Si son objetos Carbon con hora exacta,
-     * respeta la hora exacta (para recuperación de cortes).
+     *
+     * IMPORTANTE: la librería jmrashed/zkteco NO soporta filtrar por rango
+     * de fechas en el propio dispositivo. getAttendance() siempre descarga
+     * el log completo. El filtrado por $fechaInicio/$fechaFin se hace acá
+     * en PHP, después de la descarga.
      */
     public function obtenerMarcaciones($fechaInicio = null, $fechaFin = null)
     {
@@ -126,18 +133,12 @@ class ZKTecoService
             $this->zk->enableDevice();
             $this->desconectar();
 
-            Log::info("ZKTeco: Descarga completa: " . count($marcaciones) . " registros en {$duracion}s");
+            Log::info("ZKTeco: Descarga completa del dispositivo: " . count($marcaciones) . " registros en {$duracion}s");
 
             // Filtrar en PHP por el rango solicitado
             if ($fechaInicio && $fechaFin) {
-                // Detectar si viene hora exacta (Carbon) o solo fecha (string)
-                $inicio = ($fechaInicio instanceof Carbon) 
-                    ? $fechaInicio->copy() 
-                    : Carbon::parse($fechaInicio)->startOfDay();
-                
-                $fin = ($fechaFin instanceof Carbon) 
-                    ? $fechaFin->copy() 
-                    : Carbon::parse($fechaFin)->endOfDay();
+                $inicio = Carbon::parse($fechaInicio)->startOfDay();
+                $fin = Carbon::parse($fechaFin)->endOfDay();
 
                 $marcaciones = array_values(array_filter($marcaciones, function ($m) use ($inicio, $fin) {
                     if (empty($m['timestamp'])) return false;
@@ -145,7 +146,7 @@ class ZKTecoService
                     return $fecha->betweenIncluded($inicio, $fin);
                 }));
 
-                Log::info("ZKTeco: " . count($marcaciones) . " marcaciones dentro del rango");
+                Log::info("ZKTeco: " . count($marcaciones) . " marcaciones dentro del rango {$fechaInicio} - {$fechaFin}");
             }
 
             return $marcaciones;
@@ -158,42 +159,15 @@ class ZKTecoService
     }
 
     /**
-     * Importar marcaciones.
-     * 
-     * Modo automático (sin fechas): descarga desde la última marcación 
-     * importada de ESTE dispositivo menos 30 min, hasta ahora + 5 min.
-     * Así recupera cortes del biométrico y no pierde marcaciones que 
-     * ocurran justo durante la descarga.
+     * Importar marcaciones con inserción masiva (bulk insert) y verificación
+     * de duplicados/personas en lote, en vez de una query por registro.
      */
     public function importarMarcaciones($fechaInicio = null, $fechaFin = null, $dispositivoId = null)
     {
-        $modo = 'manual';
-        $rangoInicio = null;
-        $rangoFin = null;
-
-        // ============================================================
-        // MODO AUTOMÁTICO: calcular desde la última descarga exitosa
-        // ============================================================
         if (!$fechaInicio || !$fechaFin) {
-            $ultimaFecha = MarcacionBiometrica::where('dispositivo_id', $dispositivoId)->max('fecha_hora');
-            
-            if ($ultimaFecha) {
-                // -30 min de margen: si alguien marcó justo cuando se cortó la luz
-                $rangoInicio = Carbon::parse($ultimaFecha)->subMinutes(30);
-            } else {
-                // Primera vez: desde hoy 00:00 (no un mes atrás, para no matar el servidor)
-                $rangoInicio = Carbon::today();
-            }
-            
-            // +5 min de margen: por si el reloj del biométrico está adelantado
-            $rangoFin = Carbon::now()->addMinutes(5);
-            $modo = 'automatico';
-            
-            Log::info("ZKTeco: Modo automático. Desde {$rangoInicio->toDateTimeString()} hasta {$rangoFin->toDateTimeString()}");
-        } else {
-            // Modo manual: strings de fecha
-            $rangoInicio = $fechaInicio;
-            $rangoFin = $fechaFin;
+            $fechaInicio = Carbon::now()->toDateString();
+            $fechaFin = Carbon::now()->toDateString();
+            Log::info("ZKTeco: No se especificaron fechas, usando hoy: {$fechaInicio}");
         }
 
         $log = SincronizacionLog::create([
@@ -203,14 +177,14 @@ class ZKTecoService
             'estado' => 'iniciado',
             'fecha_inicio' => now(),
             'detalles' => [
-                'fecha_inicio' => $rangoInicio instanceof Carbon ? $rangoInicio->toDateTimeString() : $rangoInicio,
-                'fecha_fin' => $rangoFin instanceof Carbon ? $rangoFin->toDateTimeString() : $rangoFin,
-                'modo' => $modo,
+                'fecha_inicio' => $fechaInicio,
+                'fecha_fin' => $fechaFin,
             ]
         ]);
 
+
         try {
-            $marcaciones = $this->obtenerMarcaciones($rangoInicio, $rangoFin);
+            $marcaciones = $this->obtenerMarcaciones($fechaInicio, $fechaFin);
 
             if ($marcaciones === null) {
                 $log->update([
@@ -218,11 +192,7 @@ class ZKTecoService
                     'mensaje' => 'No se pudieron obtener las marcaciones del biométrico',
                     'fecha_fin' => now(),
                 ]);
-                return [
-                    'error' => 'No se pudieron obtener las marcaciones',
-                    'fecha_inicio' => $rangoInicio instanceof Carbon ? $rangoInicio->toDateString() : $rangoInicio,
-                    'fecha_fin' => $rangoFin instanceof Carbon ? $rangoFin->toDateString() : $rangoFin,
-                ];
+                return ['error' => 'No se pudieron obtener las marcaciones'];
             }
 
             $totalObtenidas = count($marcaciones);
@@ -230,7 +200,7 @@ class ZKTecoService
             if ($totalObtenidas === 0) {
                 $log->update([
                     'estado' => 'exito',
-                    'mensaje' => 'Sin marcaciones nuevas en el rango',
+                    'mensaje' => 'Sin marcaciones nuevas en el rango solicitado',
                     'total_obtenidas' => 0,
                     'nuevas_importadas' => 0,
                     'duplicadas' => 0,
@@ -244,25 +214,28 @@ class ZKTecoService
                     'duplicadas' => 0,
                     'con_error' => 0,
                     'log_id' => $log->id,
-                    'fecha_inicio' => $rangoInicio instanceof Carbon ? $rangoInicio->toDateString() : $rangoInicio,
-                    'fecha_fin' => $rangoFin instanceof Carbon ? $rangoFin->toDateString() : $rangoFin,
                 ];
             }
 
-            // 1) Calcular hash
+            // 1) Calcular hash de cada marcación de una sola pasada.
+            // Se incorpora el dispositivo_id para que la misma persona
+            // marcando en dos equipos distintos a la misma hora no se
+            // trate como un duplicado.
             foreach ($marcaciones as &$m) {
                 $hashBase = MarcacionBiometrica::generarHash($m);
                 $m['_hash'] = md5($hashBase . '|dispositivo:' . ($dispositivoId ?? '0'));
             }
             unset($m);
 
-            // Normalizar CI
+            // Normalizar el campo de CI: getAttendance() de jmrashed/zkteco
+            // devuelve la clave 'id' (no 'userid') para el identificador del
+            // empleado. Se deja 'userid' como fallback por si cambia la lib.
             foreach ($marcaciones as &$m) {
                 $m['userid'] = $m['id'] ?? $m['userid'] ?? null;
             }
             unset($m);
 
-            // 2) Hashes existentes
+            // 2) UNA sola query para saber cuáles hashes ya existen
             $todosLosHashes = array_column($marcaciones, '_hash');
             $hashesExistentes = [];
             foreach (array_chunk($todosLosHashes, 1000) as $chunkHashes) {
@@ -273,7 +246,7 @@ class ZKTecoService
             }
             $hashesExistentes = array_flip($hashesExistentes);
 
-            // 3) Mapear CI -> persona_id
+            // 3) UNA sola query para mapear CI -> persona_id (en vez de N queries)
             $cisEnLote = array_unique(array_filter(array_column($marcaciones, 'userid')));
             $mapaPersonas = Persona::whereIn('ci', $cisEnLote)
                 ->pluck('id', 'ci')
@@ -314,6 +287,7 @@ class ZKTecoService
                         'updated_at' => $ahora,
                     ];
 
+                    // Evitar marcar como "no encontrado" dos veces el mismo hash
                     $hashesExistentes[$hash] = true;
                     $nuevasImportadas++;
 
@@ -323,7 +297,7 @@ class ZKTecoService
                 }
             }
 
-            // 4) Insertar en bloques
+            // 4) Insertar en bloques de 500 (bulk insert real, no create() por fila)
             foreach (array_chunk($filasParaInsertar, 500) as $chunkFilas) {
                 DB::table('marcaciones_biometricas')->insert($chunkFilas);
             }
@@ -338,7 +312,6 @@ class ZKTecoService
                 'fecha_fin' => now(),
             ]);
 
-            // ✅ SIEMPRE retornar fechas para que el comando las use
             return [
                 'mensaje' => 'Importación completada exitosamente',
                 'total_obtenidas' => $totalObtenidas,
@@ -346,8 +319,6 @@ class ZKTecoService
                 'duplicadas' => $duplicadas,
                 'con_error' => $conError,
                 'log_id' => $log->id,
-                'fecha_inicio' => $rangoInicio instanceof Carbon ? $rangoInicio->toDateString() : $rangoInicio,
-                'fecha_fin' => $rangoFin instanceof Carbon ? $rangoFin->toDateString() : $rangoFin,
             ];
 
         } catch (\Exception $e) {
@@ -356,11 +327,7 @@ class ZKTecoService
                 'mensaje' => mb_substr($e->getMessage(), 0, 250),
                 'fecha_fin' => now(),
             ]);
-            return [
-                'error' => $e->getMessage(),
-                'fecha_inicio' => $rangoInicio instanceof Carbon ? $rangoInicio->toDateString() : $rangoInicio,
-                'fecha_fin' => $rangoFin instanceof Carbon ? $rangoFin->toDateString() : $rangoFin,
-            ];
+            return ['error' => $e->getMessage()];
         }
     }
 
@@ -431,13 +398,22 @@ class ZKTecoService
     protected function getNombreVerificacion($codigo)
     {
         $mapa = [
-            '0' => 'No identificado', '1' => 'Huella Dactilar', '2' => 'Contraseña',
-            '3' => 'Tarjeta RFID', '4' => 'Contraseña', '5' => 'Huella + Contraseña',
-            '6' => 'Tarjeta + Contraseña', '7' => 'Huella + Tarjeta',
-            '8' => 'Huella + Tarjeta + Contraseña', '9' => 'Face',
-            '10' => 'Face + Huella', '11' => 'Face + Contraseña',
-            '12' => 'Face + Tarjeta', '13' => 'Face + Huella + Contraseña',
-            '14' => 'Face + Huella + Tarjeta', '15' => 'Face',
+            '0' => 'No identificado',
+            '1' => 'Huella Dactilar',
+            '2' => 'Contraseña',
+            '3' => 'Tarjeta RFID',
+            '4' => 'Contraseña',
+            '5' => 'Huella + Contraseña',
+            '6' => 'Tarjeta + Contraseña',
+            '7' => 'Huella + Tarjeta',
+            '8' => 'Huella + Tarjeta + Contraseña',
+            '9' => 'Face',
+            '10' => 'Face + Huella',
+            '11' => 'Face + Contraseña',
+            '12' => 'Face + Tarjeta',
+            '13' => 'Face + Huella + Contraseña',
+            '14' => 'Face + Huella + Tarjeta',
+            '15' => 'Face',
         ];
 
         return $mapa[(string)$codigo] ?? 'Método desconocido';
@@ -450,3 +426,5 @@ class ZKTecoService
             ->get();
     }
 }
+
+

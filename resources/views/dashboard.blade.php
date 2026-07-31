@@ -548,7 +548,7 @@
                         <a href="{{ route('admin.vacaciones.index') }}" class="nav-link">
                             <i class="fas fa-umbrella-beach me-2"></i>Vacaciones
                         </a>
-                        <a href="{{ route('admin.asistencias.index') }}" class="nav-link">
+                        <a href="#" class="nav-link">
                             <i class="fas fa-clock me-2"></i>Asistencias
                         </a>
                     @endrole

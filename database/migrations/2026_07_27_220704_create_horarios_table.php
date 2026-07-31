@@ -12,8 +12,8 @@ return new class extends Migration
             $table->id();
             $table->string('nombre'); // "Horario General", "Turno Noche Seguridad", etc.
             $table->string('descripcion')->nullable();
-            $table->integer('tolerancia_entrada_minutos')->default(10);
-            $table->integer('tolerancia_salida_minutos')->default(10);
+            $table->integer('tolerancia_entrada_minutos')->default(5);
+            $table->integer('tolerancia_salida_minutos')->default(0);
             $table->boolean('activo')->default(true);
             $table->timestamps();
         });

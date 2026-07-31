@@ -70,7 +70,7 @@ class GenerarAsistenciaService
         $horario = $this->getHorarioVigente($persona, $fecha);
 
         if (!$horario) {
-            // Sin horario asignado: no generar registro de asistencia
+            Log::warning("Sin horario vigente: persona {$persona->id} fecha {$fecha->toDateString()}");
             return null;
         }
 
@@ -84,7 +84,7 @@ class GenerarAsistenciaService
                 ['horario_id' => $horario->id]
             );
 
-            // Borrar marcas anteriores para recalcular desde cero (idempotente)
+            // Borrar marcas anteriores para recalcular desde cero
             $asistencia->marcas()->delete();
 
             if (!$horarioDia || empty($horarioDia->checkpoints())) {
@@ -103,7 +103,8 @@ class GenerarAsistenciaService
             $checkpoints = $horarioDia->checkpoints();
 
             // ============================================================
-            // DESCARGA DE MARCACIONES DEL DÍA
+            // CORRECCIÓN CRÍTICA: Usar whereBetween en lugar de whereDate
+            // y convertir a objetos stdClass mutables para que 'usada' persista
             // ============================================================
             $inicioDia = $fecha->copy()->startOfDay();
             $finDia = $fecha->copy()->endOfDay();
@@ -113,7 +114,14 @@ class GenerarAsistenciaService
                 ->orderBy('fecha_hora')
                 ->get();
 
-            // Convertir a stdClass mutables
+            // Log de debug (temporal, podés sacarlo después)
+            if ($marcasRaw->isEmpty()) {
+                Log::warning("DEBUG: Sin marcaciones para persona {$persona->id} en {$fecha->toDateString()}");
+            } else {
+                Log::info("DEBUG: Persona {$persona->id} en {$fecha->toDateString()} tiene {$marcasRaw->count()} marcaciones");
+            }
+
+            // Convertir a stdClass mutables (NO arrays) para que 'usada' persista
             $marcasDisponibles = $marcasRaw->map(function ($m) {
                 $obj = new \stdClass();
                 $obj->modelo = $m;
@@ -121,31 +129,14 @@ class GenerarAsistenciaService
                 return $obj;
             })->values();
 
-            // ============================================================
-            // LÓGICA DE CIERRE: ¿El día ya terminó o aún pueden llegar marcas?
-            // ============================================================
-            $esDiaEnCurso = $fecha->isToday();
-            
-            // Última hora esperada del día + ventana máxima (4h) + 1h de tolerancia por corte
-            $ultimaHoraEsperada = collect($checkpoints)->last(); // ej. "16:00:00"
-            $horaCierreCalculada = Carbon::parse(
-                $fecha->toDateString() . ' ' . $ultimaHoraEsperada,
-                'America/La_Paz'
-            )->addMinutes($this->ventanaMaximaMinutos + 60); // +5h total
-
-            $diaYaCerrado = !$esDiaEnCurso || now()->gte($horaCierreCalculada);
-
             $minutosTardanzaTotal = 0;
             $cumplidas = 0;
             $justificadas = 0;
             $injustificadas = 0;
-            $pendientes = 0;
 
             foreach ($checkpoints as $tipoMarca => $horaEsperada) {
-                $esperadaDT = Carbon::parse(
-                    $fecha->toDateString() . ' ' . $horaEsperada,
-                    'America/La_Paz'
-                );
+                // CORRECCIÓN: Crear la fecha esperada en timezone Bolivia
+                $esperadaDT = Carbon::parse($fecha->toDateString() . ' ' . $horaEsperada, 'America/La_Paz');
 
                 $indexMejor = null;
                 $mejorDiff = null;
@@ -153,16 +144,17 @@ class GenerarAsistenciaService
                 foreach ($marcasDisponibles as $idx => $item) {
                     if ($item->usada) continue;
 
+                    // CORRECCIÓN: Asegurar que ambas fechas estén comparables
                     $diff = abs($item->modelo->fecha_hora->diffInMinutes($esperadaDT));
+                    
                     if ($mejorDiff === null || $diff < $mejorDiff) {
                         $mejorDiff = $diff;
                         $indexMejor = $idx;
                     }
                 }
 
-                // Marcación encontrada dentro de la ventana
                 if ($indexMejor !== null && $mejorDiff <= $this->ventanaMaximaMinutos) {
-                    $marcasDisponibles[$indexMejor]->usada = true;
+                    $marcasDisponibles[$indexMejor]->usada = true; // ← AHORA SÍ PERSISTE
                     $marcacion = $marcasDisponibles[$indexMejor]->modelo;
 
                     $esEntrada = str_starts_with($tipoMarca, 'entrada');
@@ -170,16 +162,22 @@ class GenerarAsistenciaService
                         ? ($horario->tolerancia_entrada_minutos ?? 0)
                         : ($horario->tolerancia_salida_minutos ?? 0);
 
+                    // CORRECCIÓN: Calcular diferencia correctamente
+                    // Positivo = llegó/salió DESPUÉS de lo esperado
+                    // Negativo = llegó/salió ANTES de lo esperado
+                    // ✅ CORREGIDO: desde lo esperado hasta lo real
                     $diferenciaReal = $esperadaDT->diffInMinutes($marcacion->fecha_hora, false);
 
                     $esTardanza = false;
 
                     if ($esEntrada) {
+                        // Entrada: positivo = llegó DESPUÉS de la esperada = TARDANZA
                         $esTardanza = $diferenciaReal > $tolerancia;
                         if ($esTardanza) {
                             $minutosTardanzaTotal += $diferenciaReal;
                         }
                     } else {
+                        // Salida: negativo = salió ANTES de la esperada = SALIDA ANTICIPADA
                         $esTardanza = $diferenciaReal < -$tolerancia;
                         if ($esTardanza) {
                             $minutosTardanzaTotal += abs($diferenciaReal);
@@ -200,50 +198,29 @@ class GenerarAsistenciaService
                     continue;
                 }
 
-                // ============================================================
-                // NO HAY MARCACIÓN: ¿Falta definitiva o aún puede llegar?
-                // ============================================================
-                if (!$diaYaCerrado && $esDiaEnCurso) {
-                    // Día en curso y checkpoint futuro o próximo: marcar como pendiente
-                    AsistenciaMarca::create([
-                        'asistencia_diaria_id' => $asistencia->id,
-                        'tipo_marca' => $tipoMarca,
-                        'hora_esperada' => $horaEsperada,
-                        'hora_real' => null,
-                        'marcacion_id' => null,
-                        'estado' => 'pendiente',
-                        'diferencia_minutos' => null,
-                        'salida_id' => null,
-                    ]);
-                    $pendientes++;
+                // No hay marcación dentro de la ventana: buscar salida justificada
+                $salidaQueCubre = $this->buscarSalidaQueCubre($persona->id, $esperadaDT);
+
+                AsistenciaMarca::create([
+                    'asistencia_diaria_id' => $asistencia->id,
+                    'tipo_marca' => $tipoMarca,
+                    'hora_esperada' => $horaEsperada,
+                    'hora_real' => null,
+                    'marcacion_id' => null,
+                    'estado' => $salidaQueCubre ? 'faltante_justificada' : 'faltante_injustificada',
+                    'diferencia_minutos' => null,
+                    'salida_id' => $salidaQueCubre?->id,
+                ]);
+
+                if ($salidaQueCubre) {
+                    $justificadas++;
                 } else {
-                    // Día cerrado: buscar justificación o marcar falta
-                    $salidaQueCubre = $this->buscarSalidaQueCubre($persona->id, $esperadaDT);
-
-                    AsistenciaMarca::create([
-                        'asistencia_diaria_id' => $asistencia->id,
-                        'tipo_marca' => $tipoMarca,
-                        'hora_esperada' => $horaEsperada,
-                        'hora_real' => null,
-                        'marcacion_id' => null,
-                        'estado' => $salidaQueCubre ? 'faltante_justificada' : 'faltante_injustificada',
-                        'diferencia_minutos' => null,
-                        'salida_id' => $salidaQueCubre?->id,
-                    ]);
-
-                    if ($salidaQueCubre) {
-                        $justificadas++;
-                    } else {
-                        $injustificadas++;
-                    }
+                    $injustificadas++;
                 }
             }
 
-            // ============================================================
-            // ESTADO FINAL DEL DÍA
-            // ============================================================
+            // Determinar estado final del día
             $estadoFinal = match (true) {
-                $pendientes > 0 => 'pendiente',
                 $injustificadas > 0 && $justificadas > 0 => 'incompleto',
                 $injustificadas > 0 => 'falta_injustificada',
                 $justificadas > 0 => 'falta_justificada',
@@ -260,6 +237,9 @@ class GenerarAsistenciaService
                 'total_marcas_injustificadas' => $injustificadas,
                 'procesado_en' => now(),
             ]);
+
+            // Log resumen del día
+            Log::info("DEBUG: Persona {$persona->id} {$fecha->toDateString()} | Estado: {$estadoFinal} | Cumplidas: {$cumplidas} | Injustificadas: {$injustificadas} | Tardanza: {$minutosTardanzaTotal} min");
 
             return $asistencia;
         });
