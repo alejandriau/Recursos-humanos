@@ -11,6 +11,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
+use App\Notifications\GenericNotification;
+use Illuminate\Support\Facades\Notification;
+use Spatie\Permission\Models\Role; // si usas spatie
 
 class SolicitudesController extends Controller
 {
@@ -98,186 +101,52 @@ class SolicitudesController extends Controller
         return view('admin.solicitudes.ver-solicitud', compact('solicitud', 'periodo', 'movimientos'));
     }
 
-    /**
-     * Aprobar solicitud individual (RRHH) - ES AQUÍ DONDE SE DESCUENTAN LOS DÍAS
-     */
-public function aprobarIndividual(Request $request, $id)
-{
-    $solicitud = Salida::with(['persona', 'tiposalida', 'periodo'])
-        ->findOrFail($id);
 
-    // Verificar que esté pendiente
-    if ($solicitud->estado_rrhh != 'pendiente') {
-        return response()->json(['error' => 'Esta solicitud ya fue procesada'], 400);
-    }
-
-    $request->validate([
-        'observacion' => 'nullable|string|max:500',
-    ]);
-
-    DB::beginTransaction();
-    try {
-        // ============================================
-        // DEBUG: VERIFICAR DATOS ANTES DE PROCESAR
-        // ============================================
-        \Log::info('=== APROBANDO SOLICITUD ===');
-        \Log::info('ID Solicitud: ' . $solicitud->id);
-        \Log::info('Descripción Tipo: ' . $solicitud->tiposalida->descripcion);
-        \Log::info('Periodo ID: ' . $solicitud->periodo_id);
-        \Log::info('Cantidad: ' . $solicitud->cantidad);
-
-        // Si es vacación, descontar días (USANDO strtoupper para comparar)
-        if (strtoupper($solicitud->tiposalida->descripcion) == 'VACACION' && $solicitud->periodo_id) {
-            \Log::info('=== PROCESANDO VACACIÓN ===');
-
-            $periodo = VacacionPeriodo::find($solicitud->periodo_id);
-
-            if (!$periodo) {
-                \Log::error('Período no encontrado: ' . $solicitud->periodo_id);
-                return response()->json(['error' => 'Período de vacación no encontrado'], 404);
-            }
-
-            \Log::info('Saldo disponible: ' . $periodo->saldo_disponible);
-            \Log::info('Días a descontar: ' . $solicitud->cantidad);
-
-            // Verificar saldo disponible nuevamente
-            if ($periodo->saldo_disponible < $solicitud->cantidad) {
-                return response()->json([
-                    'error' => "Saldo insuficiente. Disponible: {$periodo->saldo_disponible} días"
-                ], 403);
-            }
-
-            // Descontar días
-            $saldo_anterior = $periodo->saldo_disponible;
-            $nuevo_saldo = $saldo_anterior - $solicitud->cantidad;
-
-            \Log::info('Nuevo saldo: ' . $nuevo_saldo);
-
-            $periodo->dias_usados += $solicitud->cantidad;
-            $periodo->saldo_disponible = $nuevo_saldo;
-
-            if ($nuevo_saldo <= 0) {
-                $periodo->estado = 'agotado';
-            }
-            $periodo->save();
-
-            // Actualizar movimiento (VERIFICAR QUE EXISTA)
-            $movimiento = VacacionMovimiento::where('salida_id', $solicitud->id)->first();
-            if ($movimiento) {
-                $movimiento->saldo_posterior = $nuevo_saldo;
-                $movimiento->descripcion = 'Vacación aprobada por RRHH - Días descontados';
-                $movimiento->registrado_por = Auth::id();
-                $movimiento->save();
-                \Log::info('Movimiento actualizado: ' . $movimiento->id);
-            } else {
-                \Log::warning('No se encontró movimiento para salida_id: ' . $solicitud->id);
-                // CREAR MOVIMIENTO SI NO EXISTE
-                VacacionMovimiento::create([
-                    'periodo_id' => $periodo->id,
-                    'tipo' => 'debito',
-                    'fecha' => now(),
-                    'fecha_inicio' => $solicitud->fechasal,
-                    'fecha_fin' => $solicitud->fecharet,
-                    'cantidad' => $solicitud->cantidad,
-                    'saldo_anterior' => $saldo_anterior,
-                    'saldo_posterior' => $nuevo_saldo,
-                    'salida_id' => $solicitud->id,
-                    'descripcion' => 'Vacación aprobada por RRHH - Días descontados',
-                    'registrado_por' => Auth::id(),
-                ]);
-                \Log::info('Movimiento creado');
-            }
-        } else {
-            \Log::info('No es vacación o no tiene período');
-        }
-
-        // Actualizar solicitud
-        $solicitud->estado_rrhh = 'aprobado';
-        $solicitud->estado = 'aprobado';
-        $solicitud->fecha_aprobacion_rrhh = now();
-
-        $rrhh = Persona::where('user_id', Auth::id())->first();
-        if ($rrhh) {
-            $solicitud->rrhh_id = $rrhh->id;
-        } else {
-            \Log::warning('No se encontró persona para user_id: ' . Auth::id());
-        }
-
-        $solicitud->observacion_rrhh = $request->observacion;
-        $solicitud->save();
-
-        DB::commit();
-
-        return response()->json([
-            'success' => true,
-            'mensaje' => 'Solicitud aprobada por RRHH',
-            'saldo_disponible' => $periodo->saldo_disponible ?? null
-        ]);
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-        \Log::error('Error en aprobarIndividual: ' . $e->getMessage());
-        \Log::error($e->getTraceAsString());
-        return response()->json([
-            'error' => 'Error al aprobar: ' . $e->getMessage(),
-            'line' => $e->getLine(),
-            'file' => basename($e->getFile())
-        ], 500);
-    }
-}
-
-    /**
-     * Rechazar solicitud individual (RRHH)
-     */
-public function rechazarIndividual(Request $request, $id)
-{
-    try {
-        // Cargar la solicitud con relaciones necesarias
-        $solicitud = Salida::with(['persona', 'tiposalida', 'periodo'])
-            ->findOrFail($id);
+    // ============================================================
+    // APROBAR INDIVIDUAL (RRHH) — AQUÍ SÍ SE DESCUENTAN DÍAS DE VACACIONES
+    // ============================================================
+    public function aprobarIndividual(Request $request, $id)
+    {
+        $solicitud = Salida::with(['persona', 'tiposalida', 'periodo'])->findOrFail($id);
 
         if ($solicitud->estado_rrhh != 'pendiente') {
             return response()->json(['error' => 'Esta solicitud ya fue procesada'], 400);
         }
 
-        $request->validate([
-            'observacion' => 'required|string|max:500',
-        ]);
+        $request->validate(['observacion' => 'nullable|string|max:500']);
 
         DB::beginTransaction();
+        try {
+            // Solo VACACIONES descuentan días al aprobar RRHH
+            if ($this->esVacacion($solicitud) && $solicitud->periodo_id) {
+                $periodo = VacacionPeriodo::find($solicitud->periodo_id);
 
-        // Actualizar la solicitud
-        $solicitud->estado_rrhh = 'rechazado';
-        $solicitud->estado = 'rechazado';
-        $solicitud->fecha_aprobacion_rrhh = now();
+                if (!$periodo) {
+                    return response()->json(['error' => 'Período de vacación no encontrado'], 404);
+                }
 
-        $rrhh = Persona::where('user_id', Auth::id())->first();
-        if ($rrhh) {
-            $solicitud->rrhh_id = $rrhh->id;
-        }
+                if ($periodo->saldo_disponible < $solicitud->cantidad) {
+                    return response()->json([
+                        'error' => "Saldo insuficiente. Disponible: {$periodo->saldo_disponible} días"
+                    ], 403);
+                }
 
-        $solicitud->observacion_rrhh = $request->observacion;
-        $solicitud->save();
+                $saldo_anterior = $periodo->saldo_disponible;
+                $nuevo_saldo = $saldo_anterior - $solicitud->cantidad;
 
-        // Actualizar movimiento si es vacación y existe período
-        $esVacacion = strtoupper($solicitud->tiposalida->descripcion) == 'VACACION' ||
-                      strtolower($solicitud->tiposalida->descripcion) == 'vacación';
+                $periodo->dias_usados += $solicitud->cantidad;
+                $periodo->saldo_disponible = $nuevo_saldo;
+                if ($nuevo_saldo <= 0) $periodo->estado = 'agotado';
+                $periodo->save();
 
-        if ($esVacacion && $solicitud->periodo_id) {
-            // Buscar el movimiento
-            $movimiento = VacacionMovimiento::where('salida_id', $solicitud->id)->first();
-
-            if ($movimiento) {
-                $movimiento->descripcion = 'Rechazado por RRHH: ' . $request->observacion;
-                $movimiento->registrado_por = Auth::id();
-                $movimiento->save();
-
-                \Log::info('Movimiento actualizado para rechazo: ' . $movimiento->id);
-            } else {
-                // Si no existe movimiento, lo creamos para registro
-                $periodo = $solicitud->periodo; // Usar la relación polimórfica
-
-                if ($periodo) {
+                // Actualizar o crear movimiento
+                $mov = VacacionMovimiento::where('salida_id', $solicitud->id)->first();
+                if ($mov) {
+                    $mov->saldo_posterior = $nuevo_saldo;
+                    $mov->descripcion = 'Vacación aprobada por RRHH - Días descontados';
+                    $mov->registrado_por = Auth::id();
+                    $mov->save();
+                } else {
                     VacacionMovimiento::create([
                         'periodo_id' => $periodo->id,
                         'tipo' => 'debito',
@@ -285,48 +154,120 @@ public function rechazarIndividual(Request $request, $id)
                         'fecha_inicio' => $solicitud->fechasal,
                         'fecha_fin' => $solicitud->fecharet,
                         'cantidad' => $solicitud->cantidad,
-                        'saldo_anterior' => $periodo->saldo_disponible,
-                        'saldo_posterior' => $periodo->saldo_disponible, // No se descuenta
+                        'saldo_anterior' => $saldo_anterior,
+                        'saldo_posterior' => $nuevo_saldo,
                         'salida_id' => $solicitud->id,
-                        'descripcion' => 'Solicitud rechazada por RRHH: ' . $request->observacion,
+                        'descripcion' => 'Vacación aprobada por RRHH - Días descontados',
                         'registrado_por' => Auth::id(),
                     ]);
-
-                    \Log::info('Movimiento creado para rechazo');
                 }
             }
+
+            // Actualizar solicitud
+            $solicitud->estado_rrhh = 'aprobado';
+            $solicitud->estado = 'aprobado';
+            $solicitud->fecha_aprobacion_rrhh = now();
+
+            $rrhh = Persona::where('user_id', Auth::id())->first();
+            if ($rrhh) $solicitud->rrhh_id = $rrhh->id;
+
+            $solicitud->observacion_rrhh = $request->observacion;
+            $solicitud->save();
+
+            // NOTIFICAR AL EMPLEADO
+            $this->notificarEmpleado($solicitud, 'aprobada_rrhh');
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'mensaje' => 'Solicitud aprobada por RRHH',
+                'saldo_disponible' => $periodo->saldo_disponible ?? null
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'error' => 'Error al aprobar: ' . $e->getMessage()
+            ], 500);
         }
-
-        DB::commit();
-
-        return response()->json([
-            'success' => true,
-            'mensaje' => 'Solicitud rechazada por RRHH'
-        ]);
-
-    } catch (\Illuminate\Validation\ValidationException $e) {
-        DB::rollBack();
-        return response()->json([
-            'error' => 'Error de validación',
-            'errors' => $e->errors()
-        ], 422);
-    } catch (\Exception $e) {
-        DB::rollBack();
-        \Log::error('Error en rechazarIndividual: ' . $e->getMessage());
-        \Log::error($e->getTraceAsString());
-
-        return response()->json([
-            'error' => 'Error interno del servidor',
-            'message' => $e->getMessage(),
-            'line' => $e->getLine(),
-            'file' => basename($e->getFile())
-        ], 500);
     }
-}
 
-    /**
-     * Aprobación masiva de RRHH
-     */
+    // ============================================================
+    // RECHAZAR INDIVIDUAL (RRHH)
+    // ============================================================
+    public function rechazarIndividual(Request $request, $id)
+    {
+        try {
+            $solicitud = Salida::with(['persona', 'tiposalida', 'periodo'])->findOrFail($id);
+
+            if ($solicitud->estado_rrhh != 'pendiente') {
+                return response()->json(['error' => 'Esta solicitud ya fue procesada'], 400);
+            }
+
+            $request->validate(['observacion' => 'required|string|max:500']);
+
+            DB::beginTransaction();
+
+            $solicitud->estado_rrhh = 'rechazado';
+            $solicitud->estado = 'rechazado';
+            $solicitud->fecha_aprobacion_rrhh = now();
+
+            $rrhh = Persona::where('user_id', Auth::id())->first();
+            if ($rrhh) $solicitud->rrhh_id = $rrhh->id;
+
+            $solicitud->observacion_rrhh = $request->observacion;
+            $solicitud->save();
+
+            // Solo vacaciones actualizan movimiento
+            if ($this->esVacacion($solicitud) && $solicitud->periodo_id) {
+                $mov = VacacionMovimiento::where('salida_id', $solicitud->id)->first();
+                if ($mov) {
+                    $mov->descripcion = 'Rechazado por RRHH: ' . $request->observacion;
+                    $mov->registrado_por = Auth::id();
+                    $mov->save();
+                } else {
+                    $periodo = $solicitud->periodo;
+                    if ($periodo) {
+                        VacacionMovimiento::create([
+                            'periodo_id' => $periodo->id,
+                            'tipo' => 'debito',
+                            'fecha' => now(),
+                            'fecha_inicio' => $solicitud->fechasal,
+                            'fecha_fin' => $solicitud->fecharet,
+                            'cantidad' => $solicitud->cantidad,
+                            'saldo_anterior' => $periodo->saldo_disponible,
+                            'saldo_posterior' => $periodo->saldo_disponible,
+                            'salida_id' => $solicitud->id,
+                            'descripcion' => 'Solicitud rechazada por RRHH: ' . $request->observacion,
+                            'registrado_por' => Auth::id(),
+                        ]);
+                    }
+                }
+            }
+
+            // NOTIFICAR AL EMPLEADO
+            $this->notificarEmpleado($solicitud, 'rechazada_rrhh', $request->observacion);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'mensaje' => 'Solicitud rechazada por RRHH'
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            DB::rollBack();
+            return response()->json(['error' => 'Error de validación', 'errors' => $e->errors()], 422);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['error' => 'Error: ' . $e->getMessage()], 500);
+        }
+    }
+
+    // ============================================================
+    // APROBAR MASIVO (RRHH)
+    // ============================================================
     public function aprobarMasivo(Request $request)
     {
         $request->validate([
@@ -335,15 +276,13 @@ public function rechazarIndividual(Request $request, $id)
             'observacion' => 'nullable|string|max:500',
         ]);
 
-        $ids = $request->ids;
-
-        $solicitudes = Salida::whereIn('id', $ids)
+        $solicitudes = Salida::whereIn('id', $request->ids)
             ->where('estado_rrhh', 'pendiente')
-            ->with(['tiposalida', 'periodo'])
+            ->with(['tiposalida', 'periodo', 'persona'])
             ->get();
 
         if ($solicitudes->count() == 0) {
-            return response()->json(['error' => 'No hay solicitudes válidas para aprobar'], 400);
+            return response()->json(['error' => 'No hay solicitudes válidas'], 400);
         }
 
         $aprobadas = 0;
@@ -353,44 +292,46 @@ public function rechazarIndividual(Request $request, $id)
         try {
             foreach ($solicitudes as $solicitud) {
                 try {
-                    // Si es vacación, descontar días
-                    if ($solicitud->tiposalida->descripcion == 'Vacación' && $solicitud->periodo_id) {
+                    // Solo vacaciones descuentan días
+                    if ($this->esVacacion($solicitud) && $solicitud->periodo_id) {
                         $periodo = VacacionPeriodo::find($solicitud->periodo_id);
 
-                        if ($periodo && $periodo->saldo_disponible >= $solicitud->cantidad) {
-                            $saldo_anterior = $periodo->saldo_disponible;
-                            $nuevo_saldo = $saldo_anterior - $solicitud->cantidad;
-
-                            $periodo->dias_usados += $solicitud->cantidad;
-                            $periodo->saldo_disponible = $nuevo_saldo;
-
-                            if ($nuevo_saldo <= 0) {
-                                $periodo->estado = 'agotado';
-                            }
-                            $periodo->save();
-
-                            VacacionMovimiento::where('salida_id', $solicitud->id)
-                                ->update([
-                                    'saldo_posterior' => $nuevo_saldo,
-                                    'descripcion' => 'Vacación aprobada por RRHH (masivo)',
-                                    'registrado_por' => Auth::id(),
-                                ]);
-                        } else {
-                            $errores[] = "Solicitud ID {$solicitud->id}: Saldo insuficiente";
+                        if (!$periodo || $periodo->saldo_disponible < $solicitud->cantidad) {
+                            $errores[] = "ID {$solicitud->id}: Saldo insuficiente";
                             continue;
                         }
+
+                        $saldo_anterior = $periodo->saldo_disponible;
+                        $nuevo_saldo = $saldo_anterior - $solicitud->cantidad;
+
+                        $periodo->dias_usados += $solicitud->cantidad;
+                        $periodo->saldo_disponible = $nuevo_saldo;
+                        if ($nuevo_saldo <= 0) $periodo->estado = 'agotado';
+                        $periodo->save();
+
+                        VacacionMovimiento::where('salida_id', $solicitud->id)
+                            ->update([
+                                'saldo_posterior' => $nuevo_saldo,
+                                'descripcion' => 'Vacación aprobada por RRHH (masivo)',
+                                'registrado_por' => Auth::id(),
+                            ]);
                     }
 
                     $solicitud->estado_rrhh = 'aprobado';
                     $solicitud->estado = 'aprobado';
                     $solicitud->fecha_aprobacion_rrhh = now();
-                    $solicitud->rrhh_id = Persona::where('user_id', Auth::id())->first()->id;
+
+                    $rrhh = Persona::where('user_id', Auth::id())->first();
+                    if ($rrhh) $solicitud->rrhh_id = $rrhh->id;
+
                     $solicitud->observacion_rrhh = $request->observacion;
                     $solicitud->save();
 
+                    $this->notificarEmpleado($solicitud, 'aprobada_rrhh');
                     $aprobadas++;
+
                 } catch (\Exception $e) {
-                    $errores[] = "Error en solicitud ID {$solicitud->id}: " . $e->getMessage();
+                    $errores[] = "ID {$solicitud->id}: " . $e->getMessage();
                 }
             }
 
@@ -398,17 +339,74 @@ public function rechazarIndividual(Request $request, $id)
 
             return response()->json([
                 'success' => true,
-                'mensaje' => "Se aprobaron {$aprobadas} solicitudes correctamente",
+                'mensaje' => "Se aprobaron {$aprobadas} solicitudes",
                 'aprobadas' => $aprobadas,
                 'errores' => $errores
             ]);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['error' => 'Error en aprobación masiva: ' . $e->getMessage()], 500);
+            return response()->json(['error' => 'Error masivo: ' . $e->getMessage()], 500);
         }
     }
 
+    // ============================================================
+    // HELPERS PRIVADOS (RRHH) — mismos nombres, mismos resultados
+    // ============================================================
+
+    private function esVacacion($solicitud): bool
+    {
+        return strtoupper($solicitud->tiposalida->descripcion ?? '') === 'VACACION';
+    }
+
+    private function nombreTipo($solicitud): string
+    {
+        return $solicitud->tiposalida->descripcion ?? 'Solicitud';
+    }
+
+    private function notificarEmpleado($solicitud, string $accion, string $motivo = null): void
+    {
+        $user = $solicitud->persona->user ?? null;
+        if (!$user) return;
+
+        $tipo = $this->nombreTipo($solicitud);
+        $fechas = "{$solicitud->fechasal->format('d/m/Y')} al {$solicitud->fecharet->format('d/m/Y')}";
+
+        $data = match($accion) {
+            'aprobada_jefe' => [
+                'titulo' => "{$tipo} aprobada por tu jefe",
+                'mensaje' => "Tu {$tipo} ({$fechas}) fue aprobada por tu jefe. Ahora está pendiente de RRHH.",
+                'tipo' => 'solicitud_aprobada',
+                'url' => '/empleado/vacacion/mi-historial',
+            ],
+            'rechazada_jefe' => [
+                'titulo' => "{$tipo} rechazada por tu jefe",
+                'mensaje' => "Tu {$tipo} fue rechazada. Motivo: " . ($motivo ?: 'Sin observación'),
+                'tipo' => 'solicitud_rechazada',
+                'url' => '/empleado/vacacion/mi-historial',
+            ],
+            'aprobada_rrhh' => [
+                'titulo' => "¡{$tipo} aprobada definitivamente!",
+                'mensaje' => "Tu {$tipo} ({$fechas}) fue aprobada por Recursos Humanos.",
+                'tipo' => 'solicitud_aprobada',
+                'url' => '/empleado/vacacion/mi-historial',
+            ],
+            'rechazada_rrhh' => [
+                'titulo' => "{$tipo} rechazada por RRHH",
+                'mensaje' => "Tu {$tipo} fue rechazada por RRHH. Motivo: " . ($motivo ?: 'Sin observación'),
+                'tipo' => 'solicitud_rechazada',
+                'url' => '/empleado/vacacion/mi-historial',
+            ],
+            default => [
+                'titulo' => 'Actualización de solicitud',
+                'mensaje' => 'Hay una actualización en tu solicitud.',
+                'tipo' => 'info',
+                'url' => '#',
+            ]
+        };
+
+        $user->notify(new GenericNotification($data));
+    }
     /**
      * Filtrar solicitudes por estado o tipo
      */

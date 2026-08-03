@@ -37,7 +37,8 @@ class User extends Authenticatable
         'password',
         'usuario',
         'ci',
-        'origen'
+        'origen',
+        'bienvenida_vista'
     ];
 
     /**

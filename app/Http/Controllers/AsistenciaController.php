@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AsistenciaDiaria;
 use App\Models\Persona;
+use Barryvdh\DomPDF\Facade\Pdf;
 use App\Services\GenerarAsistenciaService;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
@@ -266,11 +267,11 @@ class AsistenciaController extends Controller
             $fechaFormato = $fechaCarbon->translatedFormat('l, j \\d\\e F \\d\\e Y');
 
             // 2. Turno esperado
-            $entradaEsperadaStr = $entrada && $entrada->hora_esperada 
-                ? ($entrada->hora_esperada instanceof Carbon ? $entrada->hora_esperada->format('H:i') : $entrada->hora_esperada) 
+            $entradaEsperadaStr = $entrada && $entrada->hora_esperada
+                ? ($entrada->hora_esperada instanceof Carbon ? $entrada->hora_esperada->format('H:i') : $entrada->hora_esperada)
                 : '--';
-            $salidaEsperadaStr = $salida && $salida->hora_esperada 
-                ? ($salida->hora_esperada instanceof Carbon ? $salida->hora_esperada->format('H:i') : $salida->hora_esperada) 
+            $salidaEsperadaStr = $salida && $salida->hora_esperada
+                ? ($salida->hora_esperada instanceof Carbon ? $salida->hora_esperada->format('H:i') : $salida->hora_esperada)
                 : '--';
             $turnoEsperado = $entradaEsperadaStr . '-' . $salidaEsperadaStr;
 
@@ -348,5 +349,22 @@ class AsistenciaController extends Controller
             'dias' => $datosFilas,
             'totales' => $totalesFormato,
         ];
+    }
+    public function exportarPDF(Request $request, $personaId)
+    {
+        $persona = Persona::find($personaId);
+        if (!$persona) {
+            abort(404, 'Persona no encontrada');
+        }
+
+        [$fechaInicio, $fechaFin] = $this->resolverRango($request);
+
+        $reporte = $this->construirReporte($persona, $fechaInicio, $fechaFin);
+
+        // Cargar la vista PDF con los datos
+        $pdf = Pdf::loadView('admin.dispositivos.asistencias.reportes.asistencia-pdf', compact('reporte'))
+                ->setPaper('a4', 'landscape');
+
+        return $pdf->download('reporte_asistencia_' . $persona->ci . '.pdf');
     }
 }

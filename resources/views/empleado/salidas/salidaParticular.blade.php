@@ -78,6 +78,12 @@
                                 <span class="badge bg-{{ $badge }}">{{ str_replace('_', ' ', $salida->estado) }}</span>
                             </td>
                             <td>
+                                @if(in_array($salida->estado, ['aprobado', 'pendiente_jefe', 'pendiente_rrhh']))
+                                    {{-- Botón para descargar PDF --}}
+                                    <a href="{{ route('salidas.particular.pdf', $salida->id) }}" class="btn btn-sm btn-success" target="_blank">
+                                        <i class="fa-solid fa-file-pdf"></i> PDF
+                                    </a>
+                                @endif
                                 @if (in_array($salida->estado, ['pendiente_jefe', 'pendiente_rrhh']))
                                     <button class="btn btn-sm btn-warning btnEditar" data-id="{{ $salida->id }}">
                                         <i class="fa-solid fa-pen-to-square"></i>

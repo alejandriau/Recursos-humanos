@@ -598,6 +598,74 @@
     }
     .sidebar-overlay.active { display: block; }
     @media (min-width: 993px) { .sidebar-overlay { display: none !important; } }
+        /* Dropdown notificaciones */
+    .notif-dropdown {
+        width: 360px;
+        max-height: 450px;
+        overflow: hidden;
+        border-radius: 16px;
+        border: none;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+    }
+    .notif-header {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--color-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .notif-header h6 {
+        font-weight: 700;
+        margin: 0;
+        font-size: 0.95rem;
+    }
+    .notif-list {
+        max-height: 320px;
+        overflow-y: auto;
+    }
+    .notif-list::-webkit-scrollbar { width: 4px; }
+    .notif-list::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 10px; }
+    .notif-item {
+        padding: 0.85rem 1.25rem;
+        border-bottom: 1px solid #f1f5f9;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+        text-decoration: none;
+        color: inherit;
+    }
+    .notif-item:hover { background: #f8fafc; }
+    .notif-item.unread { background: #eff6ff; border-left: 3px solid var(--color-primary); }
+    .notif-item .notif-icon {
+        width: 38px; height: 38px; border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.9rem; flex-shrink: 0;
+    }
+    .notif-item .notif-content { flex: 1; }
+    .notif-item .notif-content p { margin: 0; font-size: 0.82rem; line-height: 1.4; color: var(--color-text); }
+    .notif-item .notif-content small { font-size: 0.7rem; color: var(--color-text-muted); }
+    .notif-empty {
+        text-align: center; padding: 2.5rem 1rem; color: var(--color-text-muted);
+    }
+    .notif-empty i { font-size: 2.5rem; margin-bottom: 0.75rem; opacity: 0.4; }
+
+    /* Modal evento */
+    .modal-evento .modal-content {
+        border: none; border-radius: 24px; overflow: hidden;
+    }
+    .modal-evento .modal-body {
+        position: relative; padding: 3rem 2rem; text-align: center; color: white;
+    }
+    .globo-float {
+        position: absolute; opacity: 0.2; pointer-events: none;
+        animation: floatGlobo 4s ease-in-out infinite;
+    }
+    @keyframes floatGlobo {
+        0%,100%{transform:translateY(0) rotate(0deg);}
+        50%{transform:translateY(-20px) rotate(5deg);}
+    }
 </style>
 
     @stack('styles')
@@ -903,15 +971,25 @@
                 </div>
             </div>
             <div class="topbar-right">
-                <!-- NOTIFICACIONES -->
+                {{-- NOTIFICACIONES --}}
                 <div class="dropdown">
-                    <button class="btn-icon" id="notificationDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <button class="btn-topbar" id="btnNotif" data-bs-toggle="dropdown" aria-expanded="false" title="Notificaciones">
                         <i class="fas fa-bell"></i>
-                        <span id="notifCount" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none; font-size: 0.6rem;">0</span>
+                        <span class="badge-count" id="badgeNotif" style="display:none;">0</span>
                     </button>
-                    <div class="dropdown-menu dropdown-menu-end notification-dropdown p-0" id="notificationList">
-                        <div class="notification-header">Notificaciones</div>
-                        <div class="text-center p-4 text-white-50">Cargando...</div>
+                    <div class="dropdown-menu dropdown-menu-end notif-dropdown p-0" id="dropdownNotif">
+                        <div class="notif-header">
+                            <h6><i class="fas fa-bell me-2 text-primary"></i>Notificaciones</h6>
+                            <button class="btn btn-sm btn-link text-decoration-none" onclick="marcarTodasLeidas()" style="font-size:0.75rem;">
+                                Marcar todas
+                            </button>
+                        </div>
+                        <div class="notif-list" id="listaNotificaciones">
+                            <div class="notif-empty">
+                                <i class="fas fa-bell-slash"></i>
+                                <p class="mb-0 mt-2">No hay notificaciones nuevas</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -1140,9 +1218,103 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Si no hay endpoint, mantener en 0
             });
     }
+    cargarNotificaciones();
     actualizarBadgeSalidas();
     setInterval(actualizarBadgeSalidas, 60000);
 });
+// ================================================================
+// SISTEMA DE NOTIFICACIONES CON AXIOS
+// ================================================================
+function cargarNotificaciones() {
+    axios.get('{{ route('notificaciones.no-leidas') }}')
+        .then(res => {
+            const data = res.data;
+            const badge = document.getElementById('badgeNotif');
+            const lista = document.getElementById('listaNotificaciones');
+
+            // Badge contador
+            if (data.count > 0) {
+                badge.textContent = data.count > 99 ? '99+' : data.count;
+                badge.style.display = 'inline-block';
+            } else {
+                badge.style.display = 'none';
+            }
+
+            // Lista vacía
+            if (data.notificaciones.length === 0) {
+                lista.innerHTML = `
+                    <div class="notif-empty">
+                        <i class="fas fa-bell-slash"></i>
+                        <p class="mb-0 mt-2">No hay notificaciones nuevas</p>
+                    </div>`;
+                return;
+            }
+
+            // Renderizar notificaciones
+            lista.innerHTML = data.notificaciones.map(n => {
+                const iconos = {
+                    'nueva_solicitud':   'fa-file-circle-plus',
+                    'prestamo_aprobado': 'fa-circle-check',
+                    'prestamo_rechazado':'fa-circle-xmark',
+                    'prestamo_entregado':'fa-box-open',
+                    'prestamo_devuelto': 'fa-rotate-left',
+                    'prestamo_vencido':  'fa-triangle-exclamation',
+                    'default':           'fa-bell'
+                };
+                const icono = iconos[n.tipo] || iconos['default'];
+
+                const colores = {
+                    'nueva_solicitud':   'bg-primary-subtle text-primary',
+                    'prestamo_aprobado': 'bg-success-subtle text-success',
+                    'prestamo_rechazado':'bg-danger-subtle text-danger',
+                    'prestamo_vencido':  'bg-warning-subtle text-warning',
+                    'default':           'bg-info-subtle text-info'
+                };
+                const colorClass = colores[n.tipo] || colores['default'];
+
+                return `
+                    <a href="${n.url}" class="notif-item unread" onclick="marcarLeida('${n.id}', event)">
+                        <div class="notif-icon ${colorClass}">
+                            <i class="fas ${icono}"></i>
+                        </div>
+                        <div class="notif-content">
+                            <p class="fw-semibold mb-1">${n.titulo}</p>
+                            <p class="mb-1">${n.mensaje}</p>
+                            <small><i class="far fa-clock me-1"></i>${n.creado}</small>
+                        </div>
+                    </a>`;
+            }).join('');
+        })
+        .catch(err => {
+            console.error('Error cargando notificaciones:', err);
+        });
+}
+
+function marcarLeida(id, event) {
+    event.preventDefault();
+    axios.post(`/notificaciones/${id}/leida`)
+        .then(() => {
+            cargarNotificaciones();
+            // Redirigir después de marcar como leída
+            const href = event.currentTarget.getAttribute('href');
+            if (href && href !== '#') {
+                window.location.href = href;
+            }
+        })
+        .catch(err => {
+            console.error('Error marcando notificación:', err);
+        });
+}
+
+function marcarTodasLeidas() {
+    axios.post('{{ route('notificaciones.todas-leidas') }}')
+        .then(() => {
+            cargarNotificaciones();
+        })
+        .catch(err => {
+            console.error('Error marcando todas:', err);
+        });
+}
 </script>
 
     @stack('scripts')

@@ -38,6 +38,6 @@ class AppServiceProvider extends ServiceProvider
             'persona' => Persona::class,
         ]);
         Carbon::setLocale('es');
-        
+
     }
 }

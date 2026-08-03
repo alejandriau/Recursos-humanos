@@ -79,6 +79,7 @@ use App\Http\Controllers\HorarioController;
 use App\Http\Controllers\AsistenciaController;
 use App\Http\Controllers\AsignacionHorarioController;
 use App\Http\Controllers\AsistenciaGeneracionController;
+use App\Http\Controllers\EventoController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -131,7 +132,7 @@ Route::get('/homeusr', function () {
     Route::resource('asignacion', AsignacionHorarioController::class)->except(['show']);
     //asistencia
     Route::get('/asistencia/generar', [AsistenciaGeneracionController::class, 'index'])->name('asistencia.generar.index');
-    Route::post('/asistencia/generar', [AsistenciaGeneracionController::class, 'generar'])->name('asistencia.generar.store');    
+    Route::post('/asistencia/generar', [AsistenciaGeneracionController::class, 'generar'])->name('asistencia.generar.store');
 
     Route::prefix('asistencia')->group(function () {
         Route::get('/', [AsistenciaController::class, 'index'])->name('asistencia.index');
@@ -139,19 +140,30 @@ Route::get('/homeusr', function () {
         Route::get('/resumen-por-persona', [AsistenciaController::class, 'resumenPorPersona']);
         Route::get('/{id}/detalle', [AsistenciaController::class, 'detalle']);
         Route::post('/regenerar', [AsistenciaController::class, 'regenerar']);
-    
+
         // Reporte por empleado (uso de RRHH)
         Route::get('/empleado', [AsistenciaController::class, 'verEmpleado'])->name('asistencia.empleado');
+        Route::get('/empleado/{personaId}/pdf', [AsistenciaController::class, 'exportarPDF'])->name('asistencia.empleado.pdf');
         Route::get('/buscar-personas', [AsistenciaController::class, 'buscarPersonas']);
         Route::get('/empleado/{personaId}/reporte', [AsistenciaController::class, 'reportePorEmpleado']);
     });
-    
+
     // "Mi asistencia" — el propio empleado ve la suya
     Route::get('/mi-asistencia', [AsistenciaController::class, 'miAsistenciaVista'])->name('mi-asistencia');
     Route::get('/mi-asistencia/datos', [AsistenciaController::class, 'miAsistencia']);
 
     Route::get('/boleta/verificar/{id}', [VerificacionBoletaController::class, 'verificar'])->middleware('signed')->name('boleta.verificar');
+    Route::post('/bienvenida/visto', [EventoController::class, 'marcarBienvenidaVista'])->name('bienvenida.visto');
 
+    // Notificaciones para el navbar (dropdown)
+    Route::get('/notificaciones/no-leidas', [NotificacionController::class, 'noLeidas'])->name('notificaciones.no-leidas');
+    // Todas las notificaciones (para página de historial)
+    Route::get('/notificaciones/todas', [NotificacionController::class, 'todas'])->name('notificaciones.todas');
+    // Marcar una como leída
+    Route::post('/notificaciones/{id}/leida', [NotificacionController::class, 'marcarLeida'])->name('notificaciones.leida');
+    // Marcar todas como leídas
+    Route::post('/notificaciones/marcar-todas', [NotificacionController::class, 'marcarTodasLeidas'])->name('notificaciones.todas-leidas');
+    Route::get('/notificaciones/marcar-todas', [NotificacionController::class, 'TodasLeidas'])->name('notificaciones.todas-leidas');
 
 Route::get('/test-map-download', function () {
     $url = 'https://tile.openstreetmap.org/0/0/0.png';
@@ -1106,8 +1118,6 @@ Route::prefix('catalogos')->name('catalogos.')->group(function () {
         Route::post('/list-salud', [PersonaController::class, "listarSalud"]); // listar salida de salud  por api
         Route::post('/list-particular', [PersonaController::class, 'listParticular']); // listar salida paricular por api
         Route::get('/listar-solicitudes/usuario', [PersonaController::class, "listarSolicitudes"]); // listar salida de salud  por api
-        Route::post('/aprobar-solicitud', [PersonaController::class, "aprobarSolicitud"]); // aprobar solicitudes pendientes para vobo por api
-        Route::post('/rechazar-solicitud', [PersonaController::class, "rechazarSolicitud"]); // rechaza la solicitud de salidas pendiente de vobo
         Route::get('/detalle-pdf/{id}', [PersonaController::class, 'generarPDF']);
 
         //tipo de salida
@@ -1144,6 +1154,7 @@ Route::prefix('catalogos')->name('catalogos.')->group(function () {
         Route::get('/comision/mis-solicitudes', [SalidaController::class, 'misSolicitudes'])->name('comision.mis-solicitudes');
         Route::get('/salud/usuario', [SalidaController::class, "funcSalud"])->name('salud.usuario');
         Route::get('/empleado/salida-particular', [SalidaController::class, "indexParticular"])->name('empleado.salida-particular');
+        Route::get('/salidas/particulares/{id}/pdf', [SalidaController::class, 'pdfParticular'])->name('salidas.particular.pdf');
         //  *************************** USUARIO ****************************************
 
         //Route::resource('/vacacion',SalidaController::class);

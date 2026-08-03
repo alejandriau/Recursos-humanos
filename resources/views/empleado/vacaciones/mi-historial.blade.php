@@ -299,7 +299,7 @@
                 <div class="modal-body">
                     {{-- Formulario integrado directamente --}}
                     <div id="formCrear">
-                        <input type="hidden" id="idpersona" value="{{ auth()->user()->persona_id ?? '' }}">
+                        <input type="hidden" id="idpersona" value="{{ auth()->user()->persona->id ?? '' }}">
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="mb-3">
@@ -799,7 +799,18 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(res => {
                 Swal.fire('Éxito', res.data.message, 'success').then(() => location.reload());
             })
-            .catch(err => manejarError(err));
+            .catch(err => {
+                if (err.response && err.response.status === 422) {
+                    const errors = err.response.data.errors;
+                    let mensaje = '';
+                    Object.keys(errors).forEach(campo => {
+                        mensaje += `${campo}: ${errors[campo].join(', ')}\n`;
+                    });
+                    Swal.fire('Error de validación', mensaje, 'error');
+                } else {
+                    manejarError(err);
+                }
+            });
     });
 
     // --- EDITAR (cargar datos) ---

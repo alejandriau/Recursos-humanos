@@ -10,6 +10,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use App\Notifications\GenericNotification;
+use Illuminate\Support\Facades\Notification;
+use Spatie\Permission\Models\Role; // si usas spatie
 
 
 class JefeInmediatoController extends Controller
@@ -92,185 +95,274 @@ class JefeInmediatoController extends Controller
         return view('jefe.ver-solicitud', compact('solicitud', 'movimientos'));
     }
 
-    /**
-     * Aprobar una solicitud individual
-     */
-    public function aprobarIndividual(Request $request, $id)
-    {
-        $jefe = Persona::where('user_id', Auth::id())->first();
+// ============================================================
+// APROBAR INDIVIDUAL (JEFE)
+// ============================================================
+public function aprobarIndividual(Request $request, $id)
+{
+    $jefe = Persona::where('user_id', Auth::id())->first();
+    $solicitud = Salida::with(['persona', 'tiposalida'])->findOrFail($id);
 
-        $solicitud = Salida::with(['persona', 'tiposalida'])->findOrFail($id);
-
-        // Verificar autorización
-        if ($solicitud->jefe_id != $jefe->id) {
-            return response()->json(['error' => 'No autorizado'], 403);
-        }
-
-        if ($solicitud->estado_jefe != 'pendiente') {
-            return response()->json(['error' => 'Esta solicitud ya fue procesada'], 400);
-        }
-
-        $request->validate([
-            'observacion' => 'nullable|string|max:500',
-        ]);
-
-        DB::beginTransaction();
-        try {
-            $solicitud->estado_jefe = 'aprobado';
-            $solicitud->fecha_aprobacion_jefe = now();
-            $solicitud->observacion_jefe = $request->observacion;
-
-            // Cambiar a pendiente de RRHH
-            $solicitud->estado = 'pendiente_rrhh';
-            $solicitud->estado_rrhh = 'pendiente';
-
-            $solicitud->save();
-
-            // Registrar en movimientos si es vacación
-            if ($solicitud->tiposalida->descripcion == 'Vacación' && $solicitud->periodo_id) {
-                VacacionMovimiento::where('salida_id', $solicitud->id)
-                    ->update([
-                        'descripcion' => 'Aprobado por jefe - En espera de RRHH',
-                        'registrado_por' => Auth::id(),
-                    ]);
-            }
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'mensaje' => 'Solicitud aprobada correctamente. Pasa a revisión de RRHH.',
-                'solicitud' => $solicitud
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['error' => 'Error al aprobar: ' . $e->getMessage()], 500);
-        }
+    if ($solicitud->jefe_id != $jefe->id) {
+        return response()->json(['error' => 'No autorizado'], 403);
     }
 
-    /**
-     * Rechazar una solicitud individual
-     */
-    public function rechazarIndividual(Request $request, $id)
-    {
-        $jefe = Persona::where('user_id', Auth::id())->first();
-
-        $solicitud = Salida::with(['persona', 'tiposalida'])->findOrFail($id);
-
-        if ($solicitud->jefe_id != $jefe->id) {
-            return response()->json(['error' => 'No autorizado'], 403);
-        }
-
-        if ($solicitud->estado_jefe != 'pendiente') {
-            return response()->json(['error' => 'Esta solicitud ya fue procesada'], 400);
-        }
-
-        $request->validate([
-            'observacion' => 'required|string|max:500',
-        ]);
-
-        DB::beginTransaction();
-        try {
-            $solicitud->estado_jefe = 'rechazado';
-            $solicitud->fecha_aprobacion_jefe = now();
-            $solicitud->observacion_jefe = $request->observacion;
-            $solicitud->estado = 'rechazado';
-            $solicitud->estado_rrhh = 'rechazado';
-            $solicitud->save();
-
-            // Actualizar movimiento
-            if ($solicitud->tiposalida->descripcion == 'Vacación' && $solicitud->periodo_id) {
-                VacacionMovimiento::where('salida_id', $solicitud->id)
-                    ->update([
-                        'descripcion' => 'Rechazado por jefe: ' . $request->observacion,
-                        'registrado_por' => Auth::id(),
-                    ]);
-            }
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'mensaje' => 'Solicitud rechazada correctamente',
-                'solicitud' => $solicitud
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['error' => 'Error al rechazar: ' . $e->getMessage()], 500);
-        }
+    if ($solicitud->estado_jefe != 'pendiente') {
+        return response()->json(['error' => 'Esta solicitud ya fue procesada'], 400);
     }
 
-    /**
-     * Aprobación masiva de solicitudes
-     */
-    public function aprobarMasivo(Request $request)
-    {
-        $jefe = Persona::where('user_id', Auth::id())->first();
+    $request->validate(['observacion' => 'nullable|string|max:500']);
 
-        $request->validate([
-            'ids' => 'required|array',
-            'ids.*' => 'exists:salidas,id',
-            'observacion' => 'nullable|string|max:500',
-        ]);
+    DB::beginTransaction();
+    try {
+        $solicitud->estado_jefe = 'aprobado';
+        $solicitud->fecha_aprobacion_jefe = now();
+        $solicitud->observacion_jefe = $request->observacion;
+        $solicitud->estado = 'pendiente_rrhh';
+        $solicitud->estado_rrhh = 'pendiente';
+        $solicitud->save();
 
-        $ids = $request->ids;
-
-        // Verificar que todas las solicitudes pertenezcan al jefe
-        $solicitudes = Salida::whereIn('id', $ids)
-            ->where('jefe_id', $jefe->id)
-            ->where('estado_jefe', 'pendiente')
-            ->get();
-
-        if ($solicitudes->count() == 0) {
-            return response()->json(['error' => 'No hay solicitudes válidas para aprobar'], 400);
+        // Solo vacaciones actualizan movimientos (pero aún NO descuentan días)
+        if ($this->esVacacion($solicitud) && $solicitud->periodo_id) {
+            VacacionMovimiento::where('salida_id', $solicitud->id)
+                ->update([
+                    'descripcion' => 'Aprobado por jefe - En espera de RRHH',
+                    'registrado_por' => Auth::id(),
+                ]);
         }
 
-        $aprobadas = 0;
-        $errores = [];
+        // NOTIFICAR AL EMPLEADO
+        $this->notificarEmpleado($solicitud, 'aprobada_jefe');
 
-        DB::beginTransaction();
-        try {
-            foreach ($solicitudes as $solicitud) {
-                try {
-                    $solicitud->estado_jefe = 'aprobado';
-                    $solicitud->fecha_aprobacion_jefe = now();
-                    $solicitud->observacion_jefe = $request->observacion;
-                    $solicitud->estado = 'pendiente_rrhh';
-                    $solicitud->estado_rrhh = 'pendiente';
-                    $solicitud->save();
+        // NOTIFICAR A RRHH
+        $this->notificarRRHH($solicitud, 'nueva_pendiente');
 
-                    // Actualizar movimiento si es vacación
-                    if ($solicitud->tiposalida->descripcion == 'Vacación' && $solicitud->periodo_id) {
-                        VacacionMovimiento::where('salida_id', $solicitud->id)
-                            ->update([
-                                'descripcion' => 'Aprobado por jefe (masivo) - En espera de RRHH',
-                                'registrado_por' => Auth::id(),
-                            ]);
-                    }
+        DB::commit();
 
-                    $aprobadas++;
-                } catch (\Exception $e) {
-                    $errores[] = "Error en solicitud ID {$solicitud->id}: " . $e->getMessage();
+        return response()->json([
+            'success' => true,
+            'mensaje' => 'Solicitud aprobada. Pasa a revisión de RRHH.',
+            'solicitud' => $solicitud
+        ]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return response()->json(['error' => 'Error al aprobar: ' . $e->getMessage()], 500);
+    }
+}
+
+// ============================================================
+// RECHAZAR INDIVIDUAL (JEFE)
+// ============================================================
+public function rechazarIndividual(Request $request, $id)
+{
+    $jefe = Persona::where('user_id', Auth::id())->first();
+    $solicitud = Salida::with(['persona', 'tiposalida'])->findOrFail($id);
+
+    if ($solicitud->jefe_id != $jefe->id) {
+        return response()->json(['error' => 'No autorizado'], 403);
+    }
+
+    if ($solicitud->estado_jefe != 'pendiente') {
+        return response()->json(['error' => 'Esta solicitud ya fue procesada'], 400);
+    }
+
+    $request->validate(['observacion' => 'required|string|max:500']);
+
+    DB::beginTransaction();
+    try {
+        $solicitud->estado_jefe = 'rechazado';
+        $solicitud->fecha_aprobacion_jefe = now();
+        $solicitud->observacion_jefe = $request->observacion;
+        $solicitud->estado = 'rechazado';
+        $solicitud->estado_rrhh = 'rechazado';
+        $solicitud->save();
+
+        if ($this->esVacacion($solicitud) && $solicitud->periodo_id) {
+            VacacionMovimiento::where('salida_id', $solicitud->id)
+                ->update([
+                    'descripcion' => 'Rechazado por jefe: ' . $request->observacion,
+                    'registrado_por' => Auth::id(),
+                ]);
+        }
+
+        // NOTIFICAR AL EMPLEADO
+        $this->notificarEmpleado($solicitud, 'rechazada_jefe', $request->observacion);
+
+        DB::commit();
+
+        return response()->json([
+            'success' => true,
+            'mensaje' => 'Solicitud rechazada correctamente',
+            'solicitud' => $solicitud
+        ]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return response()->json(['error' => 'Error al rechazar: ' . $e->getMessage()], 500);
+    }
+}
+
+// ============================================================
+// APROBAR MASIVO (JEFE)
+// ============================================================
+public function aprobarMasivo(Request $request)
+{
+    $jefe = Persona::where('user_id', Auth::id())->first();
+
+    $request->validate([
+        'ids' => 'required|array',
+        'ids.*' => 'exists:salidas,id',
+        'observacion' => 'nullable|string|max:500',
+    ]);
+
+    $solicitudes = Salida::whereIn('id', $request->ids)
+        ->where('jefe_id', $jefe->id)
+        ->where('estado_jefe', 'pendiente')
+        ->with(['persona', 'tiposalida'])
+        ->get();
+
+    if ($solicitudes->count() == 0) {
+        return response()->json(['error' => 'No hay solicitudes válidas'], 400);
+    }
+
+    $aprobadas = 0;
+    $errores = [];
+    $notificarRRHH = false;
+
+    DB::beginTransaction();
+    try {
+        foreach ($solicitudes as $solicitud) {
+            try {
+                $solicitud->estado_jefe = 'aprobado';
+                $solicitud->fecha_aprobacion_jefe = now();
+                $solicitud->observacion_jefe = $request->observacion;
+                $solicitud->estado = 'pendiente_rrhh';
+                $solicitud->estado_rrhh = 'pendiente';
+                $solicitud->save();
+
+                if ($this->esVacacion($solicitud) && $solicitud->periodo_id) {
+                    VacacionMovimiento::where('salida_id', $solicitud->id)
+                        ->update([
+                            'descripcion' => 'Aprobado por jefe (masivo) - En espera de RRHH',
+                            'registrado_por' => Auth::id(),
+                        ]);
                 }
+
+                $this->notificarEmpleado($solicitud, 'aprobada_jefe');
+                $notificarRRHH = true;
+                $aprobadas++;
+
+            } catch (\Exception $e) {
+                $errores[] = "ID {$solicitud->id}: " . $e->getMessage();
             }
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'mensaje' => "Se aprobaron {$aprobadas} solicitudes correctamente",
-                'aprobadas' => $aprobadas,
-                'errores' => $errores
-            ]);
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json(['error' => 'Error en aprobación masiva: ' . $e->getMessage()], 500);
         }
-    }
 
+        if ($notificarRRHH) {
+            $this->notificarRRHHMasivo($aprobadas);
+        }
+
+        DB::commit();
+
+        return response()->json([
+            'success' => true,
+            'mensaje' => "Se aprobaron {$aprobadas} solicitudes",
+            'aprobadas' => $aprobadas,
+            'errores' => $errores
+        ]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return response()->json(['error' => 'Error masivo: ' . $e->getMessage()], 500);
+    }
+}
+
+// ============================================================
+// HELPERS PRIVADOS (JEFE)
+// ============================================================
+
+private function esVacacion($solicitud): bool
+{
+    return strtoupper($solicitud->tiposalida->descripcion ?? '') === 'VACACION';
+}
+
+private function nombreTipo($solicitud): string
+{
+    return $solicitud->tiposalida->descripcion ?? 'Solicitud';
+}
+
+private function notificarEmpleado($solicitud, string $accion, string $motivo = null): void
+{
+    $user = $solicitud->persona->user ?? null;
+    if (!$user) return;
+
+    $tipo = $this->nombreTipo($solicitud);
+    $fechas = "{$solicitud->fechasal->format('d/m/Y')} al {$solicitud->fecharet->format('d/m/Y')}";
+
+    $data = match($accion) {
+        'aprobada_jefe' => [
+            'titulo' => "{$tipo} aprobada por tu jefe",
+            'mensaje' => "Tu {$tipo} ({$fechas}) fue aprobada por tu jefe. Ahora está pendiente de RRHH.",
+            'tipo' => 'solicitud_aprobada',
+            'url' => '/empleado/vacacion/mi-historial',
+        ],
+        'rechazada_jefe' => [
+            'titulo' => "{$tipo} rechazada por tu jefe",
+            'mensaje' => "Tu {$tipo} fue rechazada. Motivo: " . ($motivo ?: 'Sin observación'),
+            'tipo' => 'solicitud_rechazada',
+            'url' => '/empleado/vacacion/mi-historial',
+        ],
+        'aprobada_rrhh' => [
+            'titulo' => "¡{$tipo} aprobada definitivamente!",
+            'mensaje' => "Tu {$tipo} ({$fechas}) fue aprobada por Recursos Humanos.",
+            'tipo' => 'solicitud_aprobada',
+            'url' => '/empleado/vacacion/mi-historial',
+        ],
+        'rechazada_rrhh' => [
+            'titulo' => "{$tipo} rechazada por RRHH",
+            'mensaje' => "Tu {$tipo} fue rechazada por RRHH. Motivo: " . ($motivo ?: 'Sin observación'),
+            'tipo' => 'solicitud_rechazada',
+            'url' => '/empleado/vacacion/mi-historial',
+        ],
+        default => [
+            'titulo' => 'Actualización de solicitud',
+            'mensaje' => 'Hay una actualización en tu solicitud.',
+            'tipo' => 'info',
+            'url' => '#',
+        ]
+    };
+
+    $user->notify(new GenericNotification($data));
+}
+
+private function notificarRRHH($solicitud, string $tipoNotif): void
+{
+    $usuariosRRHH = \App\Models\User::role('admin')->get();
+    if ($usuariosRRHH->count() === 0) return;
+
+    $nombre = "{$solicitud->persona->nombre} {$solicitud->persona->apellidoPat}";
+    $tipo = $this->nombreTipo($solicitud);
+
+    Notification::send($usuariosRRHH, new GenericNotification([
+        'titulo' => "{$tipo} por aprobar (RRHH)",
+        'mensaje' => "{$nombre} tiene una {$tipo} aprobada por jefe. Revisar para aprobación final.",
+        'tipo' => 'solicitud_pendiente',
+        'url' => '/solicitudes/dashboard',
+    ]));
+}
+
+private function notificarRRHHMasivo(int $cantidad): void
+{
+    $usuariosRRHH = \App\Models\User::role('admin')->get();
+    if ($usuariosRRHH->count() === 0) return;
+
+    Notification::send($usuariosRRHH, new GenericNotification([
+        'titulo' => 'Nuevas solicitudes por aprobar',
+        'mensaje' => "Hay {$cantidad} solicitud(es) aprobadas por jefe esperando revisión de RRHH.",
+        'tipo' => 'solicitud_pendiente',
+        'url' => '/solicitudes/dashboard',
+    ]));
+}
     /**
      * Filtrar solicitudes por tipo
      */

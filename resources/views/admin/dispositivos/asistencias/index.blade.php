@@ -27,6 +27,9 @@
                     <button class="btn btn-primary" onclick="buscarReporte()">
                         <i class="bi bi-search"></i> Ver asistencia
                     </button>
+                    <button class="btn btn-success" onclick="descargarPDF()">
+                        <i class="bi bi-file-pdf"></i> Exportar PDF
+                    </button>
                 </div>
             </div>
             <small class="text-muted">Por defecto se muestra desde el día 21 (del corte vigente) hasta hoy.</small>
@@ -89,7 +92,7 @@ async function buscarReporte() {
 function renderReporte(r) {
     const p = r.persona;
     const t = r.totales;
-    
+
     document.getElementById('fFechaInicio').value = r.fecha_inicio;
     document.getElementById('fFechaFin').value = r.fecha_fin;
 
@@ -116,16 +119,16 @@ function renderReporte(r) {
 
     const filasDias = r.dias.map(d => {
         // Si es hoy y la salida está pendiente, mostrar "Pendiente" en vez de "No marcó"
-        const entradaHtml = d.entrada 
-            ? d.entrada 
-            : (d.es_hoy && d.estado === 'pendiente' 
-                ? '<span class="text-muted fst-italic">Pendiente</span>' 
+        const entradaHtml = d.entrada
+            ? d.entrada
+            : (d.es_hoy && d.estado === 'pendiente'
+                ? '<span class="text-muted fst-italic">Pendiente</span>'
                 : '<span class="text-danger fw-bold">No marcó</span>');
 
-        const salidaHtml = d.salida 
-            ? d.salida 
-            : (d.es_hoy && d.estado === 'pendiente' 
-                ? '<span class="text-muted fst-italic">Pendiente</span>' 
+        const salidaHtml = d.salida
+            ? d.salida
+            : (d.es_hoy && d.estado === 'pendiente'
+                ? '<span class="text-muted fst-italic">Pendiente</span>'
                 : '<span class="text-danger fw-bold">No marcó</span>');
 
         // Resaltar fila del día en curso
@@ -154,12 +157,12 @@ function renderReporte(r) {
         <div class="card">
             <div class="card-header bg-white border-bottom-0 py-3">
                 <h4 class="mb-1">
-                    <i class="bi bi-person-vcard-fill"></i> 
+                    <i class="bi bi-person-vcard-fill"></i>
                     ${p.nombre} ${p.apellidoPat ?? ''} ${p.apellidoMat ?? ''}
                 </h4>
                 <small class="text-muted">ITEM: ${p.ci}</small>
                 <div class="float-end small">
-                    Desde el ${r.fecha_inicio} <br> 
+                    Desde el ${r.fecha_inicio} <br>
                     Hasta el ${r.fecha_fin}
                 </div>
             </div>
@@ -199,6 +202,21 @@ function renderReporte(r) {
             </div>
         </div>
     `;
+}
+
+function descargarPDF() {
+    const personaId = document.getElementById('personaSeleccionadaId').value;
+    if (!personaId) {
+        alert('Selecciona un empleado de la lista.');
+        return;
+    }
+
+    const params = new URLSearchParams();
+    if (document.getElementById('fFechaInicio').value) params.set('fecha_inicio', document.getElementById('fFechaInicio').value);
+    if (document.getElementById('fFechaFin').value) params.set('fecha_fin', document.getElementById('fFechaFin').value);
+
+    const url = `/asistencia/reporte/${personaId}/pdf?${params.toString()}`;
+    window.open(url, '_blank');
 }
 </script>
 @endpush

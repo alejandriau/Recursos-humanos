@@ -15,6 +15,93 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
+    {{-- Animate.css + Confetti --}}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+<style>
+    /* Variables dinámicas desde Laravel */
+    :root {
+        --theme-primary: {{ $contextoEvento['tema']['color_primario'] }};
+        --theme-secondary: {{ $contextoEvento['tema']['color_secundario'] }};
+    }
+
+    /* Tema dinámico en navbar */
+    .topbar-themed {
+        background: linear-gradient(135deg, var(--theme-primary), var(--theme-secondary)) !important;
+        transition: background 0.6s ease;
+    }
+
+    /* Dropdown notificaciones */
+    .notif-dropdown {
+        width: 360px;
+        max-height: 450px;
+        overflow: hidden;
+        border-radius: 16px;
+        border: none;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.15);
+    }
+    .notif-header {
+        padding: 1rem 1.25rem;
+        border-bottom: 1px solid var(--color-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .notif-header h6 {
+        font-weight: 700;
+        margin: 0;
+        font-size: 0.95rem;
+    }
+    .notif-list {
+        max-height: 320px;
+        overflow-y: auto;
+    }
+    .notif-list::-webkit-scrollbar { width: 4px; }
+    .notif-list::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 10px; }
+    .notif-item {
+        padding: 0.85rem 1.25rem;
+        border-bottom: 1px solid #f1f5f9;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+        text-decoration: none;
+        color: inherit;
+    }
+    .notif-item:hover { background: #f8fafc; }
+    .notif-item.unread { background: #eff6ff; border-left: 3px solid var(--color-primary); }
+    .notif-item .notif-icon {
+        width: 38px; height: 38px; border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.9rem; flex-shrink: 0;
+    }
+    .notif-item .notif-content { flex: 1; }
+    .notif-item .notif-content p { margin: 0; font-size: 0.82rem; line-height: 1.4; color: var(--color-text); }
+    .notif-item .notif-content small { font-size: 0.7rem; color: var(--color-text-muted); }
+    .notif-empty {
+        text-align: center; padding: 2.5rem 1rem; color: var(--color-text-muted);
+    }
+    .notif-empty i { font-size: 2.5rem; margin-bottom: 0.75rem; opacity: 0.4; }
+
+    /* Modal evento */
+    .modal-evento .modal-content {
+        border: none; border-radius: 24px; overflow: hidden;
+    }
+    .modal-evento .modal-body {
+        position: relative; padding: 3rem 2rem; text-align: center; color: white;
+    }
+    .globo-float {
+        position: absolute; opacity: 0.2; pointer-events: none;
+        animation: floatGlobo 4s ease-in-out infinite;
+    }
+    @keyframes floatGlobo {
+        0%,100%{transform:translateY(0) rotate(0deg);}
+        50%{transform:translateY(-20px) rotate(5deg);}
+    }
+</style>
+
     <style>
         /* ============================================================
                VARIABLES CSS (colores base → Cochabamba)
@@ -893,32 +980,57 @@
     <!-- ============================================================
     TOPBAR
     ============================================================ -->
-    <header class="topbar" id="topbar">
+    <header class="topbar {{ $contextoEvento['tema']['tipo'] !== 'default' ? 'topbar-themed' : '' }}" id="topbar">
         <div class="d-flex align-items-center gap-3">
             <button class="btn-topbar d-md-none" id="btnMenuMobile" aria-label="Abrir menú">
                 <i class="fas fa-bars"></i>
             </button>
             <a href="/dashboard" class="topbar-brand">
-                <div class="logo-wrapper" id="logoWrapper">
-                    <!-- Logo por defecto (escudo / letras) -->
+                <div class="logo-wrapper {{ $contextoEvento['tema']['icono'] ? 'has-theme' : '' }}" id="logoWrapper">
                     <img src="{{ URL::asset('images/logo-gober-i.png') }}" alt="UGRH" id="logoImg">
                     <div class="logo-overlay" id="logoOverlay">
-                        <i class="fas fa-flag"></i>
+                        <div class="logo-overlay" id="logoOverlay">
+                            @if($contextoEvento['tema']['icono'])
+                                <span style="font-size:1.8rem;">{{ $contextoEvento['tema']['icono'] }}</span>
+                            @else
+                                <i class="fas fa-flag"></i>
+                            @endif
+                        </div>
                     </div>
                 </div>
                 <div class="brand-text">
                     UGRH
-                    <small>Portal del Empleado</small>
+                    <small id="themeLabel">
+                        {{ optional($contextoEvento['evento'])->nombre ?? ($contextoEvento['es_cumpleanos'] ? '¡Feliz Cumpleaños!' : 'Portal del Empleado') }}
+                    </small>
                 </div>
             </a>
         </div>
 
         <div class="topbar-actions">
-            <button class="btn-topbar" id="btnNotif" title="Notificaciones">
-                <i class="fas fa-bell"></i>
-                <span class="badge-count" id="badgeNotif" style="display:none;">0</span>
-            </button>
+            {{-- NOTIFICACIONES --}}
+            <div class="dropdown">
+                <button class="btn-topbar" id="btnNotif" data-bs-toggle="dropdown" aria-expanded="false" title="Notificaciones">
+                    <i class="fas fa-bell"></i>
+                    <span class="badge-count" id="badgeNotif" style="display:none;">0</span>
+                </button>
+                <div class="dropdown-menu dropdown-menu-end notif-dropdown p-0" id="dropdownNotif">
+                    <div class="notif-header">
+                        <h6><i class="fas fa-bell me-2 text-primary"></i>Notificaciones</h6>
+                        <button class="btn btn-sm btn-link text-decoration-none" onclick="marcarTodasLeidas()" style="font-size:0.75rem;">
+                            Marcar todas
+                        </button>
+                    </div>
+                    <div class="notif-list" id="listaNotificaciones">
+                        <div class="notif-empty">
+                            <i class="fas fa-bell-slash"></i>
+                            <p class="mb-0 mt-2">No hay notificaciones nuevas</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
+            {{-- USUARIO --}}
             <div class="dropdown">
                 <button class="user-pill dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
                     <div class="avatar-circle">
@@ -1033,7 +1145,31 @@
     MAIN CONTENT
     ============================================================ -->
     <main class="main-content">
-        <!-- Contenido específico de cada página (se inyecta desde las vistas) -->
+        {{-- Banner dinámico: bienvenida, cumpleaños o evento --}}
+        @if($contextoEvento['tema']['mensaje'])
+            <div class="welcome-banner anim-up delay-1"
+                style="background: linear-gradient(135deg, {{ $contextoEvento['tema']['color_primario'] }} 0%, {{ $contextoEvento['tema']['color_secundario'] }} 100%);">
+                <h2 id="welcomeTitle">
+                    @if($contextoEvento['mostrar_bienvenida'])
+                        👋 ¡Hola, {{ Auth::user()->name }}!
+                    @elseif($contextoEvento['es_cumpleanos'])
+                        🎂 ¡Feliz Cumpleaños!
+                    @else
+                        {{ optional($contextoEvento['evento'])->nombre ?? 'Portal UGRH' }}
+                    @endif
+                </h2>
+                <div class="banner-message">
+                    <p id="welcomeSub">{{ $contextoEvento['tema']['mensaje'] }}</p>
+                    @if($contextoEvento['evento'] || $contextoEvento['es_cumpleanos'])
+                        <span class="theme-tag">
+                            <i class="fas fa-star"></i> {{ optional($contextoEvento['evento'])->nombre ?? 'Día Especial' }}
+                        </span>
+                    @endif
+                </div>
+            </div>
+        @endif
+
+        {{-- Contenido de página --}}
         <div class="anim-up delay-3">
             <div class="row">
                 <div class="text-center">
@@ -1055,38 +1191,55 @@
     <!-- ============================================================
     MODALES
     ============================================================ -->
+    @if($contextoEvento['mostrar_bienvenida'] || $contextoEvento['evento'] || $contextoEvento['es_cumpleanos'])
+        @php $tema = $contextoEvento['tema']; @endphp
 
-    <!-- Modal Vacaciones (ejemplo) -->
-    <div class="modal fade" id="modalVacaciones" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header-custom">
-                    <h5><i class="fas fa-umbrella-beach"></i> Vacaciones Registradas</h5>
-                    <button class="btn-close-custom" data-bs-dismiss="modal"><i class="fas fa-times"></i></button>
-                </div>
-                <div class="modal-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-modern">
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>Fecha Solicitud</th>
-                                    <th>Fecha Salida</th>
-                                    <th>Fecha Retorno</th>
-                                    <th>Días</th>
-                                    <th>Visto Bueno</th>
-                                    <th>Estado</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tablaVacaciones">
-                                <!-- Datos dinámicos -->
-                            </tbody>
-                        </table>
+        <div class="modal fade modal-evento" id="modalEventoHoy"
+            data-bs-backdrop="{{ $contextoEvento['mostrar_bienvenida'] ? 'static' : 'true' }}"
+            tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow-lg">
+                    <div class="modal-body"
+                        style="background: linear-gradient(135deg, {{ $tema['color_primario'] }}, {{ $tema['color_secundario'] }});">
+
+                        <span class="globo-float" style="top:15px; left:10%; font-size:2rem; animation-delay:0s;">🎈</span>
+                        <span class="globo-float" style="top:20px; left:70%; font-size:1.5rem; animation-delay:1s;">✨</span>
+                        <span class="globo-float" style="top:60px; left:85%; font-size:2.2rem; animation-delay:0.5s;">🎉</span>
+                        <span class="globo-float" style="top:80px; left:25%; font-size:1.8rem; animation-delay:1.5s;">🎊</span>
+
+                        <div class="position-relative">
+                            <div class="mb-3 animate__animated animate__zoomIn">
+                                <span style="font-size: 5rem;">{{ $tema['icono'] ?? '🎉' }}</span>
+                            </div>
+
+                            <h2 class="mb-3 animate__animated animate__fadeInUp fw-bold">
+                                @if($contextoEvento['mostrar_bienvenida']) ¡Bienvenido! @endif
+                                @if($contextoEvento['es_cumpleanos']) ¡Feliz Cumpleaños! @endif
+                                @if($contextoEvento['evento'] && !$contextoEvento['es_cumpleanos']) ¡Hoy es especial! @endif
+                            </h2>
+
+                            <p class="lead mb-4 animate__animated animate__fadeInUp animate__delay-1s">
+                                {{ $tema['mensaje'] }}
+                            </p>
+
+                            @if($contextoEvento['mostrar_bienvenida'])
+                                <p class="mb-4 opacity-75 animate__animated animate__fadeInUp animate__delay-2s">
+                                    Este es tu portal de Recursos Humanos. Aquí podrás gestionar tus asistencias, vacaciones y más.
+                                </p>
+                            @endif
+
+                            <button type="button"
+                                    class="btn btn-light btn-lg px-5 rounded-pill fw-bold shadow"
+                                    @if($contextoEvento['mostrar_bienvenida']) onclick="cerrarBienvenida()" @else data-bs-dismiss="modal" @endif>
+                                {{ $contextoEvento['mostrar_bienvenida'] ? '¡Comencemos! 🚀' : '¡Gracias! ❤️' }}
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    @endif
+
 
     <!-- Modal Perfil -->
     <div class="modal fade" id="modalPerfil" tabindex="-1" aria-hidden="true">
@@ -1142,185 +1295,247 @@
     </script>
 
     <script>
-        // ================================================================
-        // 1. DATOS DE USUARIO (desde localStorage o directamente desde Blade)
-        // ================================================================
-        const storedData = localStorage.getItem('responseData');
-        const parsedData = storedData ? JSON.parse(storedData) : null;
+// ================================================================
+// CONFIGURACIÓN BASE DE AXIOS
+// ================================================================
+axios.defaults.headers.common['X-CSRF-TOKEN'] = document.querySelector('meta[name="csrf-token"]').content;
+axios.defaults.headers.common['Accept'] = 'application/json';
 
-        if (parsedData?.data?.[0]) {
-            const d = parsedData.data[0];
-            const nombreC = `${d.nombres} ${d.paterno} ${d.materno}`;
+// ================================================================
+// DATOS DE USUARIO (desde localStorage o Blade)
+// ================================================================
+const storedData = localStorage.getItem('responseData');
+const parsedData = storedData ? JSON.parse(storedData) : null;
 
-            document.getElementById('topbarNombre').textContent = d.nombres;
-            document.getElementById('dropdownNombre').textContent = nombreC;
-            document.getElementById('dropdownUsuario').textContent = `@${d.usuario}`;
+if (parsedData?.data?.[0]) {
+    const d = parsedData.data[0];
+    const nombreC = `${d.nombres} ${d.paterno} ${d.materno}`;
 
-            document.getElementById('perfilNomC').textContent = nombreC;
-            document.getElementById('perfilUsr').textContent = d.usuario;
-            document.getElementById('perfilCar').textContent = d.cargo || 'No especificado';
-            document.getElementById('perfilDep').textContent = d.dependencia || 'No especificada';
-        }
+    document.getElementById('topbarNombre').textContent = d.nombres;
+    document.getElementById('dropdownNombre').textContent = nombreC;
+    document.getElementById('dropdownUsuario').textContent = `@${d.usuario}`;
 
-        // ================================================================
-        // 2. SIDEBAR MÓVIL
-        // ================================================================
-        const sidebar = document.getElementById('sidebar');
-        const overlay = document.getElementById('sidebarOverlay');
-        const btnMenu = document.getElementById('btnMenuMobile');
+    document.getElementById('perfilNomC').textContent = nombreC;
+    document.getElementById('perfilUsr').textContent = d.usuario;
+    document.getElementById('perfilCar').textContent = d.cargo || 'No especificado';
+    document.getElementById('perfilDep').textContent = d.dependencia || 'No especificada';
+}
 
-        function toggleSidebar(open) {
-            sidebar.classList.toggle('mobile-open', open);
-            overlay.classList.toggle('active', open);
-        }
+// ================================================================
+// SIDEBAR MÓVIL
+// ================================================================
+const sidebar = document.getElementById('sidebar');
+const overlay = document.getElementById('sidebarOverlay');
+const btnMenu = document.getElementById('btnMenuMobile');
 
-        btnMenu.addEventListener('click', () => toggleSidebar(true));
-        overlay.addEventListener('click', () => toggleSidebar(false));
+function toggleSidebar(open) {
+    sidebar.classList.toggle('mobile-open', open);
+    overlay.classList.toggle('active', open);
+}
 
-        document.querySelectorAll('.sidebar-item').forEach(item => {
-            item.addEventListener('click', () => toggleSidebar(false));
-        });
+btnMenu.addEventListener('click', () => toggleSidebar(true));
+overlay.addEventListener('click', () => toggleSidebar(false));
 
-        // ================================================================
-        // 3. ACTIVE STATE EN SIDEBAR
-        // ================================================================
-        const path = window.location.pathname;
-        document.querySelectorAll('.sidebar-item').forEach(item => {
-            if (item.getAttribute('href') === path) {
-                item.classList.add('active');
+document.querySelectorAll('.sidebar-item').forEach(item => {
+    item.addEventListener('click', () => toggleSidebar(false));
+});
+
+// ================================================================
+// ACTIVE STATE EN SIDEBAR
+// ================================================================
+const path = window.location.pathname;
+document.querySelectorAll('.sidebar-item').forEach(item => {
+    if (item.getAttribute('href') === path) {
+        item.classList.add('active');
+    }
+});
+
+// ================================================================
+// TEMAS DINÁMICOS DESDE LARAVEL
+// ================================================================
+const contextoEvento = @json($contextoEvento);
+const tema = contextoEvento.tema;
+
+if (tema.clase_css) {
+    document.body.classList.add(tema.clase_css);
+}
+
+document.documentElement.style.setProperty('--theme-primary', tema.color_primario);
+document.documentElement.style.setProperty('--theme-secondary', tema.color_secundario);
+
+// ================================================================
+// MODAL DE EVENTO / BIENVENIDA / CUMPLEAÑOS
+// ================================================================
+document.addEventListener('DOMContentLoaded', function() {
+    const modalEl = document.getElementById('modalEventoHoy');
+    if (modalEl) {
+        const modal = new bootstrap.Modal(modalEl);
+        modal.show();
+
+        // Lanzar efecto según tipo después de un momento
+        setTimeout(() => {
+            switch (tema.efecto) {
+                case 'confeti':   lanzarConfeti(); break;
+                case 'banderas':  lanzarConfetiBolivia(); break;
+                case 'nieve':     lanzarNieve(); break;
+                case 'corazones': lanzarCorazones(); break;
             }
+        }, 600);
+    }
+
+    // Cargar notificaciones al iniciar
+    cargarNotificaciones();
+});
+
+// Cerrar bienvenida → marca en BD vía Axios
+function cerrarBienvenida() {
+    axios.post('{{ route('bienvenida.visto') }}')
+        .then(() => {
+            bootstrap.Modal.getInstance(document.getElementById('modalEventoHoy')).hide();
+        })
+        .catch(err => {
+            console.error('Error marcando bienvenida:', err);
+            bootstrap.Modal.getInstance(document.getElementById('modalEventoHoy')).hide();
         });
+}
 
-        // ================================================================
-        // 4. ESTADÍSTICAS (demo, reemplazar con endpoint real)
-        // ================================================================
-        document.getElementById('statAprobadas').textContent = '12';
-        document.getElementById('statPendientes').textContent = '2';
-        document.getElementById('statRechazadas').textContent = '1';
-        document.getElementById('statTotal').textContent = '15';
+// ================================================================
+// EFECTOS CONFETI (canvas-confetti)
+// ================================================================
+function lanzarConfeti() {
+    confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 } });
+}
 
-        // ================================================================
-        // 5. SISTEMA DE TEMAS DINÁMICOS POR FECHA
-        // ================================================================
+function lanzarConfetiBolivia() {
+    const colors = ['#D32F2F', '#F9A825', '#388E3C'];
+    const end = Date.now() + 2500;
+    (function frame() {
+        confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 }, colors });
+        confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 }, colors });
+        if (Date.now() < end) requestAnimationFrame(frame);
+    }());
+}
 
-        // Lista de temas por fecha (puede venir de la BD vía Laravel)
-        // Se pueden agregar más fechas: cumpleaños, efemérides, etc.
-        const temas = {
-            // Fechas fijas (formato 'YYYY-MM-DD')
-            '2026-08-06': {
-                nombre: 'Día de la Independencia de Bolivia',
-                clase: 'theme-bolivia',
-                overlay: '🇧🇴',
-                mensaje: '¡Viva Bolivia! 🇧🇴',
-                logo: 'bandera-bolivia.png' // opcional
-            },
-            '2026-01-01': {
-                nombre: 'Año Nuevo',
-                clase: 'theme-navidad',
-                overlay: '🎉',
-                mensaje: '¡Feliz Año Nuevo!'
-            },
-            '2026-12-25': {
-                nombre: 'Navidad',
-                clase: 'theme-navidad',
-                overlay: '🎄',
-                mensaje: '🎄 Feliz Navidad'
+function lanzarNieve() {
+    const end = Date.now() + 3000;
+    (function frame() {
+        confetti({
+            particleCount: 3,
+            startVelocity: 0,
+            ticks: 200,
+            gravity: 0.5,
+            scalar: 1.5,
+            origin: { x: Math.random(), y: 0 },
+            colors: ['#FFFFFF', '#E3F2FD']
+        });
+        if (Date.now() < end) requestAnimationFrame(frame);
+    }());
+}
+
+function lanzarCorazones() {
+    confetti({
+        particleCount: 80,
+        shapes: ['circle'],
+        colors: ['#E91E63', '#FF5722', '#F48FB1', '#9C27B0']
+    });
+}
+
+// ================================================================
+// SISTEMA DE NOTIFICACIONES CON AXIOS
+// ================================================================
+function cargarNotificaciones() {
+    axios.get('{{ route('notificaciones.no-leidas') }}')
+        .then(res => {
+            const data = res.data;
+            const badge = document.getElementById('badgeNotif');
+            const lista = document.getElementById('listaNotificaciones');
+
+            // Badge contador
+            if (data.count > 0) {
+                badge.textContent = data.count > 99 ? '99+' : data.count;
+                badge.style.display = 'inline-block';
+            } else {
+                badge.style.display = 'none';
             }
-            // Ejemplo de cumpleaños de un empleado (se obtendría desde BD)
-            // '2026-05-20': { nombre: 'Cumpleaños de Juan Pérez', clase: 'theme-cumpleanos', overlay: '🎂', mensaje: '🎂 ¡Feliz Cumpleaños, Juan!' },
-        };
 
+            // Lista vacía
+            if (data.notificaciones.length === 0) {
+                lista.innerHTML = `
+                    <div class="notif-empty">
+                        <i class="fas fa-bell-slash"></i>
+                        <p class="mb-0 mt-2">No hay notificaciones nuevas</p>
+                    </div>`;
+                return;
+            }
 
-
-        function aplicarTema(fecha) {
-            const hoy = fecha || new Date();
-            const yyyy = hoy.getFullYear();
-            const mm = String(hoy.getMonth() + 1).padStart(2, '0');
-            const dd = String(hoy.getDate()).padStart(2, '0');
-            const fechaStr = `${yyyy}-${mm}-${dd}`;
-
-            // Buscar tema exacto
-            let tema = temas[fechaStr];
-
-            // Si no hay, usar tema por defecto (Cochabamba)
-            if (!tema) {
-                tema = {
-                    nombre: 'Cochabamba',
-                    clase: 'theme-cochabamba',
-                    overlay: '🌾',
-                    mensaje: 'Bienvenido al Portal UGRH · Cochabamba'
+            // Renderizar notificaciones
+            lista.innerHTML = data.notificaciones.map(n => {
+                const iconos = {
+                    'nueva_solicitud':   'fa-file-circle-plus',
+                    'prestamo_aprobado': 'fa-circle-check',
+                    'prestamo_rechazado':'fa-circle-xmark',
+                    'prestamo_entregado':'fa-box-open',
+                    'prestamo_devuelto': 'fa-rotate-left',
+                    'prestamo_vencido':  'fa-triangle-exclamation',
+                    'default':           'fa-bell'
                 };
+                const icono = iconos[n.tipo] || iconos['default'];
+
+                const colores = {
+                    'nueva_solicitud':   'bg-primary-subtle text-primary',
+                    'prestamo_aprobado': 'bg-success-subtle text-success',
+                    'prestamo_rechazado':'bg-danger-subtle text-danger',
+                    'prestamo_vencido':  'bg-warning-subtle text-warning',
+                    'default':           'bg-info-subtle text-info'
+                };
+                const colorClass = colores[n.tipo] || colores['default'];
+
+                return `
+                    <a href="${n.url}" class="notif-item unread" onclick="marcarLeida('${n.id}', event)">
+                        <div class="notif-icon ${colorClass}">
+                            <i class="fas ${icono}"></i>
+                        </div>
+                        <div class="notif-content">
+                            <p class="fw-semibold mb-1">${n.titulo}</p>
+                            <p class="mb-1">${n.mensaje}</p>
+                            <small><i class="far fa-clock me-1"></i>${n.creado}</small>
+                        </div>
+                    </a>`;
+            }).join('');
+        })
+        .catch(err => {
+            console.error('Error cargando notificaciones:', err);
+        });
+}
+
+function marcarLeida(id, event) {
+    event.preventDefault();
+    axios.post(`/notificaciones/${id}/leida`)
+        .then(() => {
+            cargarNotificaciones();
+            // Redirigir después de marcar como leída
+            const href = event.currentTarget.getAttribute('href');
+            if (href && href !== '#') {
+                window.location.href = href;
             }
+        })
+        .catch(err => {
+            console.error('Error marcando notificación:', err);
+        });
+}
 
-            // Aplicar clase al body (o a un contenedor raíz)
-            document.body.className = tema.clase;
+function marcarTodasLeidas() {
+    axios.post('{{ route('notificaciones.todas-leidas') }}')
+        .then(() => {
+            cargarNotificaciones();
+        })
+        .catch(err => {
+            console.error('Error marcando todas:', err);
+        });
+}
 
-            // Actualizar overlay del logo
-            const logoWrapper = document.getElementById('logoWrapper');
-            const logoOverlay = document.getElementById('logoOverlay');
-            if (tema.overlay) {
-                logoOverlay.innerHTML = tema.overlay;
-                logoWrapper.classList.add('has-theme');
-            } else {
-                logoWrapper.classList.remove('has-theme');
-            }
 
-            // Actualizar mensaje en banner
-            const welcomeSub = document.getElementById('welcomeSub');
-            if (tema.mensaje) {
-                welcomeSub.textContent = tema.mensaje;
-            } else {
-                welcomeSub.textContent = 'Gestiona tus solicitudes de salida de manera rápida y sencilla.';
-            }
-
-            // Actualizar etiqueta del tema
-            document.getElementById('themeLabel').textContent = tema.nombre;
-
-            // También se puede cambiar el logo si se tiene una imagen específica
-            // if (tema.logo) {
-            //     document.getElementById('logoImg').src = `/images/${tema.logo}`;
-            // }
-        }
-
-        // Aplicar tema con la fecha actual
-        aplicarTema();
-
-        // Para pruebas, se puede descomentar la siguiente línea y cambiar la fecha:
-        // aplicarTema(new Date('2026-08-06'));
-
-        // ================================================================
-        // 6. FERIADOS (desde Blade)
-        // ================================================================
-        window._feriados = {!! json_encode($feriado ?? []) !!};
-
-        // ================================================================
-        // 7. EJEMPLO DE CARGA DE VACACIONES (para el modal)
-        // ================================================================
-        // Aquí se puede llenar la tabla con datos desde un endpoint.
-        // Por ahora dejamos un ejemplo estático.
-        const tablaVac = document.getElementById('tablaVacaciones');
-        if (tablaVac) {
-            // Simular datos
-            const data = [
-                { id: 1, fSolicitud: '2026-06-10', fSalida: '2026-07-01', fRetorno: '2026-07-15', dias: 15,
-                    vb: 'Pendiente', estado: 'Pendiente' },
-                { id: 2, fSolicitud: '2026-05-20', fSalida: '2026-06-10', fRetorno: '2026-06-20', dias: 10,
-                    vb: 'Aprobado', estado: 'Aprobado' },
-            ];
-            tablaVac.innerHTML = data.map((d, i) => `
-                        <tr>
-                            <td>${i+1}</td>
-                            <td>${d.fSolicitud}</td>
-                            <td>${d.fSalida}</td>
-                            <td>${d.fRetorno}</td>
-                            <td>${d.dias}</td>
-                            <td><span class="badge-estado ${d.vb.toLowerCase()}">${d.vb}</span></td>
-                            <td><span class="badge-estado ${d.estado.toLowerCase()}">${d.estado}</span></td>
-                        </tr>
-                    `).join('');
-        }
-
-        console.log('✅ Portal UGRH rediseñado con temática dinámica');
+console.log('✅ Portal UGRH cargado con Axios + Temas dinámicos');
     </script>
 
     @stack('scripts')

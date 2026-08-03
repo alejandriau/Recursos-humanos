@@ -11,6 +11,8 @@ use App\Models\Tiposalida;
 use App\Models\Historial;
 use App\Models\VacacionPeriodo;
 use App\Models\VacacionMovimiento;
+use App\Notifications\GenericNotification; // <-- AGREGAR
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Carbon\Carbon;
@@ -608,7 +610,7 @@ public function editParticular($id)
     /**
      * Generar PDF de boleta de salida particular
      */
-    public function boletaParticularPdf($id)
+    public function pdfParticular($id)
     {
         $salida = Salida::with(['persona', 'jefe', 'rrhh'])->findOrFail($id);
         $user = auth()->user();
@@ -656,9 +658,9 @@ public function editParticular($id)
             'codigoControl' => $codigoControl,
         ];
 
-        $pdf = Pdf::loadView('empleado.boletas.particular-pdf', $data)
+        $pdf = Pdf::loadView('empleado.boletas.boleta_particular', $data)
                 ->setPaper([0, 0, 612, 396])
-                ->setOptions(['defaultFont' => 'dejavu sans']);
+                ->setOption('defaultFont', 'dejavu sans');
 
         return $pdf->download("boleta-particular-{$salida->codigo}.pdf");
     }
@@ -775,7 +777,7 @@ public function obtenerDiasDisponibles(Request $request)
     {
         // Validación
         $request->validate([
-            'persona_id' => ['required', Rule::exists('persona', 'id')],
+            'persona_id' => 'required|exists:persona,id',
             'tipoSal' => ['required', Rule::exists('tiposalidas', 'id')],
             'fechasol' => 'required|date',
             'fsalida' => 'required|date',
@@ -868,6 +870,18 @@ public function obtenerDiasDisponibles(Request $request)
             'descripcion' => 'Solicitud de vacación pendiente de aprobación',
             'registrado_por' => auth()->id(),
         ]);
+        $jefe = \App\Models\User::whereHas('persona', function($q) use ($request) {
+            $q->where('id', $request->idSup);
+        })->first();
+
+        if ($jefe) {
+            $jefe->notify(new GenericNotification([
+                'titulo' => 'Vacaciones por aprobar',
+                'mensaje' => "{$personal->nombre} {$personal->apellidoPat} solicitó {$request->totaldias} días de vacación ({$fsalida->format('d/m/Y')} al {$fretorno->format('d/m/Y')})",
+                'tipo' => 'vacacion_solicitud', // <-- el JS reconoce este tipo y le pone icono
+                'url' => '/jefe/dashboard',     // <-- a dónde va cuando hace clic
+            ]));
+        }
 
         return response()->json([
             'mensaje' => 'Solicitud de vacación registrada correctamente',
