@@ -1,6 +1,6 @@
 <?php
 // app/Services/CorrespondenciaAuthService.php
-namespace App\Services;
+/*namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Hash;
@@ -13,9 +13,6 @@ class CorrespondenciaAuthService
     protected string $url = 'http://correspondencia.gobernaciondecochabamba.bo/Restserver/singin';
     protected string $token = 'servidoresgadc12345';
 
-    /**
-     * Devuelve el array de datos de la persona si las credenciales son válidas, o null.
-     */
     public function autenticar(string $usuario, string $password): ?array
     {
         try {

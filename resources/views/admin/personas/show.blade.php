@@ -1,4 +1,4 @@
-@extends('dashboard')
+@extends('layouts.baseadm')
 @section('contenido')
 
 <div class="container-fluid mt-4">

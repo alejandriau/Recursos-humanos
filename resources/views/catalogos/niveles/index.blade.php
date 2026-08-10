@@ -1,4 +1,4 @@
-@extends('dashboard')
+@extends('layouts.baseadm')
 
 @section('title', 'Catálogo de Niveles Académicos')
 @section('header', 'Gestión de Niveles Académicos')

@@ -1,4 +1,4 @@
-@extends('dashboard')
+@extends('layouts.baseadm')
 @section('contenido')
 
 <div class="container-fluid pt-4 px-4">
@@ -789,7 +789,7 @@ $('#formReporte').on('submit', function(e) {
 $(document).ready(function() {
     // Al entrar a la página de préstamos, marcar TODAS las notificaciones relacionadas como leídas
     $.ajax({
-        url: '{{ route("notificaciones.marcar-prestamos") }}',
+        url: '{{ route("notificaciones.todas-leidas") }}',
         type: 'POST',
         data: { _token: '{{ csrf_token() }}' },
         success: function(response) {

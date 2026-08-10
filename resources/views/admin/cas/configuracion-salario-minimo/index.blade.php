@@ -1,5 +1,5 @@
 {{-- resources/views/configuracion-salario-minimo/index.blade.php --}}
-@extends('dashboard')
+@extends('layouts.baseadm')
 
 @section('title', 'Configuración de Salario Mínimo')
 

@@ -1,4 +1,4 @@
-@extends('dashboard')
+@extends('layouts.baseadm')
 
 @section('title', 'Generador de Reportes de Personal')
 

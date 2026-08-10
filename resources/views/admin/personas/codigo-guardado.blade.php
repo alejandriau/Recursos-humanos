@@ -1,5 +1,5 @@
 {{-- resources/views/personas/documentos-vencidos.blade.php --}}
-@extends('dashboard')
+@extends('layouts.baseadm')
 
 @section('title', 'Documentos Vencidos')
 @section('header-title', 'Documentos Vencidos')

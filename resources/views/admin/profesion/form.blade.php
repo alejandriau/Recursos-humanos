@@ -1,4 +1,3 @@
-
 @if(isset($profesion))
     @method('PUT')
 @endif

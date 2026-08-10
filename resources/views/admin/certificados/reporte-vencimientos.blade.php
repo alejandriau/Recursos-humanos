@@ -1,5 +1,5 @@
 {{-- resources/views/admin/certificados/reporte-vencimientos.blade.php --}}
-@extends('dashboard')
+@extends('layouts.baseadm')
 
 @section('contenido')
 <div class="container">

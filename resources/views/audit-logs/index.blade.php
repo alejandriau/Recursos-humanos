@@ -1,5 +1,5 @@
 {{-- resources/views/audit-logs/index.blade.php --}}
-@extends('dashboard')
+@extends('layouts.baseadm')
 
 @section('title', 'Registros de Auditoría')
 

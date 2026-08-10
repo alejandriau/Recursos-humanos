@@ -15,11 +15,12 @@ Artisan::command('inspire', function () {
 // ═══════════════════════════════════════════════════════════
 Schedule::command('vacaciones:generar-periodos')->dailyAt('08:00');
 
+
 // ═══════════════════════════════════════════════════════════
 // DESCARGAS DE BIOMÉTRICOS (3 veces al día)
 // ═══════════════════════════════════════════════════════════
 Schedule::command('zk:importar-todos')
-    ->dailyAt('11:30')
+    ->dailyAt('09:15')
     ->withoutOverlapping(30)
     ->appendOutputTo(storage_path('logs/zkteco-schedule.log'));
 

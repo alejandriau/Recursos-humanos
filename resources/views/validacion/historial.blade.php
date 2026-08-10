@@ -1,4 +1,4 @@
-@extends('dashboard')
+@extends('layouts.baseadm')
 
 @section('title', 'Historial de Validaciones')
 @section('header', 'Historial de Validaciones de Perfil')

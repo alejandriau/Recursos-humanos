@@ -1,4 +1,4 @@
-@extends('dashboard')
+@extends('layouts.baseadm')
 
 @section('title', 'Catálogo de Áreas de Conocimiento')
 @section('header', 'Gestión de Áreas de Conocimiento')

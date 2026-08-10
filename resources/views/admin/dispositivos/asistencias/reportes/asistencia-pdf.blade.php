@@ -6,8 +6,21 @@
     <title>Reporte de Asistencia</title>
     <style>
         @page {
-            margin: 20mm 15mm;
+            margin: 20mm 15mm 25mm 15mm; /* Margen inferior para que el footer no se superponga */
             size: landscape;
+        }
+        body {
+            font-family: 'DejaVu Sans', 'Arial', sans-serif;
+            font-size: 10pt;
+            color: #333;
+        }
+        /* ... el resto de tus estilos (logos, tabla, etc.) ... */
+        .badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 7pt;
+            font-weight: bold;
         }
         body {
             font-family: 'DejaVu Sans', 'Arial', sans-serif;
@@ -116,17 +129,13 @@
     </style>
 </head>
 <body>
-
-    <!-- Logos en las cuatro esquinas (ajusta las rutas) -->
+    <!-- Logos -->
     <img src="{{ public_path('images/logo-cbba.png') }}" class="logo-superior-izquierdo" alt="Logo">
     <img src="{{ public_path('images/logo-gober-i.png') }}" class="logo-superior-derecho" alt="Logo">
-    <img src="{{ public_path('images/logo-izq-inf.png') }}" class="logo-inferior-izquierdo" alt="Logo">
-    <img src="{{ public_path('images/logo-der-inf.png') }}" class="logo-inferior-derecho" alt="Logo">
 
     <div class="contenido">
         <h2>Reporte de Asistencia</h2>
         <div class="subtitulo">Período: {{ $reporte['fecha_inicio'] }} al {{ $reporte['fecha_fin'] }}</div>
-
         <div class="info-empleado">
             <strong>Empleado:</strong> {{ $reporte['persona']->nombre }} {{ $reporte['persona']->apellidoPat ?? '' }} {{ $reporte['persona']->apellidoMat ?? '' }}<br>
             <strong>CI:</strong> {{ $reporte['persona']->ci }}
@@ -135,7 +144,7 @@
         <table>
             <thead>
                 <tr>
-                    <th style="min-width:120px;">Fecha / Estado</th>
+                    <th style="min-width:90px;">Fecha / Estado</th>
                     <th>Turnos</th>
                     <th>Entrada</th>
                     <th>Salida</th>
@@ -149,34 +158,37 @@
             </thead>
             <tbody>
                 @php
-                    // Función para formatear minutos a HH:MM
                     function minToHm($minutos) {
-                        if ($minutos === null || $minutos === 0) return '00:00';
-                        $abs = round(abs($minutos));
+                        if (!is_numeric($minutos)) return '00:00';
+                        $minutos = (int) $minutos;
+                        if ($minutos === 0) return '00:00';
+                        $abs = abs($minutos);
                         $h = floor($abs / 60);
                         $m = $abs % 60;
                         return str_pad($h, 2, '0', STR_PAD_LEFT) . ':' . str_pad($m, 2, '0', STR_PAD_LEFT);
                     }
 
-                    // Función para badge según estado
                     function badgeEstado($estado, $esHoy) {
+                        // Usamos abreviaturas para ahorrar espacio
                         if ($estado === 'pendiente') {
-                            return '<span class="badge bg-warning" title="Aún no cierra el día">⏳ Pendiente</span>';
+                            return '<span class="badge bg-warning" style="font-size:6pt; padding:1px 4px; margin-left:4px;">⏳ Pend</span>';
                         }
-                        if ($estado === 'completo') return '<span class="badge bg-success">✓ Completo</span>';
-                        if ($estado === 'tardanza') return '<span class="badge bg-info">⚠ Tardanza</span>';
-                        if ($estado === 'falta_injustificada') return '<span class="badge bg-danger">✗ Falta</span>';
-                        if ($estado === 'falta_justificada') return '<span class="badge bg-primary">✓ Justificado</span>';
-                        if ($estado === 'no_laborable') return '<span class="badge bg-secondary">Sin laborar</span>';
-                        return '<span class="badge bg-light">' . $estado . '</span>';
+                        if ($estado === 'completo') return '<span class="badge bg-success" style="font-size:6pt; padding:1px 4px; margin-left:4px;">✓ Comp</span>';
+                        if ($estado === 'tardanza') return '<span class="badge bg-info" style="font-size:6pt; padding:1px 4px; margin-left:4px;">⚠ Tard</span>';
+                        if ($estado === 'falta_injustificada') return '<span class="badge bg-danger" style="font-size:6pt; padding:1px 4px; margin-left:4px;">✗ Falta</span>';
+                        if ($estado === 'falta_justificada') return '<span class="badge bg-primary" style="font-size:6pt; padding:1px 4px; margin-left:4px;">✓ Justif</span>';
+                        if ($estado === 'no_laborable') return '<span class="badge bg-secondary" style="font-size:6pt; padding:1px 4px; margin-left:4px;">No Lab</span>';
+                        return '<span class="badge bg-light" style="font-size:6pt; padding:1px 4px; margin-left:4px;">' . $estado . '</span>';
                     }
                 @endphp
 
                 @forelse($reporte['dias'] as $dia)
                     <tr @if($dia['es_hoy']) class="table-warning" @endif>
                         <td>
-                            {{ $dia['fecha'] }}
-                            <div class="mt-1">{!! badgeEstado($dia['estado'], $dia['es_hoy']) !!}</div>
+                            <span style="display: inline-block; white-space: nowrap;">
+                                {{ $dia['fecha'] }}
+                                {!! badgeEstado($dia['estado'], $dia['es_hoy']) !!}
+                            </span>
                         </td>
                         <td class="small">{{ $dia['turno'] }}</td>
                         <td>
@@ -224,6 +236,7 @@
         <div style="margin-top: 20px; font-size: 8pt; text-align: center; color: #888;">
             Reporte generado el {{ date('d/m/Y H:i') }}
         </div>
+        <!-- ELIMINADO el div con {PAGE_NUM} porque ya lo pondremos desde el controlador -->
     </div>
 </body>
 </html>

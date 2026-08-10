@@ -1,4 +1,4 @@
-@extends('dashboard')
+@extends('layouts.baseadm')
 
 @section('contenido')
 <h2>LISTADO DE PERSONAL</h2>

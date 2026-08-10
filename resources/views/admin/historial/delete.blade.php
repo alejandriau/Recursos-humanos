@@ -1,4 +1,4 @@
-@extends('dashboard')
+@extends('layouts.baseadm')
 
 @section('contenidouno')
     <title>Confirmar Eliminación</title>

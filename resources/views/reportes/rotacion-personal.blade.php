@@ -1,4 +1,4 @@
-@extends('dashboard')
+@extends('layouts.baseadm')
 
 @section('title', 'Rotación de Personal')
 @section('header-title', 'Rotación de Personal')

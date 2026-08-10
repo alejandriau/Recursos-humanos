@@ -1,5 +1,3 @@
-
-
     <div class="mb-3">
         <label for="nombre" class="form-label">Nombre del Certificado</label>
         <input type="text" class="form-control @error('nombre') is-invalid @enderror" name="nombre" value="{{ old('nombre', $certificado->nombre ?? '') }}" required>

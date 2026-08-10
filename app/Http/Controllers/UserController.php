@@ -7,13 +7,60 @@ use Illuminate\Http\Request;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
 use Illuminate\Support\Facades\Hash;
-
+use Illuminate\Support\Facades\Validator;
 class UserController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $users = User::with('roles')->paginate(100);
+        $search = $request->input('search');
+        $status = $request->input('status', 'all'); // 'all', 'active', 'inactive'
+
+        $query = User::with('roles')->withTrashed(); // incluye eliminados (inactivos)
+
+        // Búsqueda
+        if (!empty($search)) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'LIKE', "%{$search}%")
+                  ->orWhere('email', 'LIKE', "%{$search}%")
+                  ->orWhere('usuario', 'LIKE', "%{$search}%");
+            });
+        }
+
+        // Filtro de estado
+        if ($status === 'active') {
+            $query->whereNull('deleted_at');
+        } elseif ($status === 'inactive') {
+            $query->whereNotNull('deleted_at');
+        }
+
+        $users = $query->paginate(100)->appends($request->query());
+
         return view('users.index', compact('users'));
+    }
+
+    /**
+     * Reactivar un usuario (restaurar soft delete).
+     */
+    public function restore($id)
+    {
+        $user = User::withTrashed()->findOrFail($id);
+        $user->restore();
+
+        return redirect()->route('users.index')
+                         ->with('success', 'Usuario reactivado correctamente.');
+    }
+
+    /**
+     * Restablecer la contraseña al CI del usuario (campo 'usuario').
+     */
+    public function resetPassword($id)
+    {
+        $user = User::findOrFail($id);
+        $user->password = Hash::make($user->usuario); // CI como password
+        $user->save();
+
+        return redirect()->route('users.index')
+                         ->with('success', "Contraseña restablecida a '{$user->usuario}'.");
     }
 
     public function create()
@@ -140,3 +187,5 @@ class UserController extends Controller
         return redirect()->route('users.permissions.edit', $user)->with('success', 'Permiso eliminado exitosamente.');
     }
 }
+
+

@@ -58,13 +58,13 @@ class Historial extends Model
 
     public function unidadOrganizacional(): BelongsTo
     {
-        return $this->belongsTo(UnidadOrganizacional::class, 'idUniadadOrganizacional');
+        return $this->belongsTo(UnidadOrganizacional::class, 'idUnidadOrganizacional');
     }
 
 
     public function unidadAnterior(): BelongsTo
     {
-        return $this->belongsTo(UnidadOrganizacional::class, 'idUniadadOrganizacional');
+        return $this->belongsTo(UnidadOrganizacional::class, 'idUnidadOrganizacional');
     }
 
     public function unidadOriginal(): BelongsTo

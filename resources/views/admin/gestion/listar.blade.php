@@ -1,4 +1,4 @@
-@extends('dashboard')
+@extends('layouts.baseadm')
 
 @section('title', 'vacaciones')
 @section('plugins.Sweetalert2', true)

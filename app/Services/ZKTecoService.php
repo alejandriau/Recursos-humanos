@@ -88,27 +88,31 @@ class ZKTecoService
             return null;
         }
 
+        $usuarios = null;
         try {
             $this->zk->disableDevice();
             $usuarios = $this->zk->getUser();
-            $this->zk->enableDevice();
-            $this->desconectar();
-
             Log::info("ZKTeco: Obtenidos " . count($usuarios) . " usuarios");
-            return $usuarios;
         } catch (\Exception $e) {
             Log::error("ZKTeco Error obteniendo usuarios: " . $e->getMessage());
+            $usuarios = null;
+        } finally {
+            try {
+                $this->zk->enableDevice();
+            } catch (\Exception $e) {
+                Log::error("ZKTeco Error al habilitar dispositivo (usuarios): " . $e->getMessage());
+            }
             $this->desconectar();
-            return null;
         }
+
+        return $usuarios;
     }
 
     /**
      * Obtener marcaciones del biométrico.
      * 
-     * IMPORTANTE: Si $fechaInicio/$fechaFin son strings tipo '2026-07-31',
-     * filtra por DÍA completo. Si son objetos Carbon con hora exacta,
-     * respeta la hora exacta (para recuperación de cortes).
+     * IMPORTANTE: Siempre habilita el dispositivo al final, aunque falle.
+     * NUNCA borra marcaciones del dispositivo.
      */
     public function obtenerMarcaciones($fechaInicio = null, $fechaFin = null)
     {
@@ -116,6 +120,7 @@ class ZKTecoService
             return null;
         }
 
+        $marcaciones = null;
         try {
             $this->zk->disableDevice();
 
@@ -123,14 +128,10 @@ class ZKTecoService
             $marcaciones = $this->zk->getAttendance();
             $duracion = round(microtime(true) - $inicioDescarga, 2);
 
-            $this->zk->enableDevice();
-            $this->desconectar();
-
             Log::info("ZKTeco: Descarga completa: " . count($marcaciones) . " registros en {$duracion}s");
 
             // Filtrar en PHP por el rango solicitado
             if ($fechaInicio && $fechaFin) {
-                // Detectar si viene hora exacta (Carbon) o solo fecha (string)
                 $inicio = ($fechaInicio instanceof Carbon) 
                     ? $fechaInicio->copy() 
                     : Carbon::parse($fechaInicio)->startOfDay();
@@ -148,13 +149,20 @@ class ZKTecoService
                 Log::info("ZKTeco: " . count($marcaciones) . " marcaciones dentro del rango");
             }
 
-            return $marcaciones;
-
         } catch (\Exception $e) {
             Log::error("ZKTeco Error obteniendo marcaciones: " . $e->getMessage());
+            $marcaciones = null;
+        } finally {
+            // SIEMPRE habilitar y desconectar, pase lo que pase
+            try {
+                $this->zk->enableDevice();
+            } catch (\Exception $e) {
+                Log::error("ZKTeco Error al habilitar dispositivo (marcaciones): " . $e->getMessage());
+            }
             $this->desconectar();
-            return null;
         }
+
+        return $marcaciones;
     }
 
     /**
@@ -162,8 +170,7 @@ class ZKTecoService
      * 
      * Modo automático (sin fechas): descarga desde la última marcación 
      * importada de ESTE dispositivo menos 30 min, hasta ahora + 5 min.
-     * Así recupera cortes del biométrico y no pierde marcaciones que 
-     * ocurran justo durante la descarga.
+     * NUNCA borra las marcaciones del dispositivo.
      */
     public function importarMarcaciones($fechaInicio = null, $fechaFin = null, $dispositivoId = null)
     {
@@ -178,20 +185,16 @@ class ZKTecoService
             $ultimaFecha = MarcacionBiometrica::where('dispositivo_id', $dispositivoId)->max('fecha_hora');
             
             if ($ultimaFecha) {
-                // -30 min de margen: si alguien marcó justo cuando se cortó la luz
                 $rangoInicio = Carbon::parse($ultimaFecha)->subMinutes(30);
             } else {
-                // Primera vez: desde hoy 00:00 (no un mes atrás, para no matar el servidor)
                 $rangoInicio = Carbon::today();
             }
             
-            // +5 min de margen: por si el reloj del biométrico está adelantado
             $rangoFin = Carbon::now()->addMinutes(5);
             $modo = 'automatico';
             
             Log::info("ZKTeco: Modo automático. Desde {$rangoInicio->toDateTimeString()} hasta {$rangoFin->toDateTimeString()}");
         } else {
-            // Modo manual: strings de fecha
             $rangoInicio = $fechaInicio;
             $rangoFin = $fechaFin;
         }
@@ -338,7 +341,6 @@ class ZKTecoService
                 'fecha_fin' => now(),
             ]);
 
-            // ✅ SIEMPRE retornar fechas para que el comando las use
             return [
                 'mensaje' => 'Importación completada exitosamente',
                 'total_obtenidas' => $totalObtenidas,

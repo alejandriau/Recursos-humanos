@@ -1,4 +1,4 @@
-@extends('dashboards')
+@extends('layouts.baseadm')
 
 @section('title', 'Puestos Vacantes')
 @section('header-title', 'Puestos Vacantes')

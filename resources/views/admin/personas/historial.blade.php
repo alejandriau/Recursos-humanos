@@ -1,4 +1,4 @@
-@extends('dashboard')
+@extends('layouts.baseadm')
 
 @section('contenidouno')
     <meta content="Historial de puestos" name="description">

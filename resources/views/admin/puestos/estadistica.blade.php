@@ -1,4 +1,4 @@
-@extends('dashboard')
+@extends('layouts.baseadm')
 
 @section('title', 'Estadísticas de Puestos')
 @section('header-title', 'Estadísticas de Puestos')

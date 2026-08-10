@@ -65,11 +65,7 @@
 
             <div class="text-center pt-4 border-t border-gray-100">
                 <span class="text-sm text-gray-500">
-                    {{ __('¿No tienes cuenta?') }}
-                    <a class="text-blue-800 font-medium hover:text-blue-900 transition-colors"
-                       href="{{ route('register') }}">
-                        {{ __('Regístrate') }}
-                    </a>
+
                 </span>
             </div>
         </form>

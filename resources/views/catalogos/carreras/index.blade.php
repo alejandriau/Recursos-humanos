@@ -1,4 +1,4 @@
-@extends('dashboard')
+@extends('layouts.baseadm')
 
 @section('title', 'Catálogo de Carreras')
 @section('header', 'Gestión de Carreras')

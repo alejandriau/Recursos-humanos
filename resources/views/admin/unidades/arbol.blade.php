@@ -1,4 +1,4 @@
-@extends('dashboard')
+@extends('layouts.baseadm')
 
 @section('title', 'Organigrama')
 @section('header-title', 'Organigrama de la Empresa')

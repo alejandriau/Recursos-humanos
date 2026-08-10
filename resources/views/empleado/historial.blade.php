@@ -1,8 +1,8 @@
-@extends('dashboard')
+@extends('layouts.baseusr')
 
 @section('title', 'Mi Historial')
 
-@section('contenido')
+@section('cuerpo')
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-12">
@@ -29,37 +29,33 @@
                                         <th>Observaciones</th>
                                     </tr>
                                 </thead>
-                                <tbody>
-                                    @foreach($persona->historialPuestos as $historial)
+                                    @foreach($persona->historial as $historial)
                                     <tr>
-                                        <td>{{ $historial->puesto->nombre ?? 'N/A' }}</td>
+                                        <td>{{ $historial->puesto->denominacion ?? 'N/A' }}</td>
+
                                         <td>
                                             @php
-                                                $unidad = $historial->puesto->unidadOrganizacional ?? null;
-                                                $ruta = [];
-                                                while ($unidad) {
-                                                    $ruta[] = $unidad->nombre;
-                                                    $unidad = $unidad->padre;
-                                                }
-                                                echo implode(' → ', array_reverse($ruta));
+                                                $jerarquia = $historial->puesto->unidadOrganizacional?->obtenerJerarquia();
                                             @endphp
+
+                                            {{ $jerarquia ? $jerarquia->pluck('denominacion')->implode(' → ') : 'Sin unidad' }}
                                         </td>
-                                        <td>{{ \Carbon\Carbon::parse($historial->fecha_inicio)->format('d/m/Y') }}</td>
+
+                                        <td>{{ $historial->fecha_inicio?->format('d/m/Y') }}</td>
+
                                         <td>
-                                            @if($historial->fecha_fin)
-                                                {{ \Carbon\Carbon::parse($historial->fecha_fin)->format('d/m/Y') }}
-                                            @else
-                                                <span class="badge badge-success">Actual</span>
-                                            @endif
+                                            {{ $historial->fecha_fin?->format('d/m/Y') ?? 'Actual' }}
                                         </td>
+
                                         <td>
-                                            @if($historial->fecha_fin)
-                                                <span class="badge badge-secondary">Finalizado</span>
-                                            @else
+                                            @if($historial->estado == 'activo')
                                                 <span class="badge badge-success">Activo</span>
+                                            @else
+                                                <span class="badge badge-secondary">{{ ucfirst($historial->estado) }}</span>
                                             @endif
                                         </td>
-                                        <td>{{ $historial->observaciones ?? 'Sin observaciones' }}</td>
+
+                                        <td>{{ $historial->observaciones ?? '-' }}</td>
                                     </tr>
                                     @endforeach
                                 </tbody>

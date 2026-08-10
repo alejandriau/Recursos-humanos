@@ -215,7 +215,7 @@ function descargarPDF() {
     if (document.getElementById('fFechaInicio').value) params.set('fecha_inicio', document.getElementById('fFechaInicio').value);
     if (document.getElementById('fFechaFin').value) params.set('fecha_fin', document.getElementById('fFechaFin').value);
 
-    const url = `/asistencia/reporte/${personaId}/pdf?${params.toString()}`;
+    const url = `/asistencia/empleado/${personaId}/pdf?${params.toString()}`;
     window.open(url, '_blank');
 }
 </script>

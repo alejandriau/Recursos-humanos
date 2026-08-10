@@ -97,7 +97,6 @@ class EmpleadoController extends Controller
      */
     public function miHistorial()
     {
-        // Verificar autenticación
         if (!Auth::check()) {
             return redirect()->route('login');
         }
@@ -105,10 +104,12 @@ class EmpleadoController extends Controller
         $persona = $this->getEmpleadoAutenticado();
 
         $persona->load([
-            'historial' => function($q) {
-                $q->with([
-                    'puesto.unidadOrganizacional.padre.padre.padre.padre'
-                ])->orderBy('fecha_inicio', 'desc');
+            'historial' => function ($query) {
+                $query->with([
+                    'puesto.unidadOrganizacional',
+                    'puestoAnterior.unidadOrganizacional',
+                    'puestoOriginal.unidadOrganizacional',
+                ])->orderByDesc('fecha_inicio');
             }
         ]);
 
@@ -150,47 +151,48 @@ class EmpleadoController extends Controller
     {
         $persona->load([
             'profesion',
-            'historial' => function($q) {
-                $q->with([
-                    'puesto.unidadOrganizacional.padre.padre.padre.padre'
-                ])->orderBy('fecha_inicio', 'desc');
+            'historial' => function ($query) {
+                $query->with('puesto.unidadOrganizacional')
+                    ->orderByDesc('fecha_inicio');
             }
         ]);
 
-        $historialActual = $persona->historial->whereNull('fecha_fin')->first();
+        $historialActual = $persona->historial
+            ->where('estado', 'activo')
+            ->first();
 
-        // Obtener foto en Base64 si existe
         $fotoBase64 = null;
-        if ($persona->foto) {
+
+        if ($persona->foto && Storage::disk('public')->exists($persona->foto)) {
             try {
-                if (Storage::disk('public')->exists($persona->foto)) {
-                    $fotoContenido = Storage::disk('public')->get($persona->foto);
-                    $fotoBase64 = base64_encode($fotoContenido);
-                }
-            } catch (\Exception $e) {
-                // Si hay error con la foto, continuar sin ella
+                $fotoBase64 = base64_encode(
+                    Storage::disk('public')->get($persona->foto)
+                );
+            } catch (\Throwable $e) {
+                $fotoBase64 = null;
             }
         }
 
         $datos = [
-            'persona' => $persona,
-            'historialActual' => $historialActual,
-            'fechaGeneracion' => now()->format('d/m/Y H:i'),
-            'antiguedad' => $this->calcularAntiguedad($persona->fechaIngreso),
-            'edad' => $this->calcularEdad($persona->fechaNacimiento),
-            'fotoBase64' => $fotoBase64
+            'persona'          => $persona,
+            'historialActual'  => $historialActual,
+            'fechaGeneracion'  => now()->format('d/m/Y H:i'),
+            'antiguedad'       => $this->calcularAntiguedad($persona->fechaIngreso),
+            'edad'             => $this->calcularEdad($persona->fechaNacimiento),
+            'fotoBase64'       => $fotoBase64,
         ];
 
-        $pdf = Pdf::loadView('empleado.expediente-pdf', $datos);
-        $pdf->setPaper('A4', 'portrait');
+        $pdf = Pdf::loadView('empleado.expediente-pdf', $datos)
+                ->setPaper('A4', 'portrait');
 
-        $nombreArchivo = "EXPEDIENTE_{$persona->ci}_{$persona->nombre}.pdf";
+        $nombreArchivo = 'EXPEDIENTE_' .
+            $persona->ci . '_' .
+            str_replace(' ', '_', $persona->nombre) .
+            '.pdf';
 
-        if ($tipo === 'stream') {
-            return $pdf->stream($nombreArchivo);
-        }
-
-        return $pdf->download($nombreArchivo);
+        return $tipo === 'stream'
+            ? $pdf->stream($nombreArchivo)
+            : $pdf->download($nombreArchivo);
     }
 
 

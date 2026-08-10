@@ -17,13 +17,14 @@ return new class extends Migration
 
             // Resumen consolidado del día
             $table->enum('estado', [
-                'completo',            // todas las marcas OK
-                'tardanza',            // llegó tarde pero marcó todo
-                'falta_justificada',   // faltó una o más marcas, cubierta por una salida aprobada
-                'falta_injustificada', // faltó una o más marcas, sin cobertura
-                'incompleto',          // combinación de justificado + injustificado en el mismo día
-                'no_laborable',        // no le corresponde marcar ese día según su horario
-            ])->default('completo');
+                'pendiente',           // ← agregado
+                'completo',
+                'tardanza',
+                'falta_justificada',
+                'falta_injustificada',
+                'incompleto',
+                'no_laborable',
+            ])->default('pendiente');
 
             $table->integer('minutos_tardanza')->default(0);
             $table->integer('total_marcas_esperadas')->default(0);
@@ -51,8 +52,13 @@ return new class extends Migration
             $table->time('hora_real')->nullable();
             $table->foreignId('marcacion_id')->nullable()->constrained('marcaciones_biometricas')->nullOnDelete();
 
-            $table->enum('estado', ['puntual', 'tardanza', 'faltante_justificada', 'faltante_injustificada'])
-                ->default('faltante_injustificada');
+            $table->enum('estado', [
+                'pendiente',           // ← agregado
+                'puntual',
+                'tardanza',
+                'faltante_justificada',
+                'faltante_injustificada',
+            ])->default('faltante_injustificada'); // o 'pendiente' si prefieres
             $table->integer('diferencia_minutos')->nullable(); // + tarde, - temprano
 
             // Si estado = faltante_justificada, referencia a la salida que cubre este checkpoint

@@ -1,4 +1,4 @@
-@extends('dashboard')
+@extends('layouts.baseadm')
 
 @section('contenidouno')
     <title>Historial de {{ $persona->nombreCompleto }}</title>

@@ -45,20 +45,7 @@ class ImportarTodosZKTeco extends Command
                     $dispositivo->timeout ?? 60
                 );
 
-                if (!$zk->conectar()) {
-                    $this->error("   ❌ No conectó");
-                    $dispositivosFallidos++;
-                    
-                    $dispositivo->update([
-                        'ultimo_estado' => 'error_conexion',
-                        'ultima_sincronizacion' => now(),
-                    ]);
-                    continue;
-                }
-
-                $zk->desconectar();
-
-                // Modo automático: el servicio calcula desde la última marcación
+                // SIN conexión de prueba: importarMarcaciones ya conecta por dentro
                 $resultado = $zk->importarMarcaciones(null, null, $dispositivo->id);
 
                 if (isset($resultado['error'])) {

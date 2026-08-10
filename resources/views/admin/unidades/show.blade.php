@@ -1,4 +1,4 @@
-@extends('dashboard')
+@extends('layouts.baseadm')
 
 @section('title', $unidad->denominacion)
 @section('header-title', $unidad->denominacion)

@@ -1,4 +1,4 @@
-@extends('dashboard') <!-- Cambia por tu layout principal -->
+@extends('layouts.baseadm') <!-- Cambia por tu layout principal -->
 
 @section('contenido')
 <div class="container">

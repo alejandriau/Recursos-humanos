@@ -1,4 +1,4 @@
-@extends('dashboard')
+@extends('layouts.baseadm')
 
 @section('title', 'Perfil del Puesto')
 @section('header', 'Perfil del Puesto: ' . $puesto->denominacion)

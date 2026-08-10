@@ -335,11 +335,11 @@ class AsistenciaController extends Controller
 
         // Convertir totales de minutos a formato HH:MM
         $totalesFormato = [
-            'atraso' => $this->minutosToString($totalesMinutos['atraso']),
-            'sal_ant' => $this->minutosToString($totalesMinutos['sal_ant']),
-            'ext' => $this->minutosToString($totalesMinutos['ext']),
-            'jor' => $this->minutosToString($totalesMinutos['jor']),
-            'ausen' => $totalesMinutos['ausen']
+            'atraso'  => $totalesMinutos['atraso'],   // ← entero, no string
+            'sal_ant' => $totalesMinutos['sal_ant'],  // ← entero, no string
+            'ext'     => $totalesMinutos['ext'],      // ← entero, no string
+            'jor'     => $totalesMinutos['jor'],      // ← entero, no string
+            'ausen'   => $totalesMinutos['ausen'],    // conteo, se deja tal cual
         ];
 
         return [
@@ -358,12 +358,29 @@ class AsistenciaController extends Controller
         }
 
         [$fechaInicio, $fechaFin] = $this->resolverRango($request);
-
         $reporte = $this->construirReporte($persona, $fechaInicio, $fechaFin);
 
-        // Cargar la vista PDF con los datos
         $pdf = Pdf::loadView('admin.dispositivos.asistencias.reportes.asistencia-pdf', compact('reporte'))
-                ->setPaper('a4', 'landscape');
+                  ->setPaper('a4', 'landscape');
+
+        /* ─── Footer con número de página (dompdf nativo) ─── */
+        $canvas = $pdf->getDomPdf()->getCanvas();
+
+        $canvas->page_script(function ($pageNumber, $pageCount, $canvas, $fontMetrics) {
+            $text = "Página $pageNumber de $pageCount";
+            $font = $fontMetrics->getFont('DejaVu Sans', 'normal');
+            $size = 8;
+
+            $w = $canvas->get_width();
+            $h = $canvas->get_height();
+
+            // Centrado horizontal
+            $textWidth = $fontMetrics->getTextWidth($text, $font, $size);
+            $x = ($w - $textWidth) / 2;
+            $y = $h - 30;          // 30 pt desde el borde inferior (ajusta si hace falta)
+
+            $canvas->text($x, $y, $text, $font, $size, [0.53, 0.53, 0.53]);
+        });
 
         return $pdf->download('reporte_asistencia_' . $persona->ci . '.pdf');
     }

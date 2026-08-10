@@ -1,4 +1,4 @@
-@extends('dashboard')
+@extends('layouts.baseadm')
 
 @section('title', 'Validar Perfil - Sistema de Gestión de Perfiles')
 @section('header', 'Validación de Perfil para Puesto')

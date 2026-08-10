@@ -423,7 +423,7 @@ public function store(Request $request)
             }
         }
 
-        $empleados = $query->paginate(20);
+        $empleados = $query->paginate(100);
 
         // Obtener todas las unidades organizacionales en jerarquía
         $unidades = $this->getUnidadesJerarquicas();

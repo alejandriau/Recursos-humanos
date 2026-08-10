@@ -1,4 +1,4 @@
-@extends('dashboard')
+@extends('layouts.baseadm')
 
 @section('title', 'Resultado de Validación')
 @section('header', 'Resultado de Validación de Perfil')

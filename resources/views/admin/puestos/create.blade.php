@@ -1,4 +1,4 @@
-@extends('dashboard')
+@extends('layouts.baseadm')
 
 @section('title', 'Crear Puesto de Trabajo')
 @section('header-title', 'Crear Puesto de Trabajo')

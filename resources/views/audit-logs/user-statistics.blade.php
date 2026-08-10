@@ -1,5 +1,5 @@
 {{-- resources/views/audit-logs/user-statistics.blade.php --}}
-@extends('dashboard')
+@extends('layouts.baseadm')
 
 @section('title', 'Estadísticas por Usuario')
 

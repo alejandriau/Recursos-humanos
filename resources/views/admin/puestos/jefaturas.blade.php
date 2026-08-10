@@ -1,4 +1,4 @@
-@extends('dashboard')
+@extends('layouts.baseadm')
 
 @section('title', 'Jefaturas')
 @section('header-title', 'Jefaturas de la Organización')

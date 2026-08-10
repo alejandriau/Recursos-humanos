@@ -1,4 +1,4 @@
-@extends('dashboard')
+@extends('layouts.baseadm')
 
 @section('title', 'Crear Unidad Organizacional')
 @section('header-title', 'Crear Unidad Organizacional')

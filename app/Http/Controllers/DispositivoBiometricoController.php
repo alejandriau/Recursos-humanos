@@ -166,6 +166,7 @@ class DispositivoBiometricoController extends Controller
         return response()->json([
             'success' => false,
             'mensaje' => '❌ No se pudo conectar a ' . $dispositivo->ip . ':' . $dispositivo->puerto,
-        ], 500);
+        ], 100);
     }
 }
+

@@ -1,4 +1,4 @@
-@extends('dashboard')
+@extends('layouts.baseadm')
 
 @section('title', 'Detalles de CAS - ' . $cas->persona->nombre)
 

@@ -1,4 +1,4 @@
-@extends('dashboard')
+@extends('layouts.baseadm')
 
 @section('title', 'Estado de Documentación')
 @section('header-title', 'Estado de Documentación del Personal')

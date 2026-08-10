@@ -496,4 +496,12 @@ class SolicitudesController extends Controller
 
         return view('rrhh.reporte-periodos', compact('periodos'));
     }
+    public function contarPendientes(): JsonResponse
+    {
+        $count = SolicitudSalida::where('estado', 'pendiente')->count();
+
+        return response()->json([
+            'count' => $count
+        ]);
+    }
 }

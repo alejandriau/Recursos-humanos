@@ -73,12 +73,12 @@
             </tr>
             <tr>
                 <th>Profesión:</th>
-                <td>{{ $persona->profesion->nombre ?? 'No especificada' }}</td>
+                <td>{{ $persona->profesion->provisionN ?? 'No especificada' }}</td>
             </tr>
             @if($historialActual)
             <tr>
                 <th>Puesto Actual:</th>
-                <td>{{ $historialActual->puesto->nombre ?? 'No asignado' }}</td>
+                <td>{{ $historialActual->puesto->denominacion ?? 'No asignado' }}</td>
             </tr>
             <tr>
                 <th>Unidad Organizacional:</th>
@@ -87,7 +87,7 @@
                         $unidad = $historialActual->puesto->unidadOrganizacional ?? null;
                         $ruta = [];
                         while ($unidad) {
-                            $ruta[] = $unidad->nombre;
+                            $ruta[] = $unidad->denominacion;
                             $unidad = $unidad->padre;
                         }
                         echo implode(' → ', array_reverse($ruta));
@@ -115,13 +115,13 @@
             <tbody>
                 @foreach($persona->historial as $historial)
                 <tr>
-                    <td>{{ $historial->puesto->nombre ?? 'N/A' }}</td>
+                    <td>{{ $historial->puesto->denominacion ?? 'N/A' }}</td>
                     <td>
                         @php
                             $unidad = $historial->puesto->unidadOrganizacional ?? null;
                             $ruta = [];
                             while ($unidad) {
-                                $ruta[] = $unidad->nombre;
+                                $ruta[] = $unidad->denominacion;
                                 $unidad = $unidad->padre;
                             }
                             echo implode(' → ', array_reverse($ruta));

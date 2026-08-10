@@ -1,5 +1,5 @@
 {{-- resources/views/historial-bonos/index.blade.php --}}
-@extends('dashboard')
+@extends('layouts.baseadm')
 
 @section('title', 'Historial de Cambios de Bono - ' . $cas->persona->nombre_completo)
 

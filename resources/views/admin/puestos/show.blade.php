@@ -1,4 +1,4 @@
-@extends('daashboards')
+@extends('layouts.baseadm')
 
 @section('title', $puesto->denominacion)
 @section('header-title', $puesto->denominacion)

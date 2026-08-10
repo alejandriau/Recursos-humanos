@@ -1,4 +1,4 @@
-@extends('dashboard')
+@extends('layouts.baseadm')
 
 @section('title', 'Censo Laboral')
 @section('header-title', 'Censo Laboral')

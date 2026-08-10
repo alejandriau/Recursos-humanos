@@ -1,4 +1,4 @@
-@extends('dashboard')
+@extends('layouts.baseadm')
 
 @section('title', 'Distribución por Unidades')
 @section('header-title', 'Distribución por Unidades Organizacionales')

@@ -1,5 +1,5 @@
 {{-- resources/views/reportes/detalle.blade.php --}}
-@extends('dashboard')
+@extends('layouts.baseadm')
 
 @section('contenido')
 <div class="container mt-4">
