@@ -1398,8 +1398,8 @@ public function updateVacacion(Request $request, $id)
             data: $urlVerificacion,
             encoding: new Encoding('UTF-8'),
             errorCorrectionLevel: ErrorCorrectionLevel::High,
-            size: 120,
-            margin: 5
+            size: 220,
+            margin: 8
         );
         $writer = new PngWriter();
         $qrBase64 = base64_encode($writer->write($qrCode)->getString());
@@ -1425,6 +1425,7 @@ public function updateVacacion(Request $request, $id)
 
         return $pdf->download("boleta-vacacion-{$salida->codigo}.pdf");
     }
+
     /**
      * Calcular cantidad de días/horas
      */
