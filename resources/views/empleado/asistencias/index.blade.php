@@ -147,17 +147,17 @@ function renderReporte(r) {
                         <tbody>
                             ${filasDias || '<tr><td colspan="10" class="text-center text-muted py-3">No hay días evaluados en este rango</td></tr>'}
                         </tbody>
-                        <tfoot class="table-secondary fw-bold text-center align-middle">
-                            <tr>
-                                <td colspan="4" class="text-end">TOTALES</td>
-                                <td>${t.atraso}</td>
-                                <td>${t.sal_ant}</td>
-                                <td>${t.ausen}</td>
-                                <td></td>
-                                <td>${t.ext}</td>
-                                <td>${t.jor}</td>
-                            </tr>
-                        </tfoot>
+                            <tfoot class="table-secondary fw-bold text-center align-middle">
+                                <tr>
+                                    <td colspan="4" class="text-end">TOTALES</td>
+                                    <td>${formatoTiempo(t.atraso)}</td>
+                                    <td>${formatoTiempo(t.sal_ant)}</td>
+                                    <td>${t.ausen}</td>
+                                    <td></td>
+                                    <td>${formatoTiempo(t.ext)}</td>
+                                    <td>${formatoTiempo(t.jor)}</td>
+                                </tr>
+                            </tfoot>
                     </table>
                 </div>
             </div>
