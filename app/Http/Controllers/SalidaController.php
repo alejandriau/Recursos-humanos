@@ -1418,9 +1418,10 @@ public function updateVacacion(Request $request, $id)
             'codigoControl'   => $codigoControl,
         ];
 
+        //return view("empleado.boletas.vacacion-pdf", $data);
         // Generar PDF con soporte para acentos
         $pdf = Pdf::loadView('empleado.boletas.vacacion-pdf', $data)
-                ->setPaper([0, 0, 612, 396])
+                ->setPaper('letter')
                 ->setOption('defaultFont', 'dejavu sans');
 
         return $pdf->download("boleta-vacacion-{$salida->codigo}.pdf");

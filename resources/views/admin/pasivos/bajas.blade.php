@@ -311,8 +311,7 @@
                                                 </li>
                                                 @if($puesto->historial_actual && $puesto->historial_actual->archivo_memo)
                                                 <li>
-                                                    <a class="dropdown-item" href="javascript:void(0)" 
-                                                    onclick="verPDF('{{ route('memosdesignacion.ver-memo', $puesto->historial_actual->id) }}')">
+                                                    <a class="dropdown-item"  href="javascript:void(0)" onclick="verPDF('{{ route('memosdesignacion.ver-memo', $puesto->historial_actual->id) }}')">
                                                         <i class="fas fa-eye me-2"></i>Ver PDF
                                                     </a>
                                                 </li>
@@ -402,6 +401,35 @@
         </div>
     </div>
 </div>
+@component('components.modal-pdf')
+@endcomponent
+
+<!-- Estilos personalizados -->
+<style>
+    .swal2-popup.custom-toast {
+        width: 300px !important;
+        height: 80px !important;
+        border-radius: 12px;
+        font-size: 16px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+
+    .swal2-popup.custom-toast-large {
+        width: 400px !important;
+        height: auto !important;
+        min-height: 100px;
+    }
+
+    .swal2-popup.custom-toast-large p {
+        margin: 5px 0;
+        font-size: 14px;
+    }
+</style>
+@endsection
+
+@push('scripts')
+    
+
 @if (session('success'))
 <script>
     Swal.fire({
@@ -498,27 +526,6 @@
 </script>
 @endif
 
-<!-- Estilos personalizados -->
-<style>
-    .swal2-popup.custom-toast {
-        width: 300px !important;
-        height: 80px !important;
-        border-radius: 12px;
-        font-size: 16px;
-        box-shadow: 0 0 10px rgba(0,0,0,0.2);
-    }
-
-    .swal2-popup.custom-toast-large {
-        width: 400px !important;
-        height: auto !important;
-        min-height: 100px;
-    }
-
-    .swal2-popup.custom-toast-large p {
-        margin: 5px 0;
-        font-size: 14px;
-    }
-</style>
 
 <script>
 function descargarMemo(historialId) {
@@ -589,6 +596,48 @@ function confirmarEliminacion(id) {
     });
 }
 
+// global.js
 
+// Función para abrir el modal y cargar el PDF
+function verPDF(url, nombre = '') {
+    // Establecer el nombre en el título si se proporciona
+    if (nombre) {
+        document.getElementById('pdfNombre').textContent = nombre;
+    } else {
+        // Si no se da nombre, se puede extraer de la URL o dejarlo vacío
+        document.getElementById('pdfNombre').textContent = '';
+    }
+
+    // Asignar la URL al iframe y al botón de descarga
+    document.getElementById('pdfIframe').src = url;
+    document.getElementById('pdfDownloadBtn').href = url;
+
+    // Mostrar modal usando Bootstrap 5
+    const modal = new bootstrap.Modal(document.getElementById('modalPdf'));
+    modal.show();
+}
+
+// Limpiar el iframe al cerrar el modal (opcional)
+document.addEventListener('DOMContentLoaded', function() {
+    const modalElement = document.getElementById('modalPdf');
+    if (modalElement) {
+        modalElement.addEventListener('hidden.bs.modal', function () {
+            document.getElementById('pdfIframe').src = '';
+            document.getElementById('pdfDownloadBtn').href = '#';
+            // No borramos el nombre para que persista en el título, pero puedes limpiarlo si quieres
+        });
+    }
+
+    // Botón imprimir dentro del modal
+    document.addEventListener('click', function (e) {
+        if (e.target.id === 'pdfPrintBtn' || e.target.closest('#pdfPrintBtn')) {
+            const iframe = document.getElementById('pdfIframe');
+            if (iframe && iframe.contentWindow) {
+                iframe.contentWindow.print();
+            }
+        }
+    });
+});
 </script>
-@endsection
+
+@endpush

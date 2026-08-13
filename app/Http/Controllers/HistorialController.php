@@ -632,26 +632,31 @@ public function marcarComoConcluido($fechaFin = null, $motivo = 'Movimiento a nu
         return redirect()->back()->with('success', 'Registro eliminado correctamente');
     }
 
-    //ver pdf 
+        //ver pdf 
     public function verPdf($id)
     {
         $historial = Historial::find($id);
-        
+
         if (!$historial) {
-            abort(404, 'No se encontró la designación con ID ' . $id);
+            abort(404, 'Designación no encontrada.');
         }
 
-        if (!$historial->archivo_memo) {
+        if (empty($historial->archivo_memo)) {
             abort(404, 'Esta designación no tiene un archivo PDF asociado.');
         }
 
         if (!Storage::disk('local')->exists($historial->archivo_memo)) {
-            abort(404, 'El archivo PDF no existe en el servidor.');
+            abort(404, 'El archivo PDF no se encuentra en el servidor.');
         }
 
-        return response()->file(Storage::disk('local')->path($historial->archivo_memo), [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="' . basename($historial->archivo_memo) . '"'
-        ]);
+        // Opción más limpia con Storage::response()
+        return Storage::disk('local')->response(
+            $historial->archivo_memo,
+            basename($historial->archivo_memo),
+            [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="' . basename($historial->archivo_memo) . '"'
+            ]
+        );
     }
 }
