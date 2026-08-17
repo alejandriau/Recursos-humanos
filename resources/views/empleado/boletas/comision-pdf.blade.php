@@ -3,272 +3,335 @@
 <head>
     <meta charset="UTF-8">
     <style>
-        /* dompdf soporta CSS 2.1 + algo de CSS3: evita flexbox/grid, usa tablas.
-           El tamaño real de la página lo define ->setPaper([0,0,612,396]) en el
-           controlador (612x396pt = 8.5in x 5.5in, media carta exacta). No se
-           declara 'size' aquí para no entrar en conflicto con ese valor. */
-        @page {
-            margin: 0.5cm 0.9cm;
-        }
-
+        @page { margin: 0.4cm 0.8cm; }
         * { box-sizing: border-box; }
-
         body {
-            font-family: "Helvetica", "Arial", sans-serif;
-            color: #222;
+            font-family: "DejaVu Sans", "Helvetica", "Arial", sans-serif;
+            color: #263238;
             font-size: 10px;
             margin: 0;
         }
 
-        .contenedor {
-            border: 1.5px solid #2874A6;
-            border-radius: 4px;
-            padding: 8px 12px;
+        .doc {
+            border: 1px solid #333435;
+            border-radius: 6px;
+            padding: 10px 16px 12px;
         }
 
-        /* ===== ENCABEZADO ===== */
-        table.encabezado {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 6px;
-        }
-
-        table.encabezado td {
-            vertical-align: middle;
-            padding: 0;
-        }
-
-        table.encabezado .logo-izq { width: 60px; text-align: left; }
-        table.encabezado .logo-der { width: 60px; text-align: right; }
-        table.encabezado img { max-width: 55px; max-height: 55px; }
-
-        table.encabezado .titulo {
+        /* ===== Encabezado ===== */
+        table.header { width: 100%; border-collapse: collapse; }
+        table.header td { vertical-align: middle; padding: 0; }
+        .logo-cell { width: 46px; }
+        .logo-cell img { max-width: 42px; max-height: 42px; }
+        .logo-cell.right { text-align: right; }
+        .org-name {
             text-align: center;
-            font-size: 12px;
+            font-size: 10.5px;
             font-weight: bold;
-            color: #1a5276;
+            color: #103a5c;
+            letter-spacing: 0.3px;
             text-transform: uppercase;
-            line-height: 1.3;
+        }
+        .org-sub {
+            text-align: center;
+            font-size: 8px;
+            color: #7a8794;
+            margin-top: 1px;
+            letter-spacing: 0.2px;
         }
 
-        table.encabezado .subtitulo {
+        .accent-line {
+            height: 3px;
+            border-radius: 2px;
+            margin: 7px 0 8px;
+            background: linear-gradient(90deg, #103a5c, #2874A6 55%, #cfe0ea 100%);
+        }
+
+        /* ===== Título del documento ===== */
+        table.doctitle-row { text-align: right;  width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+        .doctitle {
+            font-size: 15px;
+            font-weight: bold;
+            color: #103a5c;
+        }
+        .titulo{
+            padding-right: 10%;
+        }
+        .doctitle .doctitle-sub {
+            display: block;
+            font-size: 8px;
+            font-weight: normal;
+            color: #8a95a1;
+            margin-top: 1px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .doccode {
+            text-align: right;
+            font-size: 8.5px;
+            color: #8a95a1;
+            vertical-align: bottom;
+        }
+        .doccode strong {
+            display: block;
+            font-size: 11px;
+            color: #103a5c;
+            letter-spacing: 0.5px;
+        }
+
+        /* ===== Cuerpo: datos + periodo ===== */
+        table.body-grid { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+        table.body-grid > tr > td { vertical-align: top; padding: 0; }
+        .col-info { width: 62%; padding-right: 12px; }
+        .col-period { width: 38%; }
+
+        .field { margin-bottom: 6px; }
+        .field .label {
+            display: block;
+            font-size: 7.5px;
+            font-weight: bold;
+            color: #8a95a1;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+        }
+        .field .value {
+            display: block;
+            font-size: 10.5px;
+            color: #263238;
+            padding: 2px 0 3px;
+            border-bottom: 0.75px solid #3e3e3f;
+        }
+        .field.small .value { font-size: 9.5px; }
+
+        .period-card {
+            background: #f4f8fb;
+            border: 0.75px solid #434444;
+            border-radius: 6px;
+            padding: 9px 10px;
             text-align: center;
+        }
+        .period-label {
+            font-size: 7.5px;
+            font-weight: bold;
+            color: #2874A6;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            margin-bottom: 4px;
+        }
+        .period-dates {
+            font-size: 10px;
+            font-weight: bold;
+            color: #103a5c;
+            margin-bottom: 4px;
+        }
+        .period-dates .arrow { color: #2874A6; padding: 0 3px; }
+        .period-times {
             font-size: 9px;
             color: #555;
             margin-top: 2px;
         }
-
-        .linea-doble {
-            border-top: 1.5px solid #2874A6;
-            border-bottom: 0.5px solid #2874A6;
-            margin: 4px 0 8px;
-            height: 3px;
-        }
-
-        .doc-titulo {
-            text-align: center;
-            font-size: 10.5px;
-            font-weight: bold;
-            letter-spacing: 0.5px;
-            background: #eaf2f8;
-            padding: 4px;
-            margin-bottom: 8px;
-            border-radius: 3px;
-        }
-
-        /* ===== CUERPO ===== */
-        table.datos {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 6px;
-        }
-
-        table.datos td {
-            padding: 3px 4px;
-            font-size: 10px;
-            vertical-align: top;
-        }
-
-        table.datos .etiqueta {
-            font-weight: bold;
-            color: #1a5276;
-            width: 32%;
-        }
-
-        table.datos .valor {
-            width: 68%;
-            border-bottom: 0.5px dotted #aaa;
-        }
-
-        /* ===== APROBACIONES ===== */
-        table.aprobaciones {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 8px;
-        }
-
-        table.aprobaciones td {
-            width: 50%;
-            border: 0.75px solid #ccc;
-            padding: 6px;
-            font-size: 9px;
-            vertical-align: top;
-        }
-
-        table.aprobaciones .titulo-aprob {
-            font-weight: bold;
-            color: #1a5276;
-            font-size: 9px;
+        .period-times .label-time {
+            font-size: 7.5px;
+            color: #8a95a1;
             text-transform: uppercase;
+        }
+
+        .comision-badge {
+            background: #103a5c;
+            border-radius: 20px;
+            padding: 5px 4px;
+            display: block;
+            margin-top: 6px;
+        }
+        .comision-text {
+            font-size: 9px;
+            color: #cfe0ea;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* ===== Aprobaciones ===== */
+        table.approvals { width: 100%; border-collapse: separate; border-spacing: 8px 0; margin: 0 -8px 8px; }
+        table.approvals td {
+            width: 50%;
+            border: 0.75px solid #39393a;
+            border-left: 3px solid #535455;
+            border-radius: 4px;
+            padding: 6px 8px;
+            font-size: 9px;
+            vertical-align: top;
+        }
+        table.approvals td.aprobado { border-left-color: #2e9e5b; }
+        table.approvals td.rechazado { border-left-color: #c0392b; }
+        table.approvals td.pendiente_jefe,
+        table.approvals td.pendiente_rrhh { border-left-color: #d4a017; }
+
+        .approval-title {
+            font-weight: bold;
+            color: #103a5c;
+            font-size: 8.5px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
             margin-bottom: 3px;
         }
+        .approval-name { font-size: 9.5px; color: #263238; font-weight: bold; }
+        .approval-meta { font-size: 8px; color: #8a95a1; margin-top: 1px; }
 
         .badge-estado {
             display: inline-block;
-            padding: 1px 6px;
+            padding: 2px 8px;
             border-radius: 8px;
-            font-size: 8.5px;
+            font-size: 8px;
             font-weight: bold;
         }
-        .bg-aprobado { background: #d4edda; color: #155724; }
-        .bg-rechazado { background: #f8d7da; color: #721c24; }
-        .bg-pendiente { background: #fff3cd; color: #856404; }
+        .bg-aprobado { background: #e3f6ea; color: #1e7e42; }
+        .bg-rechazado { background: #fbe9e7; color: #a5291a; }
+        .bg-pendiente_jefe, .bg-pendiente_rrhh { background: #fdf3d9; color: #8a6300; }
 
-        /* ===== PIE: código y QR ===== */
-        table.pie {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 8px;
+        /* ===== Pie: código + QR ===== */
+        table.footer { width: 100%; border-collapse: collapse; margin-top: 2px; }
+        table.footer td { vertical-align: middle; padding: 0; }
+        .verif-text {
+            font-size: 7.5px;
+            color: #8a95a1;
+            line-height: 1.4;
+            width: 65%;
+            padding-right: 10px;
         }
-
-        table.pie td {
-            vertical-align: middle;
-            padding: 0;
-        }
-
-        .codigo-control {
-            font-size: 9px;
-            color: #555;
-        }
-
-        .codigo-control strong {
-            font-size: 11px;
-            color: #1a5276;
-            letter-spacing: 0.5px;
-        }
-
+        .verif-text strong { color: #103a5c; }
         .qr-cell {
             text-align: right;
-            width: 120px;
+            width: 35%;
         }
-
-        .qr-cell img { width: 70px; height: 70px; }
-
-        .qr-cell .qr-label {
-            font-size: 7px;
-            color: #888;
+        .qr-box {
+            display: inline-block;
+            padding: 4px;
+            border: 0.75px solid #58595a;
+            border-radius: 6px;
+            background: #ffffff;
+        }
+        .qr-box img { width: 92px; height: 92px; display: block; }
+        .qr-label {
+            font-size: 6.5px;
+            color: #a3adb6;
             text-align: right;
+            margin-top: 2px;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
         }
     </style>
 </head>
 <body>
-    <div class="contenedor">
+    <div class="doc">
 
-        <table class="encabezado">
+        <table class="header">
             <tr>
-                <td class="logo-izq">
+                <td class="logo-cell">
                     <img src="{{ public_path('images/logo-gober-i.png') }}" alt="Logo">
                 </td>
-                <td class="titulo">
-                    GOBIERNO AUTÓNOMO DEPARTAMENTAL DE COCHABAMBA
-                    <div class="subtitulo">Unidad de Gestión de Recursos Humanos (UGRH)</div>
+                <td>
+                    <div class="org-name">Gobierno Autónomo Departamental de Cochabamba</div>
+                    <div class="org-sub">Órgano Ejecutivo &middot; Unidad de Gestión de Recursos Humanos (UGRH)</div>
                 </td>
-                <td class="logo-der">
+                <td class="logo-cell right">
                     <img src="{{ public_path('images/logo-cbba.png') }}" alt="Logo UGRH">
                 </td>
             </tr>
         </table>
 
-        <div class="linea-doble"></div>
+        <div class="accent-line"></div>
 
-        <div class="doc-titulo">BOLETA DE SALIDA POR COMISIÓN</div>
-
-        <table class="datos">
+        <table class="doctitle-row">
             <tr>
-                <td class="etiqueta">Nombre completo:</td>
-                <td class="valor">{{ $salida->persona->nombre }} {{ $salida->persona->apellidoPat }} {{ $salida->persona->apellidoMat }}</td>
-            </tr>
-            <tr>
-                <td class="etiqueta">Cargo:</td>
-                <td class="valor">{{ $cargo }}</td>
-            </tr>
-            <tr>
-                <td class="etiqueta">Unidad / Dependencia:</td>
-                <td class="valor">{{ $unidad }}</td>
-            </tr>
-            <tr>
-                <td class="etiqueta">Fecha de salida:</td>
-                <td class="valor">{{ \Carbon\Carbon::parse($salida->fechasal)->format('d-m-Y') }} &nbsp;–&nbsp; {{ $salida->horasal }}</td>
-            </tr>
-            <tr>
-                <td class="etiqueta">Fecha de retorno:</td>
-                <td class="valor">{{ \Carbon\Carbon::parse($salida->fecharet)->format('d-m-Y') }} &nbsp;–&nbsp; {{ $salida->horaret }}</td>
-            </tr>
-            <tr>
-                <td class="etiqueta">Fecha de solicitud:</td>
-                <td class="valor">{{ \Carbon\Carbon::parse($salida->fechasol)->format('d-m-Y') }}</td>
-            </tr>
-            <tr>
-                <td class="etiqueta">Motivo:</td>
-                <td class="valor">{{ $salida->motivo }}</td>
-            </tr>
-        </table>
-
-        {{-- En vez de una línea en blanco para firmar a mano, se muestra el sello
-             de aprobación electrónica: quién y cuándo autorizó desde el sistema.
-             La validez real la certifica el QR de verificación, no este texto. --}}
-        <table class="aprobaciones">
-            <tr>
-                <td>
-                    <div class="titulo-aprob">&#10003; Aprobación Jefe Inmediato</div>
-                    @if($salida->estado_jefe === 'aprobado' && $salida->jefe)
-                        <strong>{{ $salida->jefe->nombre }} {{ $salida->jefe->apellidoPat }}</strong><br>
-                        Aprobado electrónicamente<br>
-                        {{ \Carbon\Carbon::parse($salida->fecha_aprobacion_jefe)->format('d-m-Y H:i') }}
-                    @else
-                        <span class="badge-estado bg-{{ $salida->estado_jefe }}">
-                            {{ ucfirst($salida->estado_jefe) }}
-                        </span>
-                    @endif
+                <td class="titulo">
+                    <span class="doctitle">BOLETA DE COMISIÓN
+                        <span class="doctitle-sub">Autorización electrónica de salida</span>
+                    </span>
                 </td>
-                <td>
-                    <div class="titulo-aprob">&#10003; Visto Bueno Recursos Humanos</div>
-                    @if($salida->estado_rrhh === 'aprobado' && $salida->rrhh)
-                        <strong>{{ $salida->rrhh->nombre }} {{ $salida->rrhh->apellidoPat }}</strong><br>
-                        Autorizado electrónicamente<br>
-                        {{ \Carbon\Carbon::parse($salida->fecha_aprobacion_rrhh)->format('d-m-Y H:i') }}
-                    @else
-                        <span class="badge-estado bg-{{ $salida->estado_rrhh }}">
-                            {{ ucfirst($salida->estado_rrhh) }}
-                        </span>
-                    @endif
-                </td>
-            </tr>
-        </table>
-
-        <div style="text-align:center; font-size:7.5px; color:#888; margin-top:4px;">
-            Documento generado electrónicamente. La autenticidad de las aprobaciones
-            es verificable mediante el código QR.
-        </div>
-
-        <table class="pie">
-            <tr>
-                <td class="codigo-control">
-                    Código de control:<br>
+                <td class="doccode">
+                    Código de control
                     <strong>{{ $codigoControl }}</strong>
                 </td>
+            </tr>
+        </table>
+
+        <table class="body-grid">
+            <tr>
+                <td class="col-info">
+                    <div class="field">
+                        <span class="label">Nombre completo</span>
+                        <span class="value">{{ $salida->persona->nombre }} {{ $salida->persona->apellidoPat }} {{ $salida->persona->apellidoMat }}</span>
+                    </div>
+                    <div class="field">
+                        <span class="label">Cargo</span>
+                        <span class="value">{{ $cargo }}</span>
+                    </div>
+                    <div class="field">
+                        <span class="label">Unidad / Dependencia</span>
+                        <span class="value">{{ $unidad }}</span>
+                    </div>
+                    <div class="field small">
+                        <span class="label">Motivo de la comisión</span>
+                        <span class="value">{{ $salida->motivo }}</span>
+                    </div>
+                    <div class="field small" style="margin-bottom:0;">
+                        <span class="label">Fecha de solicitud</span>
+                        <span class="value" style="border-bottom:none;">{{ \Carbon\Carbon::parse($salida->fechasol)->format('d-m-Y') }}</span>
+                    </div>
+                </td>
+                <td class="col-period">
+                    <div class="period-card">
+                        <div class="period-label">Periodo de comisión</div>
+                        <div class="period-dates">
+                            {{ \Carbon\Carbon::parse($salida->fechasal)->format('d-m-Y') }}
+                            <span class="arrow">&rarr;</span>
+                            {{ \Carbon\Carbon::parse($salida->fecharet)->format('d-m-Y') }}
+                        </div>
+                        <div class="period-times">
+                            <span class="label-time">Salida:</span> {{ $salida->horasal ?? '--:--' }} &nbsp;|&nbsp;
+                            <span class="label-time">Retorno estimado:</span> {{ $salida->horaret ?? '--:--' }}
+                        </div>
+                        <div class="comision-badge">
+                            <span class="comision-text">&#9679; Comisión de servicio</span>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        </table>
+
+        <table class="approvals">
+            <tr>
+                <td class="{{ $salida->estado_jefe }}">
+                    <div class="approval-title">&#10003; Jefe Inmediato</div>
+                    @if($salida->estado_jefe === 'aprobado' && $salida->jefe)
+                        <div class="approval-name">{{ $salida->jefe->nombre }} {{ $salida->jefe->apellidoPat }}</div>
+                        <div class="approval-meta">Aprobado electrónicamente &middot; {{ \Carbon\Carbon::parse($salida->fecha_aprobacion_jefe)->format('d-m-Y H:i') }}</div>
+                    @else
+                        <span class="badge-estado bg-{{ $salida->estado_jefe }}">{{ ucfirst(str_replace('_', ' ', $salida->estado_jefe)) }}</span>
+                    @endif
+                </td>
+                <td class="{{ $salida->estado_rrhh }}">
+                    <div class="approval-title">&#10003; Recursos Humanos</div>
+                    @if($salida->estado_rrhh === 'aprobado' && $salida->rrhh)
+                        <div class="approval-name">{{ $salida->rrhh->nombre }} {{ $salida->rrhh->apellidoPat }}</div>
+                        <div class="approval-meta">Autorizado electrónicamente &middot; {{ \Carbon\Carbon::parse($salida->fecha_aprobacion_rrhh)->format('d-m-Y H:i') }}</div>
+                    @else
+                        <span class="badge-estado bg-{{ $salida->estado_rrhh }}">{{ ucfirst(str_replace('_', ' ', $salida->estado_rrhh)) }}</span>
+                    @endif
+                </td>
+            </tr>
+        </table>
+
+        <table class="footer">
+            <tr>
+                <td class="verif-text">
+                    Documento generado electrónicamente por el sistema de la <strong>UGRH &ndash; GADC</strong>.
+                    La autenticidad de las aprobaciones es verificable escaneando el código QR.
+                </td>
                 <td class="qr-cell">
-                    <img src="data:image/png;base64,{{ $qrBase64 }}" alt="QR verificación">
+                    <div class="qr-box">
+                        <img src="data:image/png;base64,{{ $qrBase64 }}" alt="QR verificación">
+                    </div>
                     <div class="qr-label">Escanear para verificar</div>
                 </td>
             </tr>

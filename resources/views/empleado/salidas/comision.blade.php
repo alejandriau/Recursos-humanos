@@ -87,18 +87,25 @@
                                         <span class="badge bg-danger">Rechazado</span>
                                     @endif
                                 </td>
-                                <td>
-                                    @if($sol->estado_jefe == 'pendiente')
-                                        <button class="btn btn-sm btn-info btn-editar" data-id="{{ $sol->id }}">
-                                            <i class="fa fa-edit"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-danger btn-eliminar" data-id="{{ $sol->id }}">
-                                            <i class="fa fa-trash"></i>
-                                        </button>
-                                    @else
-                                        <span class="text-muted">No disponible</span>
-                                    @endif
-                                </td>
+<td>
+    @if($sol->estado_jefe == 'pendiente')
+        <button class="btn btn-sm btn-info btn-editar" data-id="{{ $sol->id }}">
+            <i class="fa fa-edit"></i>
+        </button>
+        <button class="btn btn-sm btn-danger btn-eliminar" data-id="{{ $sol->id }}">
+            <i class="fa fa-trash"></i>
+        </button>
+    @else
+        <div class="btn-group" role="group">
+            <span class="text-muted me-2">No disponible</span>
+            @if($sol->estado_jefe == 'aprobado')
+                <a href="{{ route('comision.boleta', $sol->id) }}" class="btn btn-sm btn-success" target="_blank">
+                    <i class="fa fa-file-pdf"></i> PDF
+                </a>
+            @endif
+        </div>
+    @endif
+</td>
                             </tr>
                             @endforeach
                         </tbody>
@@ -496,60 +503,105 @@
         // ----- FUNCIONALIDAD DE LA TABLA DE SOLICITUDES (existente) -----
 
         // Función para recargar la tabla de solicitudes
-        function cargarSolicitudes() {
-            axios.get('/comision/mis-solicitudes')
-                .then(res => {
-                    const data = res.data.data;
+function cargarSolicitudes() {
+    axios.get('/comision/mis-solicitudes')
+        .then(res => {
+            const data = res.data.data;
 
-                    const tbody = document.getElementById('tbodySolicitudes');
-                    if (!tbody) return;
+            const tbody = document.getElementById('tbodySolicitudes');
+            if (!tbody) return;
 
-                    if (data.length === 0) {
-                        tbody.innerHTML = '<tr><td colspan="8" class="text-center">No tienes solicitudes registradas</td></tr>';
-                        return;
-                    }
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center">No tienes solicitudes registradas</td></tr>';
+                return;
+            }
 
-                    let html = '';
+            let html = '';
 
-                    data.forEach((sol, index) => {
-                        const acciones = sol.editable
-                            ? `<button class="btn btn-sm btn-info btn-editar" data-id="${sol.id}"><i class="fa fa-edit"></i></button>
-                               <button class="btn btn-sm btn-danger btn-eliminar" data-id="${sol.id}"><i class="fa fa-trash"></i></button>`
-                            : '<span class="text-muted">No disponible</span>';
+            data.forEach((sol, index) => {
+                // Determinar si la solicitud es editable (pendiente)
+                const editable = sol.editable || (sol.estado_jefe && sol.estado_jefe.toLowerCase() === 'pendiente');
 
-                        html += `
-                            <tr id="fila-${sol.id}">
-                                <td>${index + 1}</td>
-                                <td>${sol.fechasal}</td>
-                                <td>${sol.horasal}</td>
-                                <td>${sol.fecharet}</td>
-                                <td>${sol.horaret}</td>
-                                <td>${sol.motivo}</td>
-                                <td><span class="badge bg-${sol.estado_badge}">${sol.estado_texto}</span></td>
-                                <td>${acciones}</td>
-                            </tr>
+                let acciones = '';
+                if (editable) {
+                    acciones = `
+                        <button class="btn btn-sm btn-info btn-editar" data-id="${sol.id}">
+                            <i class="fa fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-danger btn-eliminar" data-id="${sol.id}">
+                            <i class="fa fa-trash"></i>
+                        </button>
+                    `;
+                } else {
+                    // Si no es editable, mostrar "No disponible" y el botón PDF si está aprobado
+                    let pdfButton = '';
+                    if (sol.estado_jefe && sol.estado_jefe.toLowerCase() === 'aprobado') {
+                        pdfButton = `
+                            <a href="/comision/boleta/${sol.id}" class="btn btn-sm btn-success" target="_blank">
+                                <i class="fa fa-file-pdf"></i> PDF
+                            </a>
                         `;
-                    });
+                    }
+                    acciones = `
+                        <div class="d-flex align-items-center gap-1">
+                            <span class="text-muted me-1">No disponible</span>
+                            ${pdfButton}
+                        </div>
+                    `;
+                }
 
-                    tbody.innerHTML = html;
+                // Determinar el color de la badge del estado
+                let estadoBadge = 'bg-secondary';
+                let estadoTexto = sol.estado_jefe || 'Desconocido';
 
-                    document.querySelectorAll('.btn-editar').forEach(btn => {
-                        btn.addEventListener('click', function() {
-                            abrirModalEditar(this.dataset.id);
-                        });
-                    });
+                if (sol.estado_jefe) {
+                    const estadoLower = sol.estado_jefe.toLowerCase();
+                    if (estadoLower === 'pendiente') {
+                        estadoBadge = 'bg-warning text-dark';
+                        estadoTexto = 'Pendiente';
+                    } else if (estadoLower === 'aprobado') {
+                        estadoBadge = 'bg-success';
+                        estadoTexto = 'Aprobado';
+                    } else if (estadoLower === 'rechazado') {
+                        estadoBadge = 'bg-danger';
+                        estadoTexto = 'Rechazado';
+                    }
+                }
 
-                    document.querySelectorAll('.btn-eliminar').forEach(btn => {
-                        btn.addEventListener('click', function() {
-                            eliminarSolicitud(this.dataset.id);
-                        });
-                    });
-                })
-                .catch(err => {
-                    console.error(err.response?.data);
-                    Swal.fire('Error', err.response?.data?.message || 'No se pudo cargar la lista de solicitudes', 'error');
+                html += `
+                    <tr id="fila-${sol.id}">
+                        <td>${index + 1}</td>
+                        <td>${sol.fechasal || ''}</td>
+                        <td>${sol.horasal || ''}</td>
+                        <td>${sol.fecharet || ''}</td>
+                        <td>${sol.horaret || ''}</td>
+                        <td>${sol.motivo || ''}</td>
+                        <td><span class="badge ${estadoBadge}">${estadoTexto}</span></td>
+                        <td>${acciones}</td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+
+            // Reasignar eventos a los botones
+            document.querySelectorAll('.btn-editar').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    abrirModalEditar(this.dataset.id);
                 });
-        }
+            });
+
+            document.querySelectorAll('.btn-eliminar').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    eliminarSolicitud(this.dataset.id);
+                });
+            });
+        })
+        .catch(err => {
+            console.error(err.response?.data);
+            Swal.fire('Error', err.response?.data?.message || 'No se pudo cargar la lista de solicitudes', 'error');
+        });
+}
 
         // Eliminar solicitud
         function eliminarSolicitud(id) {

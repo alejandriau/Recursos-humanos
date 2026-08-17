@@ -659,7 +659,7 @@ public function editParticular($id)
         ];
 
         $pdf = Pdf::loadView('empleado.boletas.boleta_particular', $data)
-                ->setPaper([0, 0, 612, 396])
+                ->setPaper('letter')
                 ->setOption('defaultFont', 'dejavu sans');
 
         return $pdf->download("boleta-particular-{$salida->codigo}.pdf");
@@ -1335,8 +1335,8 @@ public function updateVacacion(Request $request, $id)
             data: $urlVerificacion,
             encoding: new Encoding('UTF-8'),
             errorCorrectionLevel: ErrorCorrectionLevel::High,
-            size: 120,
-            margin: 5
+            size: 220,
+            margin: 8
         );
 
         $writer = new PngWriter();
@@ -1355,7 +1355,7 @@ public function updateVacacion(Request $request, $id)
         ];
 
         $pdf = Pdf::loadView('empleado.boletas.comision-pdf', $data)
-                ->setPaper([0, 0, 612, 396])
+                ->setPaper('letter')
                 ->setOption('defaultFont', 'dejavu sans');
 
         return $pdf->download("boleta-{$salida->codigo}.pdf");

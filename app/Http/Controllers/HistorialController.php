@@ -10,6 +10,14 @@ use App\Models\UnidadOrganizacional;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Barryvdh\DomPDF\Facade\Pdf;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Style\Font;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class HistorialController extends Controller
 {
@@ -632,7 +640,7 @@ public function marcarComoConcluido($fechaFin = null, $motivo = 'Movimiento a nu
         return redirect()->back()->with('success', 'Registro eliminado correctamente');
     }
 
-        //ver pdf 
+        //ver pdf
     public function verPdf($id)
     {
         $historial = Historial::find($id);
@@ -659,4 +667,274 @@ public function marcarComoConcluido($fechaFin = null, $motivo = 'Movimiento a nu
             ]
         );
     }
+    public function pdfPlanilla(Request $request)
+    {
+        $puestos = $this->obtenerDatosPlanilla($request);
+
+        $pdf = Pdf::loadView('admin.historial.pdf.planilla', compact('puestos'))
+            ->setPaper('legal', 'landscape')
+            ->setOption('isPhpEnabled', true)
+            ->setOption('defaultFont', 'Arial');
+
+        return $pdf->download('Planilla_Presupuestaria_'.now()->format('Ymd').'.pdf');
+    }
+
+    public function excelPlanilla(Request $request)
+    {
+        $puestos = $this->obtenerDatosPlanilla($request);
+        $spreadsheet = $this->construirExcelPlanilla($puestos);
+
+        $writer = new Xlsx($spreadsheet);
+        $fileName = 'Planilla_Presupuestaria_'.now()->format('Ymd').'.xlsx';
+
+        return new StreamedResponse(function () use ($writer) {
+            $writer->save('php://output');
+        }, 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => 'attachment; filename="'.$fileName.'"',
+        ]);
+    }
+
+    /**
+     * Trae TODOS los puestos activos, ordenados por item,
+     * agrupados por su unidad raíz.
+     */
+    private function obtenerDatosPlanilla(Request $request)
+    {
+        $search = $request->input('search');
+        $tipoMovimiento = $request->input('tipo_movimiento');
+        $estado = $request->input('estado');
+        $tipoContrato = $request->input('tipo_contrato');
+
+        // Query base: todos los activos, ordenados por item ASC
+        $query = Puesto::where('estado', 1)
+            ->orderBy('item', 'asc'); // <-- ORDEN POR ITEM
+
+        // Filtros de búsqueda (solo si hay término)
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('item', 'like', "%{$search}%")
+                  ->orWhere('denominacion', 'like', "%{$search}%")
+                  ->orWhere('nivelJerarquico', 'like', "%{$search}%")
+                  ->orWhereHas('historial', function ($hq) use ($search) {
+                      $hq->whereNull('fecha_fin')
+                         ->whereHas('persona', function ($pq) use ($search) {
+                             $pq->where('estado', 1)
+                                ->where(function ($sq) use ($search) {
+                                    $sq->where('nombre', 'like', "%{$search}%")
+                                       ->orWhere('apellidoPat', 'like', "%{$search}%")
+                                       ->orWhere('apellidoMat', 'like', "%{$search}%")
+                                       ->orWhereRaw("CONCAT(nombre,' ',apellidoPat,' ',apellidoMat) LIKE ?", ["%{$search}%"]);
+                                });
+                         });
+                  });
+            });
+        }
+
+        // Filtros de historial (movimiento, estado, contrato)
+        if ($tipoMovimiento || $estado || $tipoContrato) {
+            $query->whereHas('historial', function ($hq) use ($tipoMovimiento, $estado, $tipoContrato) {
+                $hq->whereNull('fecha_fin');
+                if ($tipoMovimiento) $hq->where('tipo_movimiento', $tipoMovimiento);
+                if ($estado)         $hq->where('estado', $estado);
+                if ($tipoContrato)   $hq->where('tipo_contrato', $tipoContrato);
+            });
+        }
+
+        // Cargar relaciones
+        $puestos = $query->with([
+            'unidadOrganizacional',
+            'historial' => function ($q) use ($tipoMovimiento, $estado, $tipoContrato) {
+                $q->whereNull('fecha_fin')
+                  ->when($tipoMovimiento, fn($sq) => $sq->where('tipo_movimiento', $tipoMovimiento))
+                  ->when($estado,         fn($sq) => $sq->where('estado', $estado))
+                  ->when($tipoContrato,   fn($sq) => $sq->where('tipo_contrato', $tipoContrato))
+                  ->with('persona')
+                  ->orderBy('id', 'desc');
+            }
+        ])->get();
+
+        // Agrupar por la unidad RAÍZ (la de más alto nivel)
+        $agrupados = $puestos->groupBy(function ($puesto) {
+            return $this->obtenerUnidadRaiz($puesto->unidadOrganizacional);
+        })->sortKeys();
+
+        // Construir array plano para la vista
+        $resultado = [];
+        foreach ($agrupados as $nombreUnidadRaiz => $items) {
+            // Fila combinada de la unidad principal
+            $resultado[] = [
+                'tipo' => 'dependencia',
+                'nombre' => strtoupper($nombreUnidadRaiz),
+            ];
+
+            // Items de esa unidad, ya vienen ordenados por item asc
+            foreach ($items as $puesto) {
+                $historial = $puesto->historial->first();
+                $persona   = $historial?->persona;
+
+                // Unidad DIRECTA (sin padres, sin hijos, solo la que tiene asignada el puesto)
+                $unidadDirecta = $puesto->unidadOrganizacional?->denominacion ?? '-';
+
+                $resultado[] = [
+                    'tipo'                 => 'puesto',
+                    'item'                 => $puesto->item,
+                    'dependencia_jerarquica' => $unidadDirecta, // <-- SOLO LA UNIDAD DIRECTA
+                    'nombre_cargo'         => $puesto->denominacion,
+                    'categoria'            => $this->inferirCategoria($puesto->nivelJerarquico),
+                    'nivel_clase'          => $puesto->nivelJerarquico,
+                    'nivel_salarial'       => $puesto->nivel_salarial ?? '',
+                    'clasificacion'        => $puesto->clasificacion ?? 'SUSTANTIVO',
+                    'haber'                => $puesto->haber,
+                    'nombre_completo'      => $persona
+                        ? trim("{$persona->apellidoPat} {$persona->apellidoMat} {$persona->nombre}")
+                        : 'ACEFALIA',
+                    'fecha_nacimiento'     => $persona?->fecha_nacimiento
+                        ? \Carbon\Carbon::parse($persona->fecha_nacimiento)->format('d/m/Y')
+                        : '',
+                    'ci'                   => $persona?->ci ?? '',
+                    'fecha_ingreso'        => $historial?->fecha_inicio
+                        ? \Carbon\Carbon::parse($historial->fecha_inicio)->format('d/m/Y')
+                        : '',
+                    'observaciones'        => $historial?->observaciones ?? '',
+                    'formacion'            => $persona?->formacion ?? '',
+                ];
+            }
+        }
+
+        return $resultado;
+    }
+
+    /**
+     * Sube hasta la unidad de nivel 0 (raíz) para agrupar la planilla
+     */
+    private function obtenerUnidadRaiz($unidad): string
+    {
+        if (!$unidad) return 'SIN DEPENDENCIA';
+        while ($unidad->padre) {
+            $unidad = $unidad->padre;
+        }
+        return $unidad->denominacion ?? 'SIN DEPENDENCIA';
+    }
+
+    /**
+     * Categoría según nivel (ajusta a tu escala real)
+     */
+    private function inferirCategoria($nivel): string
+    {
+        return match(true) {
+            $nivel <= 2 => 'SUPERIOR',
+            $nivel <= 4 => 'EJECUTIVO',
+            default     => 'OPERATIVO',
+        };
+    }
+
+    /**
+     * ============================================================
+     * EXCEL
+     * ============================================================
+     */
+    private function construirExcelPlanilla(array $filas): Spreadsheet
+    {
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Planilla 2026');
+
+        // Anchos de columna
+        $anchos = [
+            'A'=>6, 'B'=>38, 'C'=>55, 'D'=>14, 'E'=>12, 'F'=>14,
+            'G'=>18, 'H'=>14, 'I'=>35, 'J'=>16, 'K'=>14, 'L'=>16, 'M'=>45, 'N'=>30
+        ];
+        foreach ($anchos as $col => $ancho) {
+            $sheet->getColumnDimension($col)->setWidth($ancho);
+        }
+
+        // --- FILA 1: TÍTULO ---
+        $sheet->mergeCells('A1:N1');
+        $sheet->setCellValue('A1',
+            'PLANILLA PRESUPUESTARIA DE PERSONAL DE PLANTA DEL ÓRGANO EJECUTIVO '.
+            'DEL GOBIERNO AUTÓNOMO DEPARTAMENTAL DE COCHABAMBA - 2026');
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(11);
+        $sheet->getStyle('A1')->getAlignment()
+            ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+            ->setVertical(Alignment::VERTICAL_CENTER);
+
+        // --- FILA 2: ENCABEZADOS ---
+        $headers = [
+            'N°', 'DEPENDENCIA/DENOMINACIÓN JERÁRQUICA', 'NOMBRE DE CARGO', 'CATEGORÍA',
+            'NIVEL (CLASE)', 'NIVEL SALARIAL', 'CLASIFICACIÓN DEL PUESTO', 'SUELDO O HABER MENSUAL',
+            'NOMBRE COMPLETO', 'FECHA DE NACIMIENTO', 'Nº CARNET', 'FECHA DE INGRESO',
+            'OBSERVACIONES', 'MDC 2026'
+        ];
+        $col = 1;
+        foreach ($headers as $h) {
+            $sheet->setCellValueByColumnAndRow($col, 2, $h);
+            $col++;
+        }
+
+        $sheet->getStyle('A2:N2')->applyFromArray([
+            'font' => ['bold' => true, 'size' => 10, 'color' => ['rgb' => '000000']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'D9E1F2']],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical'   => Alignment::VERTICAL_CENTER,
+                'wrapText'   => true,
+            ],
+            'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '4F81BD']]],
+        ]);
+        $sheet->getRowDimension(2)->setRowHeight(35);
+
+        // --- DATOS ---
+        $row = 3;
+        foreach ($filas as $fila) {
+            if ($fila['tipo'] === 'dependencia') {
+                $sheet->mergeCells("A{$row}:N{$row}");
+                $sheet->setCellValue("A{$row}", $fila['nombre']);
+                $sheet->getStyle("A{$row}")->applyFromArray([
+                    'font' => ['bold' => true, 'size' => 10],
+                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'B4C7DC']],
+                    'alignment' => ['horizontal' => Alignment::HORIZONTAL_LEFT, 'vertical' => Alignment::VERTICAL_CENTER],
+                    'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '4F81BD']]],
+                ]);
+                $row++;
+                continue;
+            }
+
+            $sheet->setCellValue("A{$row}", $fila['item']);
+            $sheet->setCellValue("B{$row}", $fila['dependencia_jerarquica']);
+            $sheet->setCellValue("C{$row}", $fila['nombre_cargo']);
+            $sheet->setCellValue("D{$row}", $fila['categoria']);
+            $sheet->setCellValue("E{$row}", $fila['nivel_clase']);
+            $sheet->setCellValue("F{$row}", $fila['nivel_salarial']);
+            $sheet->setCellValue("G{$row}", $fila['clasificacion']);
+            $sheet->setCellValue("H{$row}", $fila['haber']);
+            $sheet->setCellValue("I{$row}", $fila['nombre_completo']);
+            $sheet->setCellValue("J{$row}", $fila['fecha_nacimiento']);
+            $sheet->setCellValue("K{$row}", $fila['ci']);
+            $sheet->setCellValue("L{$row}", $fila['fecha_ingreso']);
+            $sheet->setCellValue("M{$row}", $fila['observaciones']);
+            $sheet->setCellValue("N{$row}", $fila['formacion']);
+
+            // Formato moneda
+            $sheet->getStyle("H{$row}")->getNumberFormat()->setFormatCode('#,##0');
+
+            // Bordes y alineación
+            $sheet->getStyle("A{$row}:N{$row}")->applyFromArray([
+                'alignment' => [
+                    'vertical' => Alignment::VERTICAL_CENTER,
+                    'wrapText' => true,
+                ],
+                'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '4F81BD']]],
+            ]);
+            $sheet->getStyle("A{$row}:H{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle("I{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+            $sheet->getStyle("J{$row}:L{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+            $row++;
+        }
+
+        $sheet->freezePane('A3');
+        return $spreadsheet;
+    }
+
 }

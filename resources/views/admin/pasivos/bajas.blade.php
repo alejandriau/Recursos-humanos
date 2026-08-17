@@ -156,15 +156,16 @@
                 <a href="{{ route('historial.vacio') }}" class="btn btn-outline-primary">
                     <i class="fas fa-user-plus me-2"></i>Ver Puestos Vacíos
                 </a>
-                <a href="{{ route('reportes.personal') }}" class="btn btn-outline-danger">
-                    <i class="fas fa-file-pdf me-2"></i>Reporte PDF
+
+                <!-- PDF con filtros -->
+                <a href="{{ route('reportes.personal.pdf', request()->all()) }}" class="btn btn-outline-danger" target="_blank">
+                    <i class="fas fa-file-pdf me-2"></i>Reporte PDFl
                 </a>
-                <a href="{{ route('reportes.excel') }}" class="btn btn-outline-success">
+
+                <!-- Excel con filtros -->
+                <a href="{{ route('reportes.personal.excel', request()->all()) }}" class="btn btn-outline-success">
                     <i class="fas fa-file-excel me-2"></i>Descargar Excel
                 </a>
-                <!--<a href="{{ route('historial.estadisticas') }}" class="btn btn-outline-info">
-                    <i class="fas fa-chart-bar me-2"></i>Estadísticas
-                </a>-->
             </div>
         </div>
     </div>
@@ -238,7 +239,7 @@
                                         <span class="badge bg-warning">Vacante</span>
                                     @endif
                                 </td>
-                                
+
                                 <td class="jerarquia-text">
                                     @php
                                         $unidad = $puesto->unidadOrganizacional;
@@ -428,7 +429,7 @@
 @endsection
 
 @push('scripts')
-    
+
 
 @if (session('success'))
 <script>

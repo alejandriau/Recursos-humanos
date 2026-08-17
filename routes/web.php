@@ -371,6 +371,8 @@ Route::middleware([
         Route::get('/historial/estadisticas', [HistorialController::class, 'estadisticas'])->name('historial.estadisticas');
         Route::get('/persona/{persona}', [HistorialController::class, 'historialPersona'])->name('historial.persona');
         Route::put('/concluir/{historial}', [HistorialController::class, 'concluir'])->name('historial.concluir');
+        Route::get('/reportes/personal-pdf', [HistorialController::class, 'pdfPlanilla'])->name('reportes.personal.pdf');
+        Route::get('/reportes/personal-excel', [HistorialController::class, 'excelPlanilla'])->name('reportes.personal.excel');
         //ir a guaradar
         Route::get('/registrar/archivo/{id}', [ArchivoController::class, 'index'])->name('regisrar.archivos');
         //afps
