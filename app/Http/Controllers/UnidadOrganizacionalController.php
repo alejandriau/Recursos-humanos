@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\UnidadOrganizacional;
 use App\Models\Puesto;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class UnidadOrganizacionalController extends Controller
 {
@@ -54,7 +55,7 @@ class UnidadOrganizacionalController extends Controller
                 $query->orderBy('denominacion', 'asc');
             }
 
-            $unidades = $query->paginate($request->get('por_pagina', 15));
+            $unidades = $query->paginate($request->get('por_pagina', 50));
 
             // Estadísticas para la vista
             $estadisticas = [
@@ -220,7 +221,31 @@ class UnidadOrganizacionalController extends Controller
                              ->with('error', 'Error al eliminar unidad organizacional: ' . $e->getMessage());
         }
     }
+    public function bulkDesactivar(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'exists:unidad_organizacionals,id',
+        ]);
 
+        $count = UnidadOrganizacional::whereIn('id', $request->ids)->update(['esActivo' => false]);
+
+        return redirect()->route('unidades.index')
+            ->with('success', "{$count} unidad(es) desactivada(s) correctamente");
+    }
+
+    public function bulkReactivar(Request $request)
+    {
+        $request->validate([
+            'ids' => 'required|array|min:1',
+            'ids.*' => 'exists:unidad_organizacionals,id',
+        ]);
+
+        $count = UnidadOrganizacional::whereIn('id', $request->ids)->update(['esActivo' => true]);
+
+        return redirect()->route('unidades.index')
+            ->with('success', "{$count} unidad(es) reactivada(s) correctamente");
+    }
     /**
      * Obtener árbol organizacional completo
      */

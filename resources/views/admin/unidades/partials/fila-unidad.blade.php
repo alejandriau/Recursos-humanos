@@ -104,7 +104,7 @@
 
 <!-- Acciones -->
 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-    <div class="flex space-x-2" x-show="showActions || window.innerWidth < 768">
+    <div class="flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
         <!-- Ver -->
         <a href="{{ route('unidades.show', $unidad) }}"
            class="text-blue-600 hover:text-blue-900 transition-colors p-1 rounded hover:bg-blue-50"
@@ -155,10 +155,5 @@
                 <i class="fas fa-trash w-4 h-4"></i>
             </button>
         </form>
-    </div>
-
-    <!-- Indicador de acciones en hover (solo desktop) -->
-    <div x-show="!showActions && window.innerWidth >= 768" class="text-gray-400 text-xs">
-        Pase el cursor
     </div>
 </td>

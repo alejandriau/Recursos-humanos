@@ -288,6 +288,10 @@ Route::middleware([
 
         // Reactivar unidad
         Route::post('/unidades/{unidad}/reactivar', [UnidadOrganizacionalController::class, 'reactivar'])->name('unidades.reactivar');
+        
+        Route::post('unidades/bulk-desactivar', [UnidadOrganizacionalController::class, 'bulkDesactivar'])->name('unidades.bulk-desactivar');
+        Route::post('unidades/bulk-reactivar', [UnidadOrganizacionalController::class, 'bulkReactivar'])->name('unidades.bulk-reactivar');
+        Route::post('unidades/importar', [UnidadOrganizacionalController::class, 'importarEstructura'])->name('unidades.importar');
 
         // =============================================
         // RUTAS ADMIN DE PUESTOS
