@@ -185,19 +185,37 @@ class PuestoController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(string $id)
-    {
-        try {
-            $puesto = Puesto::findOrFail($id);
-            $unidades = UnidadOrganizacional::where('esActivo', true)->get();
+public function edit(string $id)
+{
+    try {
+        $puesto = Puesto::findOrFail($id);
 
-            return view('admin.puestos.edit', compact('puesto', 'unidades'));
+        // Obtener unidades activas
+        $unidades = UnidadOrganizacional::where('esActivo', true)->get();
 
-        } catch (\Exception $e) {
-            return redirect()->route('admin.puestos.index')
-                             ->with('error', 'Puesto no encontrado');
+        // Si la unidad del puesto no está en la lista (porque está inactiva), la agregamos
+        if ($puesto->idUnidadOrganizacional) {
+            $unidadPuesto = UnidadOrganizacional::find($puesto->idUnidadOrganizacional);
+            if ($unidadPuesto && !$unidades->contains('id', $puesto->idUnidadOrganizacional)) {
+                $unidades->push($unidadPuesto);
+            }
         }
+
+        // Obtener niveles jerárquicos únicos
+        $nivelesJerarquicos = Puesto::select('nivelJerarquico')
+            ->distinct()
+            ->whereNotNull('nivelJerarquico')
+            ->pluck('nivelJerarquico')
+            ->toArray();
+        sort($nivelesJerarquicos);
+
+        return view('admin.puestos.edit', compact('puesto', 'unidades', 'nivelesJerarquicos'));
+
+    } catch (\Exception $e) {
+        return redirect()->route('puestos.index')
+                         ->with('error', 'Puesto no encontrado');
     }
+}
 
     /**
      * Update the specified resource in storage.

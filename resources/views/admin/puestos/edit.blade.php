@@ -47,6 +47,7 @@
                     </div>
 
                     <!-- Nivel Jerárquico -->
+                    <!-- Nivel Jerárquico -->
                     <div>
                         <label for="nivelJerarquico" class="block text-sm font-medium text-gray-700">
                             Nivel Jerárquico *
@@ -55,20 +56,7 @@
                                 class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm @error('nivelJerarquico') border-red-300 @enderror"
                                 required>
                             <option value="">Seleccione un nivel</option>
-                            @foreach([
-                                'GOBERNADOR (A)',
-                                'SECRETARIA (O) DEPARTAMENTAL',
-                                'ASESORA (OR) / DIRECTORA (OR) / DIR. SERV. DPTAL.',
-                                'JEFA (E) DE UNIDAD',
-                                'PROFESIONAL I',
-                                'PROFESIONAL II',
-                                'ADMINISTRATIVO I',
-                                'ADMINISTRATIVO II',
-                                'APOYO ADMINISTRATIVO I',
-                                'APOYO ADMINISTRATIVO II',
-                                'APOYO ADMINISTRATIVO',
-                                'ASISTENTE'
-                            ] as $nivel)
+                            @foreach($nivelesJerarquicos as $nivel)
                                 <option value="{{ $nivel }}" {{ old('nivelJerarquico', $puesto->nivelJerarquico) == $nivel ? 'selected' : '' }}>
                                     {{ $nivel }}
                                 </option>
@@ -145,7 +133,8 @@
                                 required>
                             <option value="">Seleccione una unidad</option>
                             @foreach($unidades as $unidad)
-                                <option value="{{ $unidad->id }}" {{ old('idUnidadOrganizacional', $puesto->idUnidadOrganizacional) == $unidad->id ? 'selected' : '' }}>
+                                <option value="{{ $unidad->id }}" 
+                                    {{ (old('idUnidadOrganizacional', $puesto->idUnidadOrganizacional) == $unidad->id) ? 'selected' : '' }}>
                                     {{ $unidad->denominacion }} ({{ $unidad->tipo }})
                                 </option>
                             @endforeach
