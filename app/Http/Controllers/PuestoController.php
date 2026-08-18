@@ -11,68 +11,92 @@ class PuestoController extends Controller
     /**
      * Display a listing of the resource.
      */
-public function index(Request $request)
-{
-    try {
-        $query = Puesto::with(['unidadOrganizacional.padre']);
 
-        // Filtros básicos (igual que antes)
-        if ($request->filled('buscar')) {
-            $search = $request->buscar;
-            $query->where(function($q) use ($search) {
-                $q->where('denominacion', 'LIKE', "%{$search}%")
-                  ->orWhere('item', 'LIKE', "%{$search}%");
-            });
+    public function index(Request $request)
+    {
+        try {
+            $query = Puesto::with(['unidadOrganizacional.padre']);
+
+            // Por defecto, mostrar solo activos a menos que se especifique lo contrario
+            if ($request->has('estado') && $request->estado !== '') {
+                // Si el usuario selecciona un estado, aplicar ese filtro
+                if ($request->estado == 'activo') {
+                    $query->where('esActivo', true);
+                } elseif ($request->estado == 'inactivo') {
+                    $query->where('esActivo', false);
+                }
+                // si es 'todos', no aplicar filtro de estado
+            } else {
+                // Por defecto: solo activos
+                $query->where('esActivo', true);
+            }
+
+            // Filtros básicos (buscar)
+            if ($request->filled('buscar')) {
+                $search = $request->buscar;
+                $query->where(function($q) use ($search) {
+                    $q->where('denominacion', 'LIKE', "%{$search}%")
+                    ->orWhere('item', 'LIKE', "%{$search}%");
+                });
+            }
+
+            if ($request->filled('nivel_jerarquico')) {
+                $query->where('nivelJerarquico', $request->nivel_jerarquico);
+            }
+
+            if ($request->filled('tipo_contrato')) {
+                $query->where('tipoContrato', $request->tipo_contrato);
+            }
+
+            // Filtro de categoría (nuevo)
+            if ($request->filled('categoria')) {
+                $query->where('categoria', $request->categoria);
+            }
+
+            // Filtros de nivel salarial (desde-hasta)
+            if ($request->filled('nivel_salarial_desde')) {
+                $query->where('nivel_salarial', '>=', $request->nivel_salarial_desde);
+            }
+            if ($request->filled('nivel_salarial_hasta')) {
+                $query->where('nivel_salarial', '<=', $request->nivel_salarial_hasta);
+            }
+
+            // Eliminamos filtros de nivel_clase (desde/hasta) - ya no se aplican
+
+            $query->orderByRaw('CAST(item AS UNSIGNED) ASC');
+
+            $puestos = $query->paginate(100)->appends($request->all());
+
+            $nivelesJerarquicos = [
+                'GOBERNADOR (A)',
+                'SECRETARIA (O) DEPARTAMENTAL',
+                'ASESORA (OR) / DIRECTORA (OR) / DIR. SERV. DPTAL.',
+                'JEFA (E) DE UNIDAD',
+                'PROFESIONAL I',
+                'PROFESIONAL II',
+                'ADMINISTRATIVO I',
+                'ADMINISTRATIVO II',
+                'APOYO ADMINISTRATIVO I',
+                'APOYO ADMINISTRATIVO II',
+                'APOYO ADMINISTRATIVO',
+                'ASISTENTE'
+            ];
+
+            $estadisticas = [
+                'total' => Puesto::count(),
+                'activos' => Puesto::where('esActivo', true)->count(),
+                'inactivos' => Puesto::where('esActivo', false)->count(),
+                'jefaturas' => Puesto::where('esActivo', true)->where('esJefatura', true)->count(),
+                'vacantes' => Puesto::where('esActivo', true)->count(), // o la lógica que tengas
+            ];
+
+            return view('admin.puestos.index', compact('puestos', 'estadisticas', 'nivelesJerarquicos'));
+
+        } catch (\Exception $e) {
+            return redirect()->route('puestos.index')
+                            ->with('error', 'Error al cargar los puestos: ' . $e->getMessage());
         }
-
-        if ($request->filled('nivel_jerarquico')) {
-            $query->where('nivelJerarquico', $request->nivel_jerarquico);
-        }
-
-        if ($request->filled('tipo_contrato')) {
-            $query->where('tipoContrato', $request->tipo_contrato);
-        }
-
-        $query->orderBy('denominacion');
-
-        // Paginación con appends para mantener los filtros
-        $puestos = $query->paginate(100)->appends($request->all());
-
-        // Niveles jerárquicos
-        $nivelesJerarquicos = [
-            'GOBERNADOR (A)',
-            'SECRETARIA (O) DEPARTAMENTAL',
-            'ASESORA (OR) / DIRECTORA (OR) / DIR. SERV. DPTAL.',
-            'JEFA (E) DE UNIDAD',
-            'PROFESIONAL I',
-            'PROFESIONAL II',
-            'ADMINISTRATIVO I',
-            'ADMINISTRATIVO II',
-            'APOYO ADMINISTRATIVO I',
-            'APOYO ADMINISTRATIVO II',
-            'ASISTENTE'
-        ];
-
-        // Estadísticas CORREGIDAS - incluyendo 'vacantes'
-        $estadisticas = [
-            'total' => Puesto::count(),
-            'activos' => Puesto::where('esActivo', true)->count(),
-            'inactivos' => Puesto::where('esActivo', false)->count(),
-            'jefaturas' => Puesto::where('esActivo', true)->where('esJefatura', true)->count(),
-            'vacantes' => Puesto::where('esActivo', true)->count(), // Agregado
-        ];
-
-        return view('admin.puestos.index', compact(
-            'puestos',
-            'estadisticas',
-            'nivelesJerarquicos'
-        ));
-
-    } catch (\Exception $e) {
-        return redirect()->route('puestos.index')
-                         ->with('error', 'Error al cargar los puestos: ' . $e->getMessage());
     }
-}
 
     /**
      * Show the form for creating a new resource.
@@ -93,7 +117,7 @@ public function index(Request $request)
             $validated = $request->validate([
                 'denominacion' => 'required|string|max:800',
                 'descripcion_puesto' => 'nullable|string',
-                'nivelJerarquico' => 'required|in:GOBERNADOR (A),SECRETARIA (O) DEPARTAMENTAL,ASESORA (OR) / DIRECTORA (OR) / DIR. SERV. DPTAL.,JEFA (E) DE UNIDAD,PROFESIONAL I,PROFESIONAL II,ADMINISTRATIVO I,ADMINISTRATIVO II,APOYO ADMINISTRATIVO I,APOYO ADMINISTRATIVO II,ASISTENTE',
+                'nivelJerarquico' => 'required|string|max:255',
                 'categoria' => 'nullable|in:SUPERIOR,EJECUTIVO,OPERATIVO',
                 'nivel_clase' => 'nullable|integer|min:1',
                 'nivel_salarial' => 'nullable|integer|min:1',
@@ -107,6 +131,12 @@ public function index(Request $request)
                 'experencia' => 'nullable|string',
             ]);
 
+            // Asegurar esJefatura
+            $validated['esJefatura'] = $request->has('esJefatura');
+
+            // 🔍 Depuración: ver los datos que se van a guardar
+            // dd($validated); // Descomenta para probar
+
             $puesto = Puesto::create($validated);
 
             // Si es jefatura, asignar automáticamente
@@ -114,17 +144,23 @@ public function index(Request $request)
                 $this->asignarJefatura($puesto->id);
             }
 
-            return redirect()->route('admin.puestos.show', $puesto)
-                             ->with('success', 'Puesto creado correctamente');
+            // Cambia a una ruta que sepas que existe para probar
+            return redirect()->route('puestos.index')
+                            ->with('success', 'Puesto creado correctamente');
 
         } catch (\Illuminate\Validation\ValidationException $e) {
             return redirect()->back()
-                             ->withErrors($e->errors())
-                             ->withInput();
+                            ->withErrors($e->errors())
+                            ->withInput();
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Captura específica de errores de BD
+            return redirect()->back()
+                            ->with('error', 'Error de base de datos: ' . $e->getMessage())
+                            ->withInput();
         } catch (\Exception $e) {
             return redirect()->back()
-                             ->with('error', 'Error al crear puesto: ' . $e->getMessage())
-                             ->withInput();
+                            ->with('error', 'Error general: ' . $e->getMessage())
+                            ->withInput();
         }
     }
 
@@ -174,7 +210,7 @@ public function index(Request $request)
             $validated = $request->validate([
                 'denominacion' => 'required|string|max:800',
                 'descripcion_puesto' => 'nullable|string',
-                'nivelJerarquico' => 'required|in:GOBERNADOR (A),SECRETARIA (O) DEPARTAMENTAL,ASESORA (OR) / DIRECTORA (OR) / DIR. SERV. DPTAL.,JEFA (E) DE UNIDAD,PROFESIONAL I,PROFESIONAL II,ADMINISTRATIVO I,ADMINISTRATIVO II,APOYO ADMINISTRATIVO I,APOYO ADMINISTRATIVO II,ASISTENTE',
+                'nivelJerarquico' => 'required|string|max:255',
                 'categoria' => 'nullable|in:SUPERIOR,EJECUTIVO,OPERATIVO',
                 'nivel_clase' => 'nullable|integer|min:1',
                 'nivel_salarial' => 'nullable|integer|min:1',
@@ -188,24 +224,33 @@ public function index(Request $request)
                 'experencia' => 'nullable|string',
             ]);
 
+            // Asegurar el valor booleano de esJefatura
+            $validated['esJefatura'] = $request->has('esJefatura');
+
+            // Actualizar
             $puesto->update($validated);
 
-            // Si se marcó como jefatura, asignar automáticamente
-            if ($request->has('esJefatura') && $puesto->esJefatura) {
+            // Si es jefatura, asignar
+            if ($puesto->esJefatura) {
                 $this->asignarJefatura($puesto->id);
             }
 
-            return redirect()->route('admin.puestos.show', $puesto)
-                             ->with('success', 'Puesto actualizado correctamente');
+            // Redirigir a una ruta que exista (cambiar si es necesario)
+            return redirect()->route('puestos.index', $puesto)
+                            ->with('success', 'Puesto actualizado correctamente');
 
         } catch (\Illuminate\Validation\ValidationException $e) {
             return redirect()->back()
-                             ->withErrors($e->errors())
-                             ->withInput();
+                            ->withErrors($e->errors())
+                            ->withInput();
+        } catch (\Illuminate\Database\QueryException $e) {
+            return redirect()->back()
+                            ->with('error', 'Error de base de datos: ' . $e->getMessage())
+                            ->withInput();
         } catch (\Exception $e) {
             return redirect()->back()
-                             ->with('error', 'Error al actualizar puesto: ' . $e->getMessage())
-                             ->withInput();
+                            ->with('error', 'Error general: ' . $e->getMessage())
+                            ->withInput();
         }
     }
 

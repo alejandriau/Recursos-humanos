@@ -68,20 +68,15 @@
                 </select>
             </div>
 
-            <!-- Nivel Clase (desde) -->
+            <!-- Estado -->
             <div>
-                <label class="block text-sm font-medium text-gray-700">Nivel Clase (desde)</label>
-                <input type="number" name="nivel_clase_desde" value="{{ request('nivel_clase_desde') }}"
-                       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                       placeholder="Ej: 1">
-            </div>
-
-            <!-- Nivel Clase (hasta) -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700">Nivel Clase (hasta)</label>
-                <input type="number" name="nivel_clase_hasta" value="{{ request('nivel_clase_hasta') }}"
-                       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                       placeholder="Ej: 10">
+                <label class="block text-sm font-medium text-gray-700">Estado</label>
+                <select name="estado" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    <option value="">Activos (por defecto)</option>
+                    <option value="activo" {{ request('estado') == 'activo' ? 'selected' : '' }}>Activos</option>
+                    <option value="inactivo" {{ request('estado') == 'inactivo' ? 'selected' : '' }}>Inactivos</option>
+                    <option value="todos" {{ request('estado') == 'todos' ? 'selected' : '' }}>Todos</option>
+                </select>
             </div>
 
             <!-- Nivel Salarial (desde) -->
@@ -184,35 +179,35 @@
             <table class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Puesto</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unidad</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoría</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nivel Jerárquico</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Clase / Salarial</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contrato</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Haber</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Puesto</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Unidad</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoría</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">Nivel Jerárquico</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Clase / Salarial</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contrato</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Haber</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                        <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     @forelse($puestos as $puesto)
                     <tr class="hover:bg-gray-50 transition duration-150">
-                        <!-- Denominación + descripción al hover -->
-                        <td class="px-6 py-4">
+                        <!-- Denominación -->
+                        <td class="px-3 py-2">
                             <div class="flex items-center">
-                                <div class="flex-shrink-0 h-10 w-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                                    <i class="fas fa-user-tie text-blue-600"></i>
+                                <div class="flex-shrink-0 h-8 w-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-user-tie text-blue-600 text-xs"></i>
                                 </div>
-                                <div class="ml-4">
+                                <div class="ml-2">
                                     <div class="text-sm font-medium text-gray-900 group relative">
                                         <a href="{{ route('puestos.show', $puesto) }}" class="hover:text-blue-600">
-                                            {{ $puesto->denominacion }}
+                                            {{ Str::limit($puesto->denominacion, 30) }}
                                         </a>
                                         @if($puesto->descripcion_puesto)
-                                            <div class="absolute z-10 hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2 -mt-1 ml-2 whitespace-normal max-w-xs">
-                                                {{ Str::limit($puesto->descripcion_puesto, 100) }}
+                                            <div class="absolute z-10 hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2 whitespace-normal max-w-xs">
+                                                {{ $puesto->descripcion_puesto }}
                                             </div>
                                         @endif
                                     </div>
@@ -226,19 +221,19 @@
                         </td>
 
                         <!-- Unidad -->
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="px-3 py-2 whitespace-nowrap">
                             <div class="text-sm text-gray-900">
                                 <a href="{{ route('unidades.show', $puesto->unidadOrganizacional) }}" class="hover:text-blue-600">
-                                    {{ $puesto->unidadOrganizacional->denominacion }}
+                                    {{ Str::limit($puesto->unidadOrganizacional->denominacion, 20) }}
                                 </a>
                             </div>
                             <div class="text-xs text-gray-500">{{ $puesto->unidadOrganizacional->tipo }}</div>
                         </td>
 
-                        <!-- Categoría (NUEVO) -->
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <!-- Categoría -->
+                        <td class="px-3 py-2 whitespace-nowrap">
                             @if($puesto->categoria)
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                <span class="px-2 inline-flex text-xs leading-4 font-semibold rounded-full 
                                     @if($puesto->categoria == 'SUPERIOR') bg-red-100 text-red-800
                                     @elseif($puesto->categoria == 'EJECUTIVO') bg-orange-100 text-orange-800
                                     @else bg-blue-100 text-blue-800 @endif">
@@ -249,105 +244,95 @@
                             @endif
                         </td>
 
-                        <!-- Nivel Jerárquico -->
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {{ $puesto->nivelJerarquico }}
+                        <!-- Nivel Jerárquico (truncado con tooltip) -->
+                        <td class="px-3 py-2 whitespace-nowrap">
+                            <div class="text-sm text-gray-500 group relative">
+                                <span class="cursor-help">
+                                    {{ Str::limit($puesto->nivelJerarquico, 20) }}
+                                </span>
+                                <div class="absolute z-10 hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2 -mt-1 ml-0 whitespace-normal max-w-xs">
+                                    {{ $puesto->nivelJerarquico }}
+                                </div>
+                            </div>
                         </td>
 
-                        <!-- Nivel Clase y Nivel Salarial juntos -->
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <div class="text-sm text-gray-900">
-                                <span class="font-medium">Clase:</span> {{ $puesto->nivel_clase ?? '—' }}
-                            </div>
-                            <div class="text-xs text-gray-500">
-                                <span class="font-medium">Salarial:</span> {{ $puesto->nivel_salarial ?? '—' }}
-                            </div>
+                        <!-- Clase / Salarial -->
+                        <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
+                            <span class="font-medium">{{ $puesto->nivel_clase ?? '—' }}</span>
+                            <span class="text-gray-300">/</span>
+                            <span class="font-medium">{{ $puesto->nivel_salarial ?? '—' }}</span>
                         </td>
 
                         <!-- Item -->
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-500">
                             {{ $puesto->item ?? 'N/A' }}
                         </td>
 
-                        <!-- Tipo Contrato -->
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full
+                        <!-- Contrato -->
+                        <td class="px-3 py-2 whitespace-nowrap">
+                            <span class="px-2 inline-flex text-xs leading-4 font-semibold rounded-full
                                 {{ $puesto->tipoContrato == 'PERMANENTE' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' }}">
                                 {{ $puesto->tipoContrato }}
                             </span>
                         </td>
 
                         <!-- Haber -->
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td class="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
                             @if($puesto->haber)
-                                Bs. {{ number_format($puesto->haber, 2) }}
+                                Bs. {{ number_format($puesto->haber, 0) }}
                             @else
                                 <span class="text-gray-400">N/A</span>
                             @endif
                         </td>
 
                         <!-- Estado -->
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="px-3 py-2 whitespace-nowrap">
                             @if($puesto->esActivo)
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                <span class="px-2 inline-flex text-xs leading-4 font-semibold rounded-full bg-green-100 text-green-800">
                                     Activo
                                 </span>
                             @else
-                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                <span class="px-2 inline-flex text-xs leading-4 font-semibold rounded-full bg-red-100 text-red-800">
                                     Inactivo
                                 </span>
                             @endif
                         </td>
 
                         <!-- Acciones -->
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div class="flex space-x-2">
-                                <a href="{{ route('puestos.show', $puesto) }}"
-                                   class="text-blue-600 hover:text-blue-900" title="Ver detalles">
+                        <td class="px-3 py-2 whitespace-nowrap text-sm font-medium text-center">
+                            <div class="flex justify-center space-x-2">
+                                <a href="{{ route('puestos.show', $puesto) }}" class="text-blue-600 hover:text-blue-900" title="Ver">
                                     <i class="fas fa-eye"></i>
                                 </a>
-                                <a href="{{ route('puestos.edit', $puesto) }}"
-                                   class="text-green-600 hover:text-green-900" title="Editar">
+                                <a href="{{ route('puestos.edit', $puesto) }}" class="text-green-600 hover:text-green-900" title="Editar">
                                     <i class="fas fa-edit"></i>
                                 </a>
                                 @if($puesto->esActivo)
                                 <form action="{{ route('puestos.desactivar', $puesto) }}" method="POST" class="inline">
-                                    @csrf
-                                    @method('POST')
-                                    <button type="submit"
-                                            onclick="return confirm('¿Está seguro de desactivar este puesto?')"
-                                            class="text-yellow-600 hover:text-yellow-900" title="Desactivar">
+                                    @csrf @method('POST')
+                                    <button type="submit" onclick="return confirm('¿Desactivar?')" class="text-yellow-600 hover:text-yellow-900" title="Desactivar">
                                         <i class="fas fa-pause"></i>
                                     </button>
                                 </form>
                                 @else
                                 <form action="{{ route('puestos.reactivar', $puesto) }}" method="POST" class="inline">
-                                    @csrf
-                                    @method('POST')
-                                    <button type="submit"
-                                            onclick="return confirm('¿Está seguro de reactivar este puesto?')"
-                                            class="text-green-600 hover:text-green-900" title="Reactivar">
+                                    @csrf @method('POST')
+                                    <button type="submit" onclick="return confirm('¿Reactivar?')" class="text-green-600 hover:text-green-900" title="Reactivar">
                                         <i class="fas fa-play"></i>
                                     </button>
                                 </form>
                                 @endif
                                 @if($puesto->esJefatura)
                                 <form action="{{ route('puestos.quitar-jefatura', $puesto) }}" method="POST" class="inline">
-                                    @csrf
-                                    @method('POST')
-                                    <button type="submit"
-                                            onclick="return confirm('¿Está seguro de quitar la jefatura de este puesto?')"
-                                            class="text-purple-600 hover:text-purple-900" title="Quitar jefatura">
+                                    @csrf @method('POST')
+                                    <button type="submit" onclick="return confirm('¿Quitar jefatura?')" class="text-purple-600 hover:text-purple-900" title="Quitar jefatura">
                                         <i class="fas fa-times-circle"></i>
                                     </button>
                                 </form>
                                 @else
                                 <form action="{{ route('puestos.asignar-jefatura', $puesto) }}" method="POST" class="inline">
-                                    @csrf
-                                    @method('POST')
-                                    <button type="submit"
-                                            onclick="return confirm('¿Está seguro de asignar jefatura a este puesto?')"
-                                            class="text-purple-600 hover:text-purple-900" title="Asignar jefatura">
+                                    @csrf @method('POST')
+                                    <button type="submit" onclick="return confirm('¿Asignar jefatura?')" class="text-purple-600 hover:text-purple-900" title="Asignar jefatura">
                                         <i class="fas fa-crown"></i>
                                     </button>
                                 </form>
@@ -357,17 +342,16 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="10" class="px-6 py-12 text-center text-sm text-gray-500">
-                            <i class="fas fa-inbox text-4xl text-gray-300 mb-3 block"></i>
-                            <p>No se encontraron puestos de trabajo</p>
+                        <td colspan="10" class="px-3 py-6 text-center text-sm text-gray-500">
+                            <i class="fas fa-inbox text-3xl text-gray-300 mb-2 block"></i>
+                            No se encontraron puestos
                         </td>
                     </tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
-
-        <!-- Paginación (mantiene filtros) -->
+        <!-- Paginación -->
         @if($puestos->hasPages())
         <div class="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
             {{ $puestos->appends(request()->query())->links() }}

@@ -17,10 +17,14 @@ class UnidadOrganizacionalController extends Controller
         try {
             $query = UnidadOrganizacional::with(['padre', 'jefe', 'hijos.jefe']);
 
-            // Filtro de estado
-            if ($request->has('activo') && $request->activo !== '') {
-                $query->where('esActivo', $request->boolean('activo'));
+            // Filtro de estado: por defecto activos
+            $estado = $request->get('estado', 'activo'); // si no viene, asumimos 'activo'
+            if ($estado === 'activo') {
+                $query->where('esActivo', true);
+            } elseif ($estado === 'inactivo') {
+                $query->where('esActivo', false);
             }
+            // si es 'todos', no se aplica filtro de estado
 
             // Filtro de tipo - con validación
             if ($request->filled('tipo')) {
@@ -40,14 +44,9 @@ class UnidadOrganizacionalController extends Controller
                 });
             }
 
-            // Debug (opcional - quitar en producción)
-            // \Log::debug('SQL: ' . $query->toSql());
-            // \Log::debug('Bindings: ' . json_encode($query->getBindings()));
-
             // Ordenamiento
             $orden = $request->get('orden', 'denominacion');
             $direccion = $request->get('direccion', 'asc');
-
             $ordenesPermitidos = ['denominacion', 'codigo', 'sigla', 'tipo', 'created_at'];
             if (in_array($orden, $ordenesPermitidos)) {
                 $query->orderBy($orden, $direccion);
@@ -57,7 +56,6 @@ class UnidadOrganizacionalController extends Controller
 
             $unidades = $query->paginate($request->get('por_pagina', 50));
 
-            // Estadísticas para la vista
             $estadisticas = [
                 'activas' => UnidadOrganizacional::where('esActivo', true)->count(),
                 'inactivas' => UnidadOrganizacional::where('esActivo', false)->count(),

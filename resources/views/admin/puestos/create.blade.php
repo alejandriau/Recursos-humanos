@@ -65,6 +65,7 @@
                                 'ADMINISTRATIVO II',
                                 'APOYO ADMINISTRATIVO I',
                                 'APOYO ADMINISTRATIVO II',
+                                'APOYO ADMINISTRATIVO',
                                 'ASISTENTE'
                             ] as $nivel)
                                 <option value="{{ $nivel }}" {{ old('nivelJerarquico') == $nivel ? 'selected' : '' }}>
