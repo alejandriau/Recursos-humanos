@@ -49,7 +49,7 @@ class Salida extends Model
 
     public function tiposalida()
     {
-        return $this->belongsTo(Tiposalida::class, 'tiposalida_id');
+        return $this->belongsTo(TipoSalida::class, 'tiposalida_id');
     }
 
     public function jefe()

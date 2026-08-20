@@ -1007,12 +1007,12 @@
                     <a href="{{ asset('/beneficios/asignar') }}" class="nav-link">
                         <span class="label">Beneficios</span>
                     </a>
-                    <a href="{{ asset('/cas') }}" class="nav-link">
+                    <!--<a href="{{ asset('/cas') }}" class="nav-link">
                         <span class="label">CAS</span>
                     </a>
                     <a href="{{ asset('/kardex') }}" class="nav-link">
                         <span class="label">Kardex</span>
-                    </a>
+                    </a>-->
                 </div>
             </div>
         @endcan

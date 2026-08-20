@@ -107,7 +107,7 @@
 
                                     @if($user->trashed())
                                         <!-- Reactivar -->
-                                        @can('restaurar usuarios')
+                                        @can('eliminar usuarios')
                                             <form action="{{ route('users.restore', $user) }}" method="POST" class="d-inline"
                                                   onsubmit="return confirm('¿Reactivar este usuario?')">
                                                 @csrf
