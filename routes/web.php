@@ -113,6 +113,13 @@ Route::middleware([
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/persona/foto/{id}', [PersonaController::class, 'mostrarFoto'])->name('persona.foto');
     Route::get('/usuario/foto/{id}', [PersonaController::class, 'usuarioMostrarFoto'])->name('usuario.foto');
+    Route::post('/bienvenida/visto', [EventoController::class, 'marcarBienvenidaVista'])->name('bienvenida.visto');
+            // Notificaciones para el navbar (dropdown)
+    Route::get('/notificaciones/no-leidas', [NotificacionController::class, 'noLeidas'])->name('notificaciones.no-leidas');
+    Route::get('/notificaciones/todas', [NotificacionController::class, 'todas'])->name('notificaciones.todas');
+    Route::post('/notificaciones/{id}/leida', [NotificacionController::class, 'marcarLeida'])->name('notificaciones.leida');
+    Route::post('/notificaciones/marcar-todas', [NotificacionController::class, 'marcarTodasLeidas'])->name('notificaciones.todas-leidas');
+    Route::get('/notificaciones/marcar-todas', [NotificacionController::class, 'TodasLeidas'])->name('notificaciones.todas-leidas');
 
     Route::middleware(['auth', 'role:admin'])->group(function () {
         Route::get('/reporte', [ReporteController::class, 'index'])->name('reportes.index');
@@ -123,13 +130,8 @@ Route::middleware([
             return view('chatbot.chatbot');
         });
 
-        Route::post('/bienvenida/visto', [EventoController::class, 'marcarBienvenidaVista'])->name('bienvenida.visto');
-        // Notificaciones para el navbar (dropdown)
-        Route::get('/notificaciones/no-leidas', [NotificacionController::class, 'noLeidas'])->name('notificaciones.no-leidas');
-        Route::get('/notificaciones/todas', [NotificacionController::class, 'todas'])->name('notificaciones.todas');
-        Route::post('/notificaciones/{id}/leida', [NotificacionController::class, 'marcarLeida'])->name('notificaciones.leida');
-        Route::post('/notificaciones/marcar-todas', [NotificacionController::class, 'marcarTodasLeidas'])->name('notificaciones.todas-leidas');
-        Route::get('/notificaciones/marcar-todas', [NotificacionController::class, 'TodasLeidas'])->name('notificaciones.todas-leidas');
+        
+
 
             Route::prefix('zk')->group(function () {
             // Conexión y sincronización

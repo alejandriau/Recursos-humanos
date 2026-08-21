@@ -1,6 +1,28 @@
 @extends('layouts.baseusr')
 
 @section('cuerpo')
+<style>
+    .modal-vacaciones {
+    max-width: 70%;
+}
+
+@media (max-width: 576px) {
+    .modal-vacaciones {
+        max-width: 100%;
+        width: 100%;
+        margin: 0;
+    }
+
+    .modal-vacaciones .modal-content {
+        min-height: 100vh;
+        border-radius: 0;
+    }
+
+    .modal-vacaciones .modal-body {
+        overflow-y: auto;
+    }
+}
+</style>
 <div class="container-fluid px-4">
     <!-- Header -->
     <div class="row mb-4">
@@ -290,7 +312,7 @@
     <!-- MODAL CREAR (colocado al final del section) -->
     <!-- ============================================================ -->
     <div class="modal fade" id="modalCrearVacacion" tabindex="-1" aria-labelledby="modalCrearLabel" aria-hidden="true">
-        <div class="modal-dialog modal-xl modal-dialog-centered" style="max-width: 70%;">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-vacaciones">
             <div class="modal-content" style="border-radius: 0.4rem;">
                 <div class="modal-header bg-primary text-white">
                     <h5 class="modal-title" id="modalCrearLabel"><i class="fas fa-plus me-2"></i>Nueva Solicitud de Vacación</h5>

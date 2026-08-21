@@ -130,7 +130,7 @@
                     <div class="row">
                         {{-- Columna izquierda --}}
                         <div class="col-md-6">
-                            <input type="text" id="idserv" name="idserv" value="{{ $persona->id }}">
+                            <input type="hidden" id="idserv" name="idserv" value="{{ $persona->id }}">
                             <div class="form-floating mb-2">
                                 <input type="text" class="form-control" id="nomb"
                                        value="{{ $persona->nombre ?? '' }} {{ $persona->apellidoPat ?? '' }} {{ $persona->apellidoMat ?? '' }}"

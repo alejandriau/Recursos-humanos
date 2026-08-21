@@ -15,7 +15,7 @@
                 <label for="{{ $edit ? 'edit_descripcion' : 'descripcion' }}">Descripción (*)</label>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-4">
             <div class="form-floating mb-2">
                 <textarea class="form-control" id="{{ $edit ? 'edit_sustLegal' : 'sustLegal' }}" 
                           name="sustLegal" style="height: 58px;">{{ old('sustLegal', $edit && isset($tiposalida) ? $tiposalida->sustLegal : '') }}</textarea>
@@ -32,7 +32,7 @@
                 <label for="{{ $edit ? 'edit_expresa' : 'expresa' }}">Expresa en:</label>
             </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-2">
             <div class="form-floating mb-2">
                 <select class="form-select" id="{{ $edit ? 'edit_id_padre' : 'id_padre' }}" name="id_padre">
                     <option value=""></option>

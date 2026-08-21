@@ -152,7 +152,7 @@
     {{-- ==================== MODAL CREAR ==================== --}}
 {{-- Modal Crear --}}
 <div class="modal fade" id="crearModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title"><i class="fa-solid fa-plus"></i> Nuevo Tipo de Salida</h5>
@@ -174,7 +174,7 @@
 
 {{-- Modal Editar --}}
 <div class="modal fade" id="editarModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header bg-warning text-dark">
                 <h5 class="modal-title"><i class="fa-regular fa-pen-to-square"></i> Editar Tipo de Salida</h5>

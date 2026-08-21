@@ -1192,7 +1192,7 @@
     <!-- ============================================================
     MODALES
     ============================================================ -->
-    @if($contextoEvento['mostrar_bienvenida'] || $contextoEvento['evento'] || $contextoEvento['es_cumpleanos'])
+    @if($contextoEvento['mostrar_modal'] ?? false)
         @php $tema = $contextoEvento['tema']; @endphp
 
         <div class="modal fade modal-evento" id="modalEventoHoy"
@@ -1369,11 +1369,12 @@ document.documentElement.style.setProperty('--theme-secondary', tema.color_secun
 // ================================================================
 document.addEventListener('DOMContentLoaded', function() {
     const modalEl = document.getElementById('modalEventoHoy');
+
+    // ✅ Solo si el modal existe en el DOM
     if (modalEl) {
         const modal = new bootstrap.Modal(modalEl);
         modal.show();
 
-        // Lanzar efecto según tipo después de un momento
         setTimeout(() => {
             switch (tema.efecto) {
                 case 'confeti':   lanzarConfeti(); break;
@@ -1384,7 +1385,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 600);
     }
 
-    // Cargar notificaciones al iniciar
     cargarNotificaciones();
 });
 
