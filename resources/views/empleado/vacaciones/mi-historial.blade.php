@@ -167,7 +167,7 @@
                             <thead class="table-light">
                                 <tr>
                                     <th>Fecha Solicitud</th><th>Desde</th><th>Hasta</th><th>Días</th>
-                                    <th>Estado</th><th>Observaciones</th><th>Acciones</th>
+                                    <th>Estado</th><th>Responsable</th><th>Observaciones</th><th>Acciones</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -177,6 +177,7 @@
                                     <td>{{ \Carbon\Carbon::parse($solicitud->fechasal)->format('d/m/Y') }}</td>
                                     <td>{{ \Carbon\Carbon::parse($solicitud->fecharet)->format('d/m/Y') }}</td>
                                     <td class="fw-bold">{{ $solicitud->cantidad }}</td>
+                                    <!-- Columna Estado (ya existente) -->
                                     <td>
                                         @php
                                             $estados = [
@@ -191,6 +192,71 @@
                                         @endphp
                                         <span class="badge bg-{{ $est['class'] }} py-2 px-3">
                                             <i class="fas {{ $est['icon'] }} me-1"></i>{{ $est['text'] }}
+                                        </span>
+                                    </td>
+
+                                    <!-- NUEVA COLUMNA: Responsable -->
+                                    <td>
+                                        @php
+                                            $responsable = '-';
+                                            $fecha = '';
+
+                                            switch ($solicitud->estado) {
+                                                case 'pendiente_jefe':
+                                                    $responsable = $solicitud->jefe 
+                                                        ? $solicitud->jefe->nombre . ' ' . $solicitud->jefe->apellidoPat
+                                                        : 'Sin jefe asignado';
+                                                    break;
+
+                                                case 'pendiente_rrhh':
+                                                    $responsable = 'Recursos Humanos';
+                                                    break;
+
+                                                case 'aprobado':
+                                                    // ¿Quién aprobó? Si tiene fecha de aprobación de jefe, fue el jefe; 
+                                                    // si tiene fecha de RRHH, fue RRHH.
+                                                    if ($solicitud->fecha_aprobacion_jefe) {
+                                                        $responsable = $solicitud->jefe 
+                                                            ? $solicitud->jefe->nombre . ' ' . $solicitud->jefe->apellidoPat
+                                                            : 'Jefe (sin nombre)';
+                                                        $fecha = $solicitud->fecha_aprobacion_jefe;
+                                                    } elseif ($solicitud->fecha_aprobacion_rrhh) {
+                                                        $responsable = $solicitud->rrhh 
+                                                            ? $solicitud->rrhh->nombre . ' ' . $solicitud->rrhh->apellidoPat
+                                                            : 'RRHH (sin nombre)';
+                                                        $fecha = $solicitud->fecha_aprobacion_rrhh;
+                                                    } else {
+                                                        $responsable = 'Aprobado (sin registro)';
+                                                    }
+                                                    break;
+
+                                                case 'rechazado':
+                                                    if ($solicitud->fecha_aprobacion_jefe && $solicitud->estado_jefe === 'rechazado') {
+                                                        $responsable = $solicitud->jefe 
+                                                            ? $solicitud->jefe->nombre . ' ' . $solicitud->jefe->apellidoPat
+                                                            : 'Jefe (sin nombre)';
+                                                    } elseif ($solicitud->fecha_aprobacion_rrhh && $solicitud->estado_rrhh === 'rechazado') {
+                                                        $responsable = $solicitud->rrhh 
+                                                            ? $solicitud->rrhh->nombre . ' ' . $solicitud->rrhh->apellidoPat
+                                                            : 'RRHH (sin nombre)';
+                                                    } else {
+                                                        $responsable = 'Rechazado (sin responsable)';
+                                                    }
+                                                    break;
+
+                                                default:
+                                                    $responsable = '-';
+                                            }
+                                        @endphp
+
+                                        <span class="small">
+                                            <i class="fas fa-user-circle me-1 text-muted"></i>
+                                            {{ $responsable }}
+                                            @if($fecha)
+                                                <br><span class="text-muted" style="font-size: 0.75rem;">
+                                                    <i class="far fa-calendar-alt me-1"></i>{{ \Carbon\Carbon::parse($fecha)->format('d/m/Y H:i') }}
+                                                </span>
+                                            @endif
                                         </span>
                                     </td>
                                     <td>

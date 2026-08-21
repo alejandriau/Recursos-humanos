@@ -1355,7 +1355,7 @@ function cargarNotificaciones() {
                 const icono = iconos[n.tipo] || iconos['default'];
                 const colorClass = colores[n.tipo] || colores['default'];
                 return `
-                    <a href="${n.url}" class="notif-item unread" onclick="marcarLeida('${n.id}', event)">
+                    <a href="${n.url}" class="notif-item unread" onclick="marcarLeida('${n.id}', '${n.url}', event)">
                         <div class="notif-icon ${colorClass}">
                             <i class="fas ${icono}"></i>
                         </div>

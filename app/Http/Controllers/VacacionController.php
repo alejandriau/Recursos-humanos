@@ -285,7 +285,12 @@ public function store(Request $request)
             ->where('tiposalida_id', function($q) {
                 $q->select('id')->from('tiposalidas')->where('usa_tabla_antiguedad', true);
             })
-            ->with(['tipoSalida', 'movimientosVacacion'])
+            ->with([
+                'tipoSalida',
+                'movimientosVacacion',
+                'jefe',          // <-- Agregar
+                'rrhh'           // <-- Agregar
+            ])
             ->orderBy('created_at', 'desc')
             ->get();
 

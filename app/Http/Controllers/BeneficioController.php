@@ -68,7 +68,7 @@ class BeneficioController extends Controller
             $beneficiosCreados = [];
 
             foreach ($request->beneficios as $b) {
-                $tipo = Tiposalida::find($b['tiposalida_id']);
+                $tipo = TipoSalida::find($b['tiposalida_id']);
 
                 // Verificar que el tipo sea asignable
                 if ($tipo->hijos()->exists()) {

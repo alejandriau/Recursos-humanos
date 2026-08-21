@@ -213,7 +213,7 @@
             </h2>
             <small class="text-muted">
                 <i class="fas fa-user-circle me-1"></i>
-                {{ $rrhh->nombre ?? '' }} {{ $rrhh->apellido ?? '' }}
+                {{ $rrhh->nombre ?? '' }} {{ $rrhh->apellidoPat ?? '' }}
                 <span class="mx-2">|</span>
                 <i class="far fa-clock me-1"></i>
                 {{ now()->format('d/m/Y H:i') }}
@@ -551,7 +551,7 @@ window.actualizarTabla = function(solicitudes) {
             <tr class="solicitud-item">
                 <td><input type="checkbox" class="solicitud-checkbox" value="${s.id}"></td>
                 <td>
-                    <strong>${s.persona?.nombre || 'N/A'} ${s.persona?.apellido || ''}</strong>
+                    <strong>${s.persona?.nombre || 'N/A'} ${s.persona?.apellidoPat || ''}</strong>
                     <br><small class="text-muted">CI: ${s.persona?.ci || 'N/A'}</small>
                 </td>
                 <td>

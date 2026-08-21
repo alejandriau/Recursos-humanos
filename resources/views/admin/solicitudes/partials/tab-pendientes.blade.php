@@ -51,7 +51,7 @@
                             <input type="checkbox" class="solicitud-checkbox" value="{{ $solicitud->id }}">
                         </td>
                         <td>
-                            <strong>{{ $solicitud->persona->nombre ?? 'N/A' }} {{ $solicitud->persona->apellido ?? '' }}</strong>
+                            <strong>{{ $solicitud->persona->nombre ?? 'N/A' }} {{ $solicitud->persona->apellidoPat ?? '' }} {{ $solicitud->persona->apellidoMat ?? '' }}</strong>
                             <br>
                             <small class="text-muted">
                                 <i class="fas fa-id-card"></i> {{ $solicitud->persona->ci ?? 'N/A' }}
@@ -102,7 +102,7 @@
                             @if($solicitud->jefe)
                                 <br>
                                 <small class="text-muted">
-                                    Jefe: {{ $solicitud->jefe->nombre ?? '' }} {{ $solicitud->jefe->apellido ?? '' }}
+                                    Jefe: {{ $solicitud->jefe->nombre ?? '' }} {{ $solicitud->jefe->apellidoPat ?? '' }} {{ $solicitud->jefe->apellidoMat ?? '' }}
                                 </small>
                             @endif
                         </td>

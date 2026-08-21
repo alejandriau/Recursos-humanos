@@ -65,7 +65,8 @@
                                 <th>Fecha retorno</th>
                                 <th>Hora retorno</th>
                                 <th>Motivo</th>
-                                <th>Estado Jefe</th>
+                                <th>🧑‍💼 Jefe Inmediato</th>
+                                <th>🏢 RRHH</th>
                                 <th>Acciones</th>
                             </tr>
                         </thead>
@@ -78,34 +79,148 @@
                                 <td>{{ \Carbon\Carbon::parse($sol->fecharet)->format('d-m-Y') }}</td>
                                 <td>{{ $sol->horaret }}</td>
                                 <td>{{ Str::limit($sol->motivo, 30) }}</td>
+
+                                {{-- ===== COLUMNA JEFE INMEDIATO ===== --}}
                                 <td>
-                                    @if($sol->estado_jefe == 'pendiente')
-                                        <span class="badge bg-warning text-dark">Pendiente</span>
-                                    @elseif($sol->estado_jefe == 'aprobado')
-                                        <span class="badge bg-success">Aprobado</span>
+                                    @php
+                                        $estadoJefe = strtolower($sol->estado_jefe ?? '');
+                                        $badgeJefe = 'bg-secondary';
+                                        $textoJefe = 'Sin estado';
+                                        $iconoJefe = 'fa-question-circle';
+
+                                        if ($estadoJefe === 'pendiente') {
+                                            $badgeJefe = 'bg-warning text-dark';
+                                            $textoJefe = 'Pendiente';
+                                            $iconoJefe = 'fa-clock';
+                                        } elseif ($estadoJefe === 'aprobado') {
+                                            $badgeJefe = 'bg-success';
+                                            $textoJefe = 'Aprobado';
+                                            $iconoJefe = 'fa-check-circle';
+                                        } elseif ($estadoJefe === 'rechazado') {
+                                            $badgeJefe = 'bg-danger';
+                                            $textoJefe = 'Rechazado';
+                                            $iconoJefe = 'fa-times-circle';
+                                        } elseif (empty($estadoJefe)) {
+                                            $badgeJefe = 'bg-light text-dark border';
+                                            $textoJefe = 'Sin asignar';
+                                            $iconoJefe = 'fa-user-slash';
+                                        }
+                                    @endphp
+                                    <span class="badge {{ $badgeJefe }} py-2 px-3 mb-1 d-inline-block">
+                                        <i class="fas {{ $iconoJefe }} me-1"></i>{{ $textoJefe }}
+                                    </span>
+                                    <div class="small mt-1">
+                                        @if($sol->jefe)
+                                            <i class="fas fa-user-tie me-1 text-muted"></i>
+                                            {{ $sol->jefe->nombre }} {{ $sol->jefe->apellidoPat }}
+                                            @if($sol->fecha_aprobacion_jefe)
+                                                <br>
+                                                <span class="text-muted" style="font-size: 0.75rem;">
+                                                    <i class="far fa-calendar-alt me-1"></i>
+                                                    {{ \Carbon\Carbon::parse($sol->fecha_aprobacion_jefe)->format('d/m/Y H:i') }}
+                                                </span>
+                                            @endif
+                                        @else
+                                            <span class="text-muted fst-italic" style="font-size: 0.8rem;">
+                                                <i class="fas fa-user-slash me-1"></i>Sin jefe asignado
+                                            </span>
+                                        @endif
+                                    </div>
+                                </td>
+
+                                {{-- ===== COLUMNA RRHH ===== --}}
+                                <td>
+                                    @php
+                                        $estadoRRHH = strtolower($sol->estado_rrhh ?? '');
+                                        
+                                        // RRHH solo actúa si el jefe ya aprobó
+                                        $rrhhPuedeActuar = in_array($estadoJefe, ['aprobado']);
+                                        $rrhhNoAplica = in_array($estadoJefe, ['rechazado']) || empty($estadoJefe);
+                                        
+                                        $badgeRRHH = 'bg-secondary';
+                                        $textoRRHH = 'Desconocido';
+                                        $iconoRRHH = 'fa-question-circle';
+
+                                        if ($rrhhNoAplica) {
+                                            $badgeRRHH = 'bg-light text-muted border';
+                                            $textoRRHH = 'N/A';
+                                            $iconoRRHH = 'fa-minus-circle';
+                                        } elseif (!$rrhhPuedeActuar) {
+                                            $badgeRRHH = 'bg-light text-dark border';
+                                            $textoRRHH = 'En espera';
+                                            $iconoRRHH = 'fa-hourglass-half';
+                                        } elseif ($estadoRRHH === 'pendiente') {
+                                            $badgeRRHH = 'bg-warning text-dark';
+                                            $textoRRHH = 'Pendiente';
+                                            $iconoRRHH = 'fa-clock';
+                                        } elseif ($estadoRRHH === 'aprobado') {
+                                            $badgeRRHH = 'bg-success';
+                                            $textoRRHH = 'Aprobado';
+                                            $iconoRRHH = 'fa-check-circle';
+                                        } elseif ($estadoRRHH === 'rechazado') {
+                                            $badgeRRHH = 'bg-danger';
+                                            $textoRRHH = 'Rechazado';
+                                            $iconoRRHH = 'fa-times-circle';
+                                        }
+                                    @endphp
+                                    <span class="badge {{ $badgeRRHH }} py-2 px-3 mb-1 d-inline-block">
+                                        <i class="fas {{ $iconoRRHH }} me-1"></i>{{ $textoRRHH }}
+                                    </span>
+                                    <div class="small mt-1">
+                                        @if($sol->rrhh && $rrhhPuedeActuar && !$rrhhNoAplica)
+                                            <i class="fas fa-user-shield me-1 text-muted"></i>
+                                            {{ $sol->rrhh->nombre }} {{ $sol->rrhh->apellidoPat }}
+                                            @if($sol->fecha_aprobacion_rrhh)
+                                                <br>
+                                                <span class="text-muted" style="font-size: 0.75rem;">
+                                                    <i class="far fa-calendar-alt me-1"></i>
+                                                    {{ \Carbon\Carbon::parse($sol->fecha_aprobacion_rrhh)->format('d/m/Y H:i') }}
+                                                </span>
+                                            @endif
+                                        @elseif($rrhhNoAplica)
+                                            <span class="text-muted fst-italic" style="font-size: 0.8rem;">
+                                                No aplica por estado del jefe
+                                            </span>
+                                        @else
+                                            <span class="text-muted fst-italic" style="font-size: 0.8rem;">
+                                                Esperando aprobación del jefe
+                                            </span>
+                                        @endif
+                                    </div>
+                                </td>
+
+                                {{-- ===== ACCIONES ===== --}}
+                                <td>
+                                    @php
+                                        // Editable solo si JEFE está pendiente o sin asignar
+                                        $editable = empty($estadoJefe) || $estadoJefe === 'pendiente';
+                                        // PDF solo si ambos aprobaron (ajusta según tu regla de negocio)
+                                        $pdfDisponible = ($estadoJefe === 'aprobado' && $estadoRRHH === 'aprobado');
+                                    @endphp
+
+                                    @if($editable)
+                                        <button class="btn btn-sm btn-info btn-editar" data-id="{{ $sol->id }}">
+                                            <i class="fa fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-danger btn-eliminar" data-id="{{ $sol->id }}">
+                                            <i class="fa fa-trash"></i>
+                                        </button>
                                     @else
-                                        <span class="badge bg-danger">Rechazado</span>
+                                        <div class="d-flex align-items-center gap-1">
+                                            <span class="text-muted me-1" style="font-size: 0.8rem;">No editable</span>
+                                            @if($pdfDisponible)
+                                                <a href="{{ route('comision.boleta', $sol->id) }}" class="btn btn-sm btn-success" target="_blank">
+                                                    <i class="fa fa-file-pdf"></i> PDF
+                                                </a>
+                                            @elseif($estadoJefe === 'aprobado' && (empty($estadoRRHH) || $estadoRRHH === 'pendiente'))
+                                                {{-- Si tu regla es que PDF sale con solo jefe, cambia la línea de arriba --}}
+                                                <a href="{{ route('comision.boleta', $sol->id) }}" class="btn btn-sm btn-success" target="_blank">
+                                                    <i class="fa fa-file-pdf"></i> PDF
+                                                </a>
+                                            @endif
+                                        </div>
                                     @endif
                                 </td>
-<td>
-    @if($sol->estado_jefe == 'pendiente')
-        <button class="btn btn-sm btn-info btn-editar" data-id="{{ $sol->id }}">
-            <i class="fa fa-edit"></i>
-        </button>
-        <button class="btn btn-sm btn-danger btn-eliminar" data-id="{{ $sol->id }}">
-            <i class="fa fa-trash"></i>
-        </button>
-    @else
-        <div class="btn-group" role="group">
-            <span class="text-muted me-2">No disponible</span>
-            @if($sol->estado_jefe == 'aprobado')
-                <a href="{{ route('comision.boleta', $sol->id) }}" class="btn btn-sm btn-success" target="_blank">
-                    <i class="fa fa-file-pdf"></i> PDF
-                </a>
-            @endif
-        </div>
-    @endif
-</td>
                             </tr>
                             @endforeach
                         </tbody>
@@ -500,108 +615,150 @@
             }
         });
 
-        // ----- FUNCIONALIDAD DE LA TABLA DE SOLICITUDES (existente) -----
+        // ----- FUNCIONALIDAD DE LA TABLA DE SOLICITUDES (NUEVA VERSIÓN CON COLUMNA RESPONSABLE) -----
 
         // Función para recargar la tabla de solicitudes
-function cargarSolicitudes() {
-    axios.get('/comision/mis-solicitudes')
-        .then(res => {
-            const data = res.data.data;
+        function cargarSolicitudes() {
+            axios.get('/comision/mis-solicitudes')
+                .then(res => {
+                    if (!res.data.success) {
+                        Swal.fire('Error', res.data.message, 'error');
+                        return;
+                    }
 
-            const tbody = document.getElementById('tbodySolicitudes');
-            if (!tbody) return;
+                    const data = res.data.data;
+                    const tbody = document.getElementById('tbodySolicitudes');
+                    if (!tbody) return;
 
-            if (data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" class="text-center">No tienes solicitudes registradas</td></tr>';
-                return;
-            }
+                    if (data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">No tienes solicitudes registradas</td></tr>';
+                        return;
+                    }
 
-            let html = '';
+                    let html = '';
+                    data.forEach((sol, index) => {
+                        const estadoJefe = (sol.estado_jefe || '').toLowerCase();
+                        const estadoRRHH = (sol.estado_rrhh || '').toLowerCase();
 
-            data.forEach((sol, index) => {
-                // Determinar si la solicitud es editable (pendiente)
-                const editable = sol.editable || (sol.estado_jefe && sol.estado_jefe.toLowerCase() === 'pendiente');
+                        // === JEFE INMEDIATO ===
+                        let badgeJefe = 'bg-secondary';
+                        let textoJefe = 'Sin estado';
+                        let iconoJefe = 'fa-question-circle';
 
-                let acciones = '';
-                if (editable) {
-                    acciones = `
-                        <button class="btn btn-sm btn-info btn-editar" data-id="${sol.id}">
-                            <i class="fa fa-edit"></i>
-                        </button>
-                        <button class="btn btn-sm btn-danger btn-eliminar" data-id="${sol.id}">
-                            <i class="fa fa-trash"></i>
-                        </button>
-                    `;
-                } else {
-                    // Si no es editable, mostrar "No disponible" y el botón PDF si está aprobado
-                    let pdfButton = '';
-                    if (sol.estado_jefe && sol.estado_jefe.toLowerCase() === 'aprobado') {
-                        pdfButton = `
-                            <a href="/comision/boleta/${sol.id}" class="btn btn-sm btn-success" target="_blank">
-                                <i class="fa fa-file-pdf"></i> PDF
-                            </a>
+                        if (estadoJefe === 'pendiente') {
+                            badgeJefe = 'bg-warning text-dark'; textoJefe = 'Pendiente'; iconoJefe = 'fa-clock';
+                        } else if (estadoJefe === 'aprobado') {
+                            badgeJefe = 'bg-success'; textoJefe = 'Aprobado'; iconoJefe = 'fa-check-circle';
+                        } else if (estadoJefe === 'rechazado') {
+                            badgeJefe = 'bg-danger'; textoJefe = 'Rechazado'; iconoJefe = 'fa-times-circle';
+                        } else if (!estadoJefe) {
+                            badgeJefe = 'bg-light text-dark border'; textoJefe = 'Sin asignar'; iconoJefe = 'fa-user-slash';
+                        }
+
+                        const nombreJefe = sol.jefe_nombre && sol.jefe_apellido_pat
+                            ? `${sol.jefe_nombre} ${sol.jefe_apellido_pat}`
+                            : null;
+
+                        const htmlJefe = nombreJefe
+                            ? `<i class="fas fa-user-tie me-1 text-muted"></i>${nombreJefe}
+                            ${sol.fecha_aprobacion_jefe ? `<br><span class="text-muted" style="font-size:0.75rem;"><i class="far fa-calendar-alt me-1"></i>${sol.fecha_aprobacion_jefe}</span>` : ''}`
+                            : `<span class="text-muted fst-italic" style="font-size:0.8rem;"><i class="fas fa-user-slash me-1"></i>Sin jefe asignado</span>`;
+
+                        // === RRHH ===
+                        const rrhhPuedeActuar = estadoJefe === 'aprobado';
+                        const rrhhNoAplica = estadoJefe === 'rechazado' || !estadoJefe;
+
+                        let badgeRRHH = 'bg-secondary';
+                        let textoRRHH = 'Desconocido';
+                        let iconoRRHH = 'fa-question-circle';
+
+                        if (rrhhNoAplica) {
+                            badgeRRHH = 'bg-light text-muted border'; textoRRHH = 'N/A'; iconoRRHH = 'fa-minus-circle';
+                        } else if (!rrhhPuedeActuar) {
+                            badgeRRHH = 'bg-light text-dark border'; textoRRHH = 'En espera'; iconoRRHH = 'fa-hourglass-half';
+                        } else if (estadoRRHH === 'pendiente') {
+                            badgeRRHH = 'bg-warning text-dark'; textoRRHH = 'Pendiente'; iconoRRHH = 'fa-clock';
+                        } else if (estadoRRHH === 'aprobado') {
+                            badgeRRHH = 'bg-success'; textoRRHH = 'Aprobado'; iconoRRHH = 'fa-check-circle';
+                        } else if (estadoRRHH === 'rechazado') {
+                            badgeRRHH = 'bg-danger'; textoRRHH = 'Rechazado'; iconoRRHH = 'fa-times-circle';
+                        }
+
+                        const nombreRRHH = sol.rrhh_nombre && sol.rrhh_apellido_pat
+                            ? `${sol.rrhh_nombre} ${sol.rrhh_apellido_pat}`
+                            : null;
+
+                        let htmlRRHH = '';
+                        if (nombreRRHH && rrhhPuedeActuar && !rrhhNoAplica) {
+                            htmlRRHH = `<i class="fas fa-user-shield me-1 text-muted"></i>${nombreRRHH}
+                                ${sol.fecha_aprobacion_rrhh ? `<br><span class="text-muted" style="font-size:0.75rem;"><i class="far fa-calendar-alt me-1"></i>${sol.fecha_aprobacion_rrhh}</span>` : ''}`;
+                        } else if (rrhhNoAplica) {
+                            htmlRRHH = `<span class="text-muted fst-italic" style="font-size:0.8rem;">No aplica por estado del jefe</span>`;
+                        } else {
+                            htmlRRHH = `<span class="text-muted fst-italic" style="font-size:0.8rem;">Esperando aprobación del jefe</span>`;
+                        }
+
+                        // === ACCIONES ===
+                        // PDF: ajusta esta regla según tu negocio
+                        // Opción A: solo con jefe aprobado (aunque RRHH no haya visto)
+                        // Opción B: solo cuando RRHH también aprobó
+                        const pdfDisponible = estadoJefe === 'aprobado'; // ← cambia a: estadoJefe === 'aprobado' && estadoRRHH === 'aprobado' si prefieres
+
+                        let acciones = '';
+                        if (sol.editable) {
+                            acciones = `
+                                <button class="btn btn-sm btn-info btn-editar" data-id="${sol.id}"><i class="fa fa-edit"></i></button>
+                                <button class="btn btn-sm btn-danger btn-eliminar" data-id="${sol.id}"><i class="fa fa-trash"></i></button>
+                            `;
+                        } else {
+                            const pdfBtn = pdfDisponible
+                                ? `<a href="/comision/boleta/${sol.id}" class="btn btn-sm btn-success" target="_blank"><i class="fa fa-file-pdf"></i> PDF</a>`
+                                : '';
+                            acciones = `
+                                <div class="d-flex align-items-center gap-1">
+                                    <span class="text-muted me-1" style="font-size:0.8rem;">No editable</span>
+                                    ${pdfBtn}
+                                </div>
+                            `;
+                        }
+
+                        // === FILA ===
+                        html += `
+                            <tr id="fila-${sol.id}">
+                                <td>${index + 1}</td>
+                                <td>${sol.fechasal || ''}</td>
+                                <td>${sol.horasal || ''}</td>
+                                <td>${sol.fecharet || ''}</td>
+                                <td>${sol.horaret || ''}</td>
+                                <td style="max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${sol.motivo || ''}">${sol.motivo || ''}</td>
+                                <td>
+                                    <span class="badge ${badgeJefe} py-2 px-3 mb-1 d-inline-block"><i class="fas ${iconoJefe} me-1"></i>${textoJefe}</span>
+                                    <div class="small mt-1">${htmlJefe}</div>
+                                </td>
+                                <td>
+                                    <span class="badge ${badgeRRHH} py-2 px-3 mb-1 d-inline-block"><i class="fas ${iconoRRHH} me-1"></i>${textoRRHH}</span>
+                                    <div class="small mt-1">${htmlRRHH}</div>
+                                </td>
+                                <td>${acciones}</td>
+                            </tr>
                         `;
-                    }
-                    acciones = `
-                        <div class="d-flex align-items-center gap-1">
-                            <span class="text-muted me-1">No disponible</span>
-                            ${pdfButton}
-                        </div>
-                    `;
-                }
+                    });
 
-                // Determinar el color de la badge del estado
-                let estadoBadge = 'bg-secondary';
-                let estadoTexto = sol.estado_jefe || 'Desconocido';
+                    tbody.innerHTML = html;
 
-                if (sol.estado_jefe) {
-                    const estadoLower = sol.estado_jefe.toLowerCase();
-                    if (estadoLower === 'pendiente') {
-                        estadoBadge = 'bg-warning text-dark';
-                        estadoTexto = 'Pendiente';
-                    } else if (estadoLower === 'aprobado') {
-                        estadoBadge = 'bg-success';
-                        estadoTexto = 'Aprobado';
-                    } else if (estadoLower === 'rechazado') {
-                        estadoBadge = 'bg-danger';
-                        estadoTexto = 'Rechazado';
-                    }
-                }
-
-                html += `
-                    <tr id="fila-${sol.id}">
-                        <td>${index + 1}</td>
-                        <td>${sol.fechasal || ''}</td>
-                        <td>${sol.horasal || ''}</td>
-                        <td>${sol.fecharet || ''}</td>
-                        <td>${sol.horaret || ''}</td>
-                        <td>${sol.motivo || ''}</td>
-                        <td><span class="badge ${estadoBadge}">${estadoTexto}</span></td>
-                        <td>${acciones}</td>
-                    </tr>
-                `;
-            });
-
-            tbody.innerHTML = html;
-
-            // Reasignar eventos a los botones
-            document.querySelectorAll('.btn-editar').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    abrirModalEditar(this.dataset.id);
+                    // Reasignar eventos
+                    document.querySelectorAll('.btn-editar').forEach(btn => {
+                        btn.addEventListener('click', () => abrirModalEditar(btn.dataset.id));
+                    });
+                    document.querySelectorAll('.btn-eliminar').forEach(btn => {
+                        btn.addEventListener('click', () => eliminarSolicitud(btn.dataset.id));
+                    });
+                })
+                .catch(err => {
+                    console.error(err.response?.data);
+                    Swal.fire('Error', err.response?.data?.message || 'No se pudo cargar la lista de solicitudes', 'error');
                 });
-            });
-
-            document.querySelectorAll('.btn-eliminar').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    eliminarSolicitud(this.dataset.id);
-                });
-            });
-        })
-        .catch(err => {
-            console.error(err.response?.data);
-            Swal.fire('Error', err.response?.data?.message || 'No se pudo cargar la lista de solicitudes', 'error');
-        });
-}
+        }
 
         // Eliminar solicitud
         function eliminarSolicitud(id) {

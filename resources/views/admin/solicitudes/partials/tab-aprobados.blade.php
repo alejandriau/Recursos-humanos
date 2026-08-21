@@ -17,7 +17,7 @@
                     @foreach($solicitudes as $solicitud)
                     <tr>
                         <td>
-                            <strong>{{ $solicitud->persona->nombre ?? 'N/A' }} {{ $solicitud->persona->apellido ?? '' }}</strong>
+                            <strong>{{ $solicitud->persona->nombre ?? 'N/A' }} {{ $solicitud->persona->apellidoPat ?? '' }} {{ $solicitud->rrhh->apellidoMat ?? '' }}</strong>
                             <br>
                             <small class="text-muted">CI: {{ $solicitud->persona->ci ?? 'N/A' }}</small>
                         </td>
@@ -37,7 +37,7 @@
                         </td>
                         <td>
                             @if($solicitud->rrhh)
-                                {{ $solicitud->rrhh->nombre ?? '' }} {{ $solicitud->rrhh->apellido ?? '' }}
+                                {{ $solicitud->rrhh->nombre ?? '' }} {{ $solicitud->rrhh->apellidoPat ?? '' }} {{ $solicitud->rrhh->apellidoMat ?? '' }}
                             @else
                                 <span class="text-muted">N/A</span>
                             @endif

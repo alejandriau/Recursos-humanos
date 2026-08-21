@@ -7,7 +7,7 @@ use App\Models\Feriado;
 use App\Models\Gestion;
 use App\Models\Persona;
 use App\Models\Salida;
-use App\Models\Tiposalida;
+use App\Models\TipoSalida;
 use App\Models\Historial;
 use App\Models\VacacionPeriodo;
 use App\Models\VacacionMovimiento;
@@ -65,18 +65,23 @@ class SalidaController extends Controller
 
         $gestion = Gestion::where('estado', 'Habilitado')->get();
         $feriado = Feriado::where('gestion_id', $gestion->first()->id ?? 0)->get();
-        $tipoSal = Tiposalida::get();
+        $tipoSal = TipoSalida::get();
 
-        // Obtener el id del tipo "COMISION"
-        $tipoComision = Tiposalida::where('descripcion', 'COMISION')->first();
+        $tipoComision = TipoSalida::where('descripcion', 'COMISION')->first();
 
-        // Solicitudes de comisión de esta persona
+        if (!$tipoComision) {
+            return redirect()->back()->with('error', 'No se configuró el tipo de salida COMISION.');
+        }
+
         $solicitudes = Salida::where('persona_id', $persona->id)
-            ->where('tiposalida_id', $tipoComision?->id)
+            ->where('tiposalida_id', $tipoComision->id)
+            ->with(['jefe', 'rrhh'])  // ← evita N+1 en la tabla inicial
             ->orderBy('created_at', 'desc')
             ->get();
 
-        return view("empleado.salidas.comision", compact('persona', 'gestion', 'feriado', 'tipoSal', 'solicitudes'));
+        return view("empleado.salidas.comision", compact(
+            'persona', 'gestion', 'feriado', 'tipoSal', 'solicitudes'
+        ));
     }
     public function eliminar($id)
     {
@@ -165,35 +170,53 @@ public function misSolicitudes()
             ], 404);
         }
 
+        // IMPORTANTE: with(['jefe','rrhh']) evita N+1
         $solicitudes = Salida::where('persona_id', $persona->id)
             ->where('tiposalida_id', $tipoComision->id)
+            ->with(['jefe', 'rrhh'])
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($sol) {
+
+                // Formatear fechas de aprobación si existen
+                $fechaJefe = $sol->fecha_aprobacion_jefe
+                    ? \Carbon\Carbon::parse($sol->fecha_aprobacion_jefe)->format('d/m/Y H:i')
+                    : null;
+
+                $fechaRRHH = $sol->fecha_aprobacion_rrhh
+                    ? \Carbon\Carbon::parse($sol->fecha_aprobacion_rrhh)->format('d/m/Y H:i')
+                    : null;
 
                 return [
                     'id' => $sol->id,
                     'fechasal' => $sol->fechasal
                         ? \Carbon\Carbon::parse($sol->fechasal)->format('d-m-Y')
                         : null,
-
                     'horasal' => $sol->horasal,
-
                     'fecharet' => $sol->fecharet
                         ? \Carbon\Carbon::parse($sol->fecharet)->format('d-m-Y')
                         : null,
-
                     'horaret' => $sol->horaret,
-
                     'motivo' => Str::limit($sol->motivo ?? '', 30),
 
+                    // Estados
                     'estado_jefe' => $sol->estado_jefe,
+                    'estado_rrhh' => $sol->estado_rrhh,
 
-                    'estado_texto' => $this->getEstadoTexto($sol->estado_jefe),
+                    // Fechas de aprobación formateadas
+                    'fecha_aprobacion_jefe' => $fechaJefe,
+                    'fecha_aprobacion_rrhh' => $fechaRRHH,
 
-                    'estado_badge' => $this->getEstadoBadge($sol->estado_jefe),
+                    // Datos del jefe (planos para evitar objetos anidados en JS)
+                    'jefe_nombre' => $sol->jefe?->nombre,
+                    'jefe_apellido_pat' => $sol->jefe?->apellidoPat,
 
-                    'editable' => $sol->estado_jefe === 'pendiente',
+                    // Datos de RRHH
+                    'rrhh_nombre' => $sol->rrhh?->nombre,
+                    'rrhh_apellido_pat' => $sol->rrhh?->apellidoPat,
+
+                    // Lógica de edición: solo si jefe está pendiente o sin asignar
+                    'editable' => empty($sol->estado_jefe) || $sol->estado_jefe === 'pendiente',
                 ];
             });
 
@@ -224,7 +247,7 @@ public function misSolicitudes()
 public function indexParticular()
 {
     // Obtener el tipo padre "SALIDA PARTICULAR"
-    $particular = Tiposalida::where('descripcion', 'SALIDA PARTICULAR')->first();
+    $particular = TipoSalida::where('descripcion', 'SALIDA PARTICULAR')->first();
 
 
     // Obtener SOLO los hijos (subtipos) usando la relación del modelo
@@ -321,7 +344,7 @@ public function registrarParticular(Request $request)
     $fechasol = Carbon::parse($request->fechasol);
 
     // 4. Validar que no sea fin de semana
-    $tipoSalida = Tiposalida::find($request->tipoSal);
+    $tipoSalida = TipoSalida::find($request->tipoSal);
     if ($tipoSalida && $tipoSalida->periodicidad !== 'evento') {
         if ($fsalida->isWeekend()) {
             return response()->json([
@@ -671,7 +694,7 @@ public function funcSalud()
     $feriado = Feriado::where('gestion_id', $idg)->get();
 
     // Obtener solo los tipos de salida de salud
-    $tipoSal = Tiposalida::where('descripcion', 'SALUD')->get(); // o donde descripcion LIKE '%SALUD%'
+    $tipoSal = TipoSalida::where('descripcion', 'SALUD')->get(); // o donde descripcion LIKE '%SALUD%'
 
     $user = auth()->user();
     $persona = Persona::where('user_id', $user->id)->first();
@@ -728,7 +751,7 @@ public function funcSalud()
         }
 
         // Todos los tipos de salida (para el select, aunque solo se usará VACACION)
-        $tipoSal = Tiposalida::all();
+        $tipoSal = TipoSalida::all();
 
         $periodos = VacacionPeriodo::where('persona_id', $persona->id)
             ->whereIn('estado', ['activo', 'pendiente'])
