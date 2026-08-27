@@ -5,6 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Control de Personal UGRH · GADC</title>
     <link href="{{ asset('images/logo-gober-i.png') }}" rel="icon" type="image/png">
+    <!-- SEO: sistema interno, no indexar -->
+    <meta name="robots" content="noindex, nofollow, noarchive">
+    <!-- Información general -->
+    <meta name="description" content="Sistema institucional de Control de Personal de la Unidad de Gestión de Recursos Humanos (UGRH) del Gobierno Autónomo Departamental de Cochabamba (GADC).">
+    <meta name="author" content="Unidad de Gestión de Recursos Humanos - GADC">
+    <meta name="application-name" content="Control de Personal UGRH">
+    <!-- Open Graph - Vista previa al compartir el enlace -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Control de Personal UGRH · GADC">
+    <meta property="og:description" content="Sistema institucional de la Unidad de Gestión de Recursos Humanos del Gobierno Autónomo Departamental de Cochabamba para la gestión y control del personal.">
+    <meta property="og:image" content="{{ asset('images/logo-gober-i.png') }}">
+    <meta property="og:image:alt" content="Gobierno Autónomo Departamental de Cochabamba">
+    <meta property="og:locale" content="es_BO">
+    <meta property="og:site_name" content="Gobierno Autónomo Departamental de Cochabamba">
+    <meta property="og:url" content="{{ url()->current() }}">
+
+    <!-- WhatsApp / Facebook / Messenger -->
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image">
+
+    <meta name="twitter:title" content="Control de Personal UGRH · GADC">
+    <meta name="twitter:description"content="Sistema institucional de la Unidad de Gestión de Recursos Humanos del Gobierno Autónomo Departamental de Cochabamba.">
+    <meta name="twitter:image" content="{{ asset('images/logo-gober-i.png') }}">
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">

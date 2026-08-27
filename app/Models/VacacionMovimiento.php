@@ -12,6 +12,7 @@ class VacacionMovimiento extends Model
         'cantidad', 'saldo_anterior', 'saldo_posterior',
         'salida_id', 'descripcion', 'registrado_por'
     ];
+    
     protected $casts = [
         'fecha' => 'date',
         'fecha_inicio' => 'date',
@@ -20,6 +21,7 @@ class VacacionMovimiento extends Model
         'saldo_anterior' => 'decimal:1',
         'saldo_posterior' => 'decimal:1',
     ];
+
 
     const TIPO_CREDITO = 'credito';
     const TIPO_DEBITO = 'debito';

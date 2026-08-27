@@ -5,103 +5,233 @@
         $ges = $gestion->first();
     @endphp
     @if ($ges)
-        LISTA DE FERIADOS GESTIÓN : {{ $ges->anio }}
-        <table class="table table-hover table-sm">
-            <thead>
-                <tr><th class="col-md-7">Descripción</th><th class="col-md-5">Fecha</th></tr>
-            </thead>
-            <tbody>
-                @foreach ($feriado as $fer)
-                    <tr>
-                        <td style="text-align: left">{{ $fer->descripcion }}</td>
-                        <td>{{ $fer->fechaf }}</td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
+        <div class="alert alert-success" role="alert">
+            <div class="row justify-content-start">
+                <div>
+                    <b><i class="fa-solid fa-calendar-days me-2 fs-5"></i> FERIADOS GESTIÓN: {{ $ges->anio }}</b>
+                    <span class="badge bg-info text-white">{{ count($feriado) }} feriado(s)</span>
+                </div>
+            </div>
+        </div>
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                <table class="table table-striped table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col" class="col-md-7">Descripción</th>
+                            <th scope="col" class="col-md-5">Fecha</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($feriado as $fer)
+                            <tr>
+                                <td><i class="fa-solid fa-calendar-days me-2 text-warning"></i>{{ $fer->descripcion }}</td>
+                                <td>{{ \Carbon\Carbon::parse($fer->fechaf)->format('d-m-Y') }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
     @else
-        LISTA DE FERIADOS GESTIÓN :
+        <p>FERIADOS GESTIÓN: Ninguno disponible</p>
     @endif
 @endsection
 
 @section('cuerpo')
-    <div class="position-relative mt-3 mb-5">
-        <div class="col-md-6 rounded bg-success text-white position-absolute start-50 translate-middle">
-            <b>GESTIÓN DE SALIDAS PARTICULARES</b>
-        </div>
-    </div>
-    <hr>
+    <div class="row">
+        <div class="col-md-10 container mt-4 p-4 bg-white shadow rounded">
+            <div class="alert alert-success" role="alert">
+                <h5 class="text-center">Gestión de Salidas Particulares</h5>
+            </div>
 
-    <div class="container mt-2 rounded shadow bg-white p-3">
-        <!-- Botón nuevo -->
-        <div class="row mb-3">
-            <div class="col-md-12 text-start">
-                <button type="button" class="btn btn-primary" id="btnNuevoParticular">
+            <!-- Botón nuevo -->
+            <div class="text-start mb-3">
+                <button type="button" class="btn btn-success" id="btnNuevoParticular">
                     <i class="fa-solid fa-plus"></i> Nueva Salida Particular
                 </button>
+                <a href="/homeusr" class="btn btn-secondary">
+                    <i class="fa fa-times"></i> Cancelar
+                </a>
+            </div>
+
+            <!-- Tabla de salidas -->
+            <div class="mt-5">
+                <h5 class="mb-3">Mis salidas particulares</h5>
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover" id="tablaParticulares">
+                        <thead class="table-light">
+                            <tr>
+                                <th>#</th>
+                                <th>Fecha solicitud</th>
+                                <th>Fecha salida</th>
+                                <th>Fecha retorno</th>
+                                <th>Cantidad</th>
+                                <th>Motivo</th>
+                                <th>🧑‍💼 Jefe Inmediato</th>
+                                <th>🏢 RRHH</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodySalidas">
+                            @foreach ($salidas as $salida)
+                                @php
+                                    $estadoJefe = strtolower($salida->estado_jefe ?? '');
+                                    $estadoRRHH = strtolower($salida->estado_rrhh ?? '');
+                                @endphp
+                                <tr id="fila-{{ $salida->id }}">
+                                    <td>{{ $loop->iteration }}</td>
+                                    <td>{{ \Carbon\Carbon::parse($salida->fechasol)->format('d-m-Y') }}</td>
+                                    <td>{{ \Carbon\Carbon::parse($salida->fechasal)->format('d-m-Y') }}</td>
+                                    <td>{{ \Carbon\Carbon::parse($salida->fecharet)->format('d-m-Y') }}</td>
+                                    <td>{{ $salida->cantidad }}</td>
+                                    <td style="max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="{{ $salida->motivo }}">
+                                        {{ Str::limit($salida->motivo, 30) }}
+                                    </td>
+
+                                    {{-- ===== JEFE INMEDIATO ===== --}}
+                                    <td>
+                                        @php
+                                            $badgeJefe = 'bg-secondary';
+                                            $textoJefe = 'Sin estado';
+                                            $iconoJefe = 'fa-question-circle';
+
+                                            if ($estadoJefe === 'pendiente') {
+                                                $badgeJefe = 'bg-warning text-dark';
+                                                $textoJefe = 'Pendiente';
+                                                $iconoJefe = 'fa-clock';
+                                            } elseif ($estadoJefe === 'aprobado') {
+                                                $badgeJefe = 'bg-success';
+                                                $textoJefe = 'Aprobado';
+                                                $iconoJefe = 'fa-check-circle';
+                                            } elseif ($estadoJefe === 'rechazado') {
+                                                $badgeJefe = 'bg-danger';
+                                                $textoJefe = 'Rechazado';
+                                                $iconoJefe = 'fa-times-circle';
+                                            } elseif (empty($estadoJefe)) {
+                                                $badgeJefe = 'bg-light text-dark border';
+                                                $textoJefe = 'Sin asignar';
+                                                $iconoJefe = 'fa-user-slash';
+                                            }
+                                        @endphp
+                                        <span class="badge {{ $badgeJefe }} py-2 px-3 mb-1 d-inline-block">
+                                            <i class="fas {{ $iconoJefe }} me-1"></i>{{ $textoJefe }}
+                                        </span>
+                                        <div class="small mt-1">
+                                            @if($salida->jefe)
+                                                <i class="fas fa-user-tie me-1 text-muted"></i>
+                                                {{ $salida->jefe->nombre }} {{ $salida->jefe->apellidoPat }}
+                                                @if($salida->fecha_aprobacion_jefe)
+                                                    <br>
+                                                    <span class="text-muted" style="font-size: 0.75rem;">
+                                                        <i class="far fa-calendar-alt me-1"></i>
+                                                        {{ \Carbon\Carbon::parse($salida->fecha_aprobacion_jefe)->format('d/m/Y H:i') }}
+                                                    </span>
+                                                @endif
+                                            @else
+                                                <span class="text-muted fst-italic" style="font-size: 0.8rem;">
+                                                    <i class="fas fa-user-slash me-1"></i>Sin jefe asignado
+                                                </span>
+                                            @endif
+                                        </div>
+                                    </td>
+
+                                    {{-- ===== RRHH ===== --}}
+                                    <td>
+                                        @php
+                                            $rrhhPuedeActuar = $estadoJefe === 'aprobado';
+                                            $rrhhNoAplica = $estadoJefe === 'rechazado' || empty($estadoJefe);
+
+                                            $badgeRRHH = 'bg-secondary';
+                                            $textoRRHH = 'Desconocido';
+                                            $iconoRRHH = 'fa-question-circle';
+
+                                            if ($rrhhNoAplica) {
+                                                $badgeRRHH = 'bg-light text-muted border';
+                                                $textoRRHH = 'N/A';
+                                                $iconoRRHH = 'fa-minus-circle';
+                                            } elseif (!$rrhhPuedeActuar) {
+                                                $badgeRRHH = 'bg-light text-dark border';
+                                                $textoRRHH = 'En espera';
+                                                $iconoRRHH = 'fa-hourglass-half';
+                                            } elseif ($estadoRRHH === 'pendiente') {
+                                                $badgeRRHH = 'bg-warning text-dark';
+                                                $textoRRHH = 'Pendiente';
+                                                $iconoRRHH = 'fa-clock';
+                                            } elseif ($estadoRRHH === 'aprobado') {
+                                                $badgeRRHH = 'bg-success';
+                                                $textoRRHH = 'Aprobado';
+                                                $iconoRRHH = 'fa-check-circle';
+                                            } elseif ($estadoRRHH === 'rechazado') {
+                                                $badgeRRHH = 'bg-danger';
+                                                $textoRRHH = 'Rechazado';
+                                                $iconoRRHH = 'fa-times-circle';
+                                            }
+                                        @endphp
+                                        <span class="badge {{ $badgeRRHH }} py-2 px-3 mb-1 d-inline-block">
+                                            <i class="fas {{ $iconoRRHH }} me-1"></i>{{ $textoRRHH }}
+                                        </span>
+                                        <div class="small mt-1">
+                                            @if($rrhhPuedeActuar && !$rrhhNoAplica)
+                                                <i class="fas fa-user-shield me-1 text-muted"></i>
+                                                {{ $salida->rrhh->nombre ?? '' }} {{ $salida->rrhh->apellidoPat ?? '' }}
+                                                @if($salida->fecha_aprobacion_rrhh)
+                                                    <br>
+                                                    <span class="text-muted" style="font-size: 0.75rem;">
+                                                        <i class="far fa-calendar-alt me-1"></i>
+                                                        {{ \Carbon\Carbon::parse($salida->fecha_aprobacion_rrhh)->format('d/m/Y H:i') }}
+                                                    </span>
+                                                @endif
+                                            @elseif($rrhhNoAplica)
+                                                <span class="text-muted fst-italic" style="font-size: 0.8rem;">
+                                                    No aplica por estado del jefe
+                                                </span>
+                                            @else
+                                                <span class="text-muted fst-italic" style="font-size: 0.8rem;">
+                                                    Esperando aprobación del jefe
+                                                </span>
+                                            @endif
+                                        </div>
+                                    </td>
+
+                                    {{-- ===== ACCIONES ===== --}}
+                                    <td>
+                                        @php
+                                            $editable = empty($estadoJefe) || $estadoJefe === 'pendiente';
+                                            $pdfDisponible = $estadoJefe === 'aprobado';
+                                        @endphp
+
+                                        @if($editable)
+                                            <button class="btn btn-sm btn-info btnEditar" data-id="{{ $salida->id }}">
+                                                <i class="fa fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-danger btnEliminar" data-id="{{ $salida->id }}">
+                                                <i class="fa fa-trash"></i>
+                                            </button>
+                                        @else
+                                            <div class="d-flex align-items-center gap-1">
+                                                <span class="text-muted me-1" style="font-size: 0.8rem;">No editable</span>
+                                                @if($pdfDisponible)
+                                                    <a href="{{ route('salidas.particular.pdf', $salida->id) }}" class="btn btn-sm btn-success" target="_blank">
+                                                        <i class="fa fa-file-pdf"></i> PDF
+                                                    </a>
+                                                @endif
+                                            </div>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
+                            @if ($salidas->isEmpty())
+                                <tr><td colspan="9" class="text-center text-muted py-4">No hay salidas particulares registradas.</td></tr>
+                            @endif
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
-        <!-- Tabla de salidas -->
-        <div class="table-responsive">
-            <table class="table table-hover table-sm" id="tablaParticulares">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Fecha solicitud</th>
-                        <th>Fecha salida</th>
-                        <th>Fecha retorno</th>
-                        <th>Cantidad</th>
-                        <th>Motivo</th>
-                        <th>Jefe</th>
-                        <th>Estado</th>
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody id="tbodySalidas">
-                    @foreach ($salidas as $salida)
-                        <tr id="fila-{{ $salida->id }}">
-                            <td>{{ $loop->iteration }}</td>
-                            <td>{{ \Carbon\Carbon::parse($salida->fechasol)->format('d-m-Y') }}</td>
-                            <td>{{ \Carbon\Carbon::parse($salida->fechasal)->format('d-m-Y') }}</td>
-                            <td>{{ \Carbon\Carbon::parse($salida->fecharet)->format('d-m-Y') }}</td>
-                            <td>{{ $salida->cantidad }}</td>
-                            <td>{{ Str::limit($salida->motivo, 30) }}</td>
-                            <td>{{ $salida->jefe ? $salida->jefe->nombre . ' ' . $salida->jefe->apellidoPat : 'N/A' }}</td>
-                            <td>
-                                @php
-                                    $badge = 'secondary';
-                                    if ($salida->estado == 'aprobado') $badge = 'success';
-                                    elseif ($salida->estado == 'rechazado') $badge = 'danger';
-                                    elseif (in_array($salida->estado, ['pendiente_jefe','pendiente_rrhh'])) $badge = 'warning';
-                                @endphp
-                                <span class="badge bg-{{ $badge }}">{{ str_replace('_', ' ', $salida->estado) }}</span>
-                            </td>
-                            <td>
-                                @if(in_array($salida->estado, ['aprobado', 'pendiente_jefe', 'pendiente_rrhh']))
-                                    {{-- Botón para descargar PDF --}}
-                                    <a href="{{ route('salidas.particular.pdf', $salida->id) }}" class="btn btn-sm btn-success" target="_blank">
-                                        <i class="fa-solid fa-file-pdf"></i> PDF
-                                    </a>
-                                @endif
-                                @if (in_array($salida->estado, ['pendiente_jefe', 'pendiente_rrhh']))
-                                    <button class="btn btn-sm btn-warning btnEditar" data-id="{{ $salida->id }}">
-                                        <i class="fa-solid fa-pen-to-square"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-danger btnEliminar" data-id="{{ $salida->id }}">
-                                        <i class="fa-solid fa-trash-can"></i>
-                                    </button>
-                                @else
-                                    <span class="text-muted">Sin acciones</span>
-                                @endif
-                            </td>
-                        </tr>
-                    @endforeach
-                    @if ($salidas->isEmpty())
-                        <tr><td colspan="9" class="text-center">No hay salidas particulares registradas.</td></tr>
-                    @endif
-                </tbody>
-            </table>
+        <div class="col-md-2 container py-2 my-4 px-1 bg-white shadow rounded">
+            @include('components.feriados')
         </div>
     </div>
 @endsection
@@ -222,6 +352,7 @@
         </div>
     </div>
 @endsection
+@push('scripts')
 
 {{-- Librerías JS --}}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" />
@@ -284,9 +415,7 @@
                         motivoTextarea.value = '';
                     }
                     // Si el tipo tiene una unidad de medida (días u horas), lo guardamos
-                    // para el cálculo automático
                     if (data.tipo_medida) {
-                        // Guardar en un data attribute del select
                         tipoSalSelect.dataset.medida = data.tipo_medida;
                     }
                     // Recalcular cantidad automáticamente
@@ -331,18 +460,17 @@
 
             const diffMs = retorno - salida;
             const diffHoras = diffMs / (1000 * 60 * 60);
-            const medida = tipoSalSelect.dataset.medida || 'dias'; // por defecto días
+            const medida = tipoSalSelect.dataset.medida || 'dias';
 
             let cantidad;
             if (medida === 'horas') {
                 cantidad = diffHoras.toFixed(1);
-            } else { // días
+            } else {
                 cantidad = (diffHoras / 24).toFixed(1);
             }
             cantidadInput.value = cantidad;
         }
 
-        // Eventos que disparan el cálculo
         [fsalidaInput, fretornoInput, horasalInput, horaretInput].forEach(input => {
             input.addEventListener('change', calcularCantidad);
             input.addEventListener('keyup', calcularCantidad);
@@ -385,7 +513,6 @@
                     html += '</tbody></table>';
                     contenedor.innerHTML = html;
 
-                    // Asignar evento a los botones
                     document.querySelectorAll('.asignar-sup').forEach(btn => {
                         btn.addEventListener('click', function() {
                             document.getElementById('idSup').value = this.dataset.id;
@@ -414,7 +541,6 @@
         form.addEventListener('submit', function(e) {
             e.preventDefault();
 
-            // Validar campos obligatorios
             const idserv = document.getElementById('idserv').value;
             const tipoSal = document.getElementById('tipoSal').value;
             const fechasol = document.getElementById('fechasol').value;
@@ -431,13 +557,11 @@
                 return;
             }
 
-            // Validar que la cantidad sea un número válido
             if (isNaN(parseFloat(cantidad)) || parseFloat(cantidad) <= 0) {
                 Swal.fire('Error', 'La cantidad calculada no es válida', 'error');
                 return;
             }
 
-            // Construir el objeto de datos
             const data = {
                 persona_id: idserv,
                 tipoSal: tipoSal,
@@ -457,14 +581,12 @@
                 ? `/salidas/particulares/${idEditar}`
                 : '/particular/registrar';
 
-            // Mostrar loading
             Swal.fire({
                 title: 'Procesando...',
                 allowOutsideClick: false,
                 didOpen: () => { Swal.showLoading(); }
             });
 
-            // Enviar con Axios
             const config = {
                 method: method === 'PUT' ? 'PUT' : 'POST',
                 url: url,
@@ -488,7 +610,9 @@
                         showConfirmButton: false,
                         timerProgressBar: true
                     }).then(() => {
-                        location.reload();
+                        // En lugar de reload completo, recargar solo la tabla
+                        cargarSalidas();
+                        bootstrap.Modal.getInstance(document.getElementById('modalParticular')).hide();
                     });
                 })
                 .catch(error => {
@@ -512,7 +636,6 @@
         // 6. BOTÓN "NUEVO"
         // ============================================================
         document.getElementById('btnNuevoParticular').addEventListener('click', function() {
-            // Resetear formulario
             form.reset();
             document.getElementById('methodField').value = 'POST';
             document.getElementById('idEditar').value = '';
@@ -524,11 +647,9 @@
             document.getElementById('cantidad').value = '';
             document.getElementById('fechasol').value = hoyStr;
 
-            // Limpiar fechas
             pickerSalida.setDate(null);
             pickerRetorno.setDate(null);
 
-            // Forzar cambio de tipo para cargar sustento
             if (tipoSalSelect.value) {
                 tipoSalSelect.dispatchEvent(new Event('change'));
             }
@@ -538,87 +659,231 @@
         });
 
         // ============================================================
-        // 7. BOTONES "EDITAR"
+        // 7. BOTONES "EDITAR" (delegación para funcionar tras recarga)
         // ============================================================
-        document.querySelectorAll('.btnEditar').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const id = this.dataset.id;
-                axios.get(`/particular/${id}/edit`)
-                    .then(response => {
-                        const data = response.data;
-                        // Llenar campos del formulario
-                        document.getElementById('tipoSal').value = data.tiposalida_id;
-                        document.getElementById('fechasol').value = data.fechasol;
-                        document.getElementById('motivo').value = data.motivo; // ya trae el sustento
-                        document.getElementById('fsalida').value = data.fechasal;
-                        document.getElementById('horasal').value = data.horasal;
-                        document.getElementById('fretorno').value = data.fecharet;
-                        document.getElementById('horaret').value = data.horaret;
-                        document.getElementById('cantidad').value = data.cantidad;
-                        if (data.jefe) {
-                            document.getElementById('idSup').value = data.jefe_id;
-                            document.getElementById('nombreSup').value = data.jefe.nombre + ' ' + data.jefe.apellidoPat;
-                        }
-                        // Configurar para edición
-                        document.getElementById('methodField').value = 'PUT';
-                        document.getElementById('idEditar').value = data.id;
-                        document.getElementById('modalTitle').textContent = 'Editar Salida Particular';
-                        document.getElementById('btnGuardar').innerHTML = '<i class="fa-solid fa-pen-to-square"></i> Actualizar';
-
-                        // Forzar cambio de tipo para actualizar sustento si cambia
-                        tipoSalSelect.dispatchEvent(new Event('change'));
-
-                        const modal = new bootstrap.Modal(document.getElementById('modalParticular'));
-                        modal.show();
-                    })
-                    .catch(error => {
-                        console.error('Error al cargar datos:', error);
-                        Swal.fire('Error', 'No se pudieron cargar los datos', 'error');
-                    });
-            });
-        });
-
-        // ============================================================
-        // 8. BOTONES "ELIMINAR"
-        // ============================================================
-        document.querySelectorAll('.btnEliminar').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const id = this.dataset.id;
-                Swal.fire({
-                    title: '¿Está seguro?',
-                    text: "Esta acción no se puede deshacer.",
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'Sí, eliminar',
-                    cancelButtonText: 'Cancelar'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        axios.delete(`/salidas/particulares/${id}`, {
-                            headers: {
-                                'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
-                                'X-Requested-With': 'XMLHttpRequest'
-                            }
-                        })
+        function bindEditar() {
+            document.querySelectorAll('.btnEditar').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const id = this.dataset.id;
+                    axios.get(`/particular/${id}/edit`)
                         .then(response => {
-                            Swal.fire({
-                                toast: true,
-                                position: 'top-end',
-                                icon: 'success',
-                                title: response.data.message || 'Eliminado correctamente',
-                                timer: 1500,
-                                showConfirmButton: false,
-                                timerProgressBar: true
-                            }).then(() => location.reload());
+                            const data = response.data;
+                            document.getElementById('tipoSal').value = data.tiposalida_id;
+                            document.getElementById('fechasol').value = data.fechasol;
+                            document.getElementById('motivo').value = data.motivo;
+                            document.getElementById('fsalida').value = data.fechasal;
+                            document.getElementById('horasal').value = data.horasal;
+                            document.getElementById('fretorno').value = data.fecharet;
+                            document.getElementById('horaret').value = data.horaret;
+                            document.getElementById('cantidad').value = data.cantidad;
+                            if (data.jefe) {
+                                document.getElementById('idSup').value = data.jefe_id;
+                                document.getElementById('nombreSup').value = data.jefe.nombre + ' ' + data.jefe.apellidoPat;
+                            }
+                            document.getElementById('methodField').value = 'PUT';
+                            document.getElementById('idEditar').value = data.id;
+                            document.getElementById('modalTitle').textContent = 'Editar Salida Particular';
+                            document.getElementById('btnGuardar').innerHTML = '<i class="fa-solid fa-pen-to-square"></i> Actualizar';
+
+                            tipoSalSelect.dispatchEvent(new Event('change'));
+
+                            const modal = new bootstrap.Modal(document.getElementById('modalParticular'));
+                            modal.show();
                         })
                         .catch(error => {
-                            let msg = error.response?.data?.error || 'Error al eliminar';
-                            Swal.fire('Error', msg, 'error');
+                            console.error('Error al cargar datos:', error);
+                            Swal.fire('Error', 'No se pudieron cargar los datos', 'error');
                         });
-                    }
                 });
             });
-        });
+        }
+
+        // ============================================================
+        // 8. BOTONES "ELIMINAR" (delegación para funcionar tras recarga)
+        // ============================================================
+        function bindEliminar() {
+            document.querySelectorAll('.btnEliminar').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const id = this.dataset.id;
+                    Swal.fire({
+                        title: '¿Está seguro?',
+                        text: "Esta acción no se puede deshacer.",
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'Sí, eliminar',
+                        cancelButtonText: 'Cancelar'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            axios.delete(`/salidas/particulares/${id}`, {
+                                headers: {
+                                    'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                }
+                            })
+                            .then(response => {
+                                Swal.fire({
+                                    toast: true,
+                                    position: 'top-end',
+                                    icon: 'success',
+                                    title: response.data.message || 'Eliminado correctamente',
+                                    timer: 1500,
+                                    showConfirmButton: false,
+                                    timerProgressBar: true
+                                });
+                                cargarSalidas();
+                            })
+                            .catch(error => {
+                                let msg = error.response?.data?.error || 'Error al eliminar';
+                                Swal.fire('Error', msg, 'error');
+                            });
+                        }
+                    });
+                });
+            });
+        }
+
+        // ============================================================
+        // 9. RECARGAR TABLA DINÁMICAMENTE (igual que Comisiones)
+        // ============================================================
+        function cargarSalidas() {
+            axios.get('/particular/mis-salidas')
+                .then(res => {
+                    if (!res.data.success) {
+                        Swal.fire('Error', res.data.message, 'error');
+                        return;
+                    }
+
+                    const data = res.data.data;
+                    const tbody = document.getElementById('tbodySalidas');
+                    if (!tbody) return;
+
+                    if (data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">No hay salidas particulares registradas.</td></tr>';
+                        return;
+                    }
+
+                    let html = '';
+                    data.forEach((sol, index) => {
+                        const estadoJefe = (sol.estado_jefe || '').toLowerCase();
+                        const estadoRRHH = (sol.estado_rrhh || '').toLowerCase();
+
+                        // === JEFE INMEDIATO ===
+                        let badgeJefe = 'bg-secondary';
+                        let textoJefe = 'Sin estado';
+                        let iconoJefe = 'fa-question-circle';
+
+                        if (estadoJefe === 'pendiente') {
+                            badgeJefe = 'bg-warning text-dark'; textoJefe = 'Pendiente'; iconoJefe = 'fa-clock';
+                        } else if (estadoJefe === 'aprobado') {
+                            badgeJefe = 'bg-success'; textoJefe = 'Aprobado'; iconoJefe = 'fa-check-circle';
+                        } else if (estadoJefe === 'rechazado') {
+                            badgeJefe = 'bg-danger'; textoJefe = 'Rechazado'; iconoJefe = 'fa-times-circle';
+                        } else if (!estadoJefe) {
+                            badgeJefe = 'bg-light text-dark border'; textoJefe = 'Sin asignar'; iconoJefe = 'fa-user-slash';
+                        }
+
+                        const nombreJefe = sol.jefe_nombre && sol.jefe_apellido_pat
+                            ? `${sol.jefe_nombre} ${sol.jefe_apellido_pat}`
+                            : null;
+
+                        const htmlJefe = nombreJefe
+                            ? `<i class="fas fa-user-tie me-1 text-muted"></i>${nombreJefe}
+                               ${sol.fecha_aprobacion_jefe ? `<br><span class="text-muted" style="font-size:0.75rem;"><i class="far fa-calendar-alt me-1"></i>${sol.fecha_aprobacion_jefe}</span>` : ''}`
+                            : `<span class="text-muted fst-italic" style="font-size:0.8rem;"><i class="fas fa-user-slash me-1"></i>Sin jefe asignado</span>`;
+
+                        // === RRHH ===
+                        const rrhhPuedeActuar = estadoJefe === 'aprobado';
+                        const rrhhNoAplica = estadoJefe === 'rechazado' || !estadoJefe;
+
+                        let badgeRRHH = 'bg-secondary';
+                        let textoRRHH = 'Desconocido';
+                        let iconoRRHH = 'fa-question-circle';
+
+                        if (rrhhNoAplica) {
+                            badgeRRHH = 'bg-light text-muted border'; textoRRHH = 'N/A'; iconoRRHH = 'fa-minus-circle';
+                        } else if (!rrhhPuedeActuar) {
+                            badgeRRHH = 'bg-light text-dark border'; textoRRHH = 'En espera'; iconoRRHH = 'fa-hourglass-half';
+                        } else if (estadoRRHH === 'pendiente') {
+                            badgeRRHH = 'bg-warning text-dark'; textoRRHH = 'Pendiente'; iconoRRHH = 'fa-clock';
+                        } else if (estadoRRHH === 'aprobado') {
+                            badgeRRHH = 'bg-success'; textoRRHH = 'Aprobado'; iconoRRHH = 'fa-check-circle';
+                        } else if (estadoRRHH === 'rechazado') {
+                            badgeRRHH = 'bg-danger'; textoRRHH = 'Rechazado'; iconoRRHH = 'fa-times-circle';
+                        }
+
+                        const nombreRRHH = sol.rrhh_nombre && sol.rrhh_apellido_pat
+                            ? `${sol.rrhh_nombre} ${sol.rrhh_apellido_pat}`
+                            : null;
+
+                        let htmlRRHH = '';
+                        if (rrhhPuedeActuar && !rrhhNoAplica) {
+                            htmlRRHH = `<i class="fas fa-user-shield me-1 text-muted"></i>${nombreRRHH}
+                                ${sol.fecha_aprobacion_rrhh ? `<br><span class="text-muted" style="font-size:0.75rem;"><i class="far fa-calendar-alt me-1"></i>${sol.fecha_aprobacion_rrhh}</span>` : ''}`;
+                        } else if (rrhhNoAplica) {
+                            htmlRRHH = `<span class="text-muted fst-italic" style="font-size:0.8rem;">No aplica por estado del jefe</span>`;
+                        } else {
+                            htmlRRHH = `<span class="text-muted fst-italic" style="font-size:0.8rem;">Esperando aprobación del jefe</span>`;
+                        }
+
+                        // === ACCIONES ===
+                        const editable = !estadoJefe || estadoJefe === 'pendiente';
+                        const pdfDisponible = estadoJefe === 'aprobado';
+
+                        let acciones = '';
+                        if (editable) {
+                            acciones = `
+                                <button class="btn btn-sm btn-info btnEditar" data-id="${sol.id}"><i class="fa fa-edit"></i></button>
+                                <button class="btn btn-sm btn-danger btnEliminar" data-id="${sol.id}"><i class="fa fa-trash"></i></button>
+                            `;
+                        } else {
+                            const pdfBtn = pdfDisponible
+                                ? `<a href="/salidas/particulares/pdf/${sol.id}" class="btn btn-sm btn-success" target="_blank"><i class="fa fa-file-pdf"></i> PDF</a>`
+                                : '';
+                            acciones = `
+                                <div class="d-flex align-items-center gap-1">
+                                    <span class="text-muted me-1" style="font-size:0.8rem;">No editable</span>
+                                    ${pdfBtn}
+                                </div>
+                            `;
+                        }
+
+                        html += `
+                            <tr id="fila-${sol.id}">
+                                <td>${index + 1}</td>
+                                <td>${sol.fechasol || ''}</td>
+                                <td>${sol.fechasal || ''}</td>
+                                <td>${sol.fecharet || ''}</td>
+                                <td>${sol.cantidad || ''}</td>
+                                <td style="max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${sol.motivo || ''}">${sol.motivo || ''}</td>
+                                <td>
+                                    <span class="badge ${badgeJefe} py-2 px-3 mb-1 d-inline-block"><i class="fas ${iconoJefe} me-1"></i>${textoJefe}</span>
+                                    <div class="small mt-1">${htmlJefe}</div>
+                                </td>
+                                <td>
+                                    <span class="badge ${badgeRRHH} py-2 px-3 mb-1 d-inline-block"><i class="fas ${iconoRRHH} me-1"></i>${textoRRHH}</span>
+                                    <div class="small mt-1">${htmlRRHH}</div>
+                                </td>
+                                <td>${acciones}</td>
+                            </tr>
+                        `;
+                    });
+
+                    tbody.innerHTML = html;
+                    bindEditar();
+                    bindEliminar();
+                })
+                .catch(err => {
+                    console.error(err.response?.data);
+                    Swal.fire('Error', err.response?.data?.message || 'No se pudo cargar la lista de salidas', 'error');
+                });
+        }
+
+        // Bind inicial
+        bindEditar();
+        bindEliminar();
     });
 </script>
+    
+@endpush

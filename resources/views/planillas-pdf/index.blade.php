@@ -208,7 +208,6 @@
                                         @can('descargar_planillas')
                                         <a href="{{ route('planillas-pdf.show', $planilla->id) }}"
                                            class="btn btn-sm btn-outline-primary"
-                                           target="_blank"
                                            data-bs-toggle="tooltip"
                                            title="Ver PDF">
                                             <i class="fas fa-eye"></i>

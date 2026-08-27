@@ -21,102 +21,144 @@
     .modal-vacaciones .modal-body {
         overflow-y: auto;
     }
+    
 }
+
+    .stats-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+    .stat-chip {
+        flex: 1 1 calc(25% - 12px);
+        min-width: 180px;
+        background: #fff;
+        border-radius: 10px;
+        padding: 14px 16px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+        border: 1px solid #e9ecef;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        transition: transform .15s;
+    }
+    .stat-chip:hover { transform: translateY(-2px); }
+    .stat-chip-icon {
+        width: 38px; height: 38px;
+        border-radius: 10px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 16px; flex-shrink: 0;
+    }
+    .bg-soft-success { background: #d1f2eb; color: #27ae60; }
+    .bg-soft-primary { background: #d6eaf8; color: #2980b9; }
+    .bg-soft-info    { background: #d1f2eb; color: #1abc9c; }
+    .bg-soft-warning { background: #fdebd0; color: #f39c12; }
+    .stat-chip-info { min-width: 0; }
+    .stat-chip-label { font-size: 12px; color: #6c757d; margin-bottom: 1px; white-space: nowrap; }
+    .stat-chip-value { font-size: 20px; font-weight: 700; line-height: 1.2; }
+    .stat-chip-unit  { font-size: 11px; color: #adb5bd; }
+    .stat-chip-progress { height: 3px; background: #e9ecef; border-radius: 2px; margin-top: 5px; overflow: hidden; }
+    .stat-chip-progress-bar { height: 100%; border-radius: 2px; }
+
+    /* Móvil: fila horizontal scrolleable y compacta */
+    @media (max-width: 576px) {
+        .stats-bar {
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            gap: 8px;
+            padding-bottom: 4px;
+            scrollbar-width: none; /* Firefox */
+        }
+        .stats-bar::-webkit-scrollbar { display: none; }
+        .stat-chip {
+            flex: 0 0 auto;
+            min-width: 125px;
+            padding: 10px 12px;
+            gap: 8px;
+        }
+        .stat-chip-icon { width: 30px; height: 30px; font-size: 13px; border-radius: 8px; }
+        .stat-chip-value { font-size: 17px; }
+        .stat-chip-label { font-size: 11px; }
+        .stat-chip-unit  { font-size: 10px; }
+        .stat-chip-progress { margin-top: 3px; }
+    }
+
 </style>
 <div class="container-fluid px-4">
     <!-- Header -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h2 class="mb-0">
-                        <i class="fas fa-umbrella-beach text-primary me-2"></i>Mi Historial de Vacaciones
-                    </h2>
-                    <nav aria-label="breadcrumb">
-                        <ol class="breadcrumb mb-0">
-                            <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Inicio</a></li>
-                            <li class="breadcrumb-item active">Mi Historial</li>
-                        </ol>
-                    </nav>
-                </div>
-                {{-- Botón que abre el modal --}}
-                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalCrearVacacion">
-                    <i class="fas fa-plus me-2"></i>Nueva Solicitud
-                </button>
-            </div>
+    <div class="row container-fluid mb-4">
+        <!-- Encabezado unificado (igual que Comisiones / Salud / Particular) -->
+        <div class="alert alert-secondary text-center" role="alert">
+            <h5 class="mb-0"><i class="fas fa-umbrella-beach me-2"></i>Mi Historial de Vacaciones</h5>
+        </div>
+
+        <div class="text-start mb-3">
+            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalCrearVacacion">
+                <i class="fas fa-plus me-1"></i> Nueva Solicitud
+            </button>
+            <a href="/homeusr" class="btn btn-secondary">
+                <i class="fa fa-times"></i> Cancelar
+            </a>
         </div>
     </div>
 
     <!-- Tarjetas de resumen (igual) -->
-    <div class="row g-3 mb-4">
-        <div class="col-xl-3 col-md-6">
-            <div class="card card-hover h-100 border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-muted mb-1">Saldo Disponible</h6>
-                            <h3 class="mb-0 text-success">{{ number_format($resumen['saldo_actual'], 1) }}</h3>
-                            <small class="text-muted">días disponibles</small>
-                        </div>
-                        <div class="bg-success bg-opacity-10 p-3 rounded-circle">
-                            <i class="fas fa-calendar-check text-success fs-4"></i>
-                        </div>
-                    </div>
-                    <div class="progress mt-3" style="height:5px;">
-                        @php
-                            $porcentaje = $resumen['total_asignado'] > 0 ? ($resumen['saldo_actual'] / $resumen['total_asignado']) * 100 : 0;
-                        @endphp
-                        <div class="progress-bar bg-success" style="width:{{ $porcentaje }}%"></div>
-                    </div>
+    <div class="stats-bar">
+        @php
+            $porcentaje = $resumen['total_asignado'] > 0
+                ? ($resumen['saldo_actual'] / $resumen['total_asignado']) * 100
+                : 0;
+        @endphp
+
+        <!-- Saldo Disponible -->
+        <div class="stat-chip">
+            <div class="stat-chip-icon bg-soft-success">
+                <i class="fas fa-calendar-check"></i>
+            </div>
+            <div class="stat-chip-info">
+                <div class="stat-chip-label">Saldo Disponible</div>
+                <div class="stat-chip-value text-success">{{ number_format($resumen['saldo_actual'], 1) }}</div>
+                <div class="stat-chip-unit">días disponibles</div>
+                <div class="stat-chip-progress">
+                    <div class="stat-chip-progress-bar bg-success" style="width:{{ $porcentaje }}%"></div>
                 </div>
             </div>
         </div>
-        <div class="col-xl-3 col-md-6">
-            <div class="card card-hover h-100 border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-muted mb-1">Total Asignado</h6>
-                            <h3 class="mb-0 text-primary">{{ number_format($resumen['total_asignado'], 1) }}</h3>
-                            <small class="text-muted">días totales</small>
-                        </div>
-                        <div class="bg-primary bg-opacity-10 p-3 rounded-circle">
-                            <i class="fas fa-arrow-up text-primary fs-4"></i>
-                        </div>
-                    </div>
-                </div>
+
+        <!-- Total Asignado -->
+        <div class="stat-chip">
+            <div class="stat-chip-icon bg-soft-primary">
+                <i class="fas fa-arrow-up"></i>
+            </div>
+            <div class="stat-chip-info">
+                <div class="stat-chip-label">Total Asignado</div>
+                <div class="stat-chip-value text-primary">{{ number_format($resumen['total_asignado'], 1) }}</div>
+                <div class="stat-chip-unit">días totales</div>
             </div>
         </div>
-        <div class="col-xl-3 col-md-6">
-            <div class="card card-hover h-100 border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-muted mb-1">Días Usados</h6>
-                            <h3 class="mb-0 text-info">{{ number_format($resumen['total_usado'], 1) }}</h3>
-                            <small class="text-muted">días utilizados</small>
-                        </div>
-                        <div class="bg-info bg-opacity-10 p-3 rounded-circle">
-                            <i class="fas fa-clock text-info fs-4"></i>
-                        </div>
-                    </div>
-                </div>
+
+        <!-- Días Usados -->
+        <div class="stat-chip">
+            <div class="stat-chip-icon bg-soft-info">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-chip-info">
+                <div class="stat-chip-label">Días Usados</div>
+                <div class="stat-chip-value text-info">{{ number_format($resumen['total_usado'], 1) }}</div>
+                <div class="stat-chip-unit">días utilizados</div>
             </div>
         </div>
-        <div class="col-xl-3 col-md-6">
-            <div class="card card-hover h-100 border-0 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-muted mb-1">Días Vencidos</h6>
-                            <h3 class="mb-0 text-warning">{{ number_format($resumen['total_vencido'], 1) }}</h3>
-                            <small class="text-muted">días por vencer</small>
-                        </div>
-                        <div class="bg-warning bg-opacity-10 p-3 rounded-circle">
-                            <i class="fas fa-exclamation-triangle text-warning fs-4"></i>
-                        </div>
-                    </div>
-                </div>
+
+        <!-- Días Vencidos -->
+        <div class="stat-chip">
+            <div class="stat-chip-icon bg-soft-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="stat-chip-info">
+                <div class="stat-chip-label">Días Vencidos</div>
+                <div class="stat-chip-value text-warning">{{ number_format($resumen['total_vencido'], 1) }}</div>
+                <div class="stat-chip-unit">días por vencer</div>
             </div>
         </div>
     </div>
@@ -161,124 +203,164 @@
         <div class="card-body">
             <div class="tab-content">
                 <!-- Tab Solicitudes -->
+                <!-- Tab Solicitudes -->
                 <div class="tab-pane fade show active" id="history" role="tabpanel">
+                    <h5 class="mb-3">Mis solicitudes de vacación</h5>
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle">
+                        <table class="table table-hover align-middle" id="tablaVacaciones">
                             <thead class="table-light">
                                 <tr>
-                                    <th>Fecha Solicitud</th><th>Desde</th><th>Hasta</th><th>Días</th>
-                                    <th>Estado</th><th>Responsable</th><th>Observaciones</th><th>Acciones</th>
+                                    <th>#</th>
+                                    <th>Fecha solicitud</th>
+                                    <th>Desde</th>
+                                    <th>Hasta</th>
+                                    <th>Días</th>
+                                    <th>🧑‍💼 Jefe Inmediato</th>
+                                    <th>🏢 RRHH</th>
+                                    <th>Observaciones</th>
+                                    <th>Acciones</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="tbodyVacaciones">
                                 @forelse($solicitudes as $solicitud)
-                                <tr>
-                                    <td>{{ \Carbon\Carbon::parse($solicitud->fechasol)->format('d/m/Y') }}</td>
-                                    <td>{{ \Carbon\Carbon::parse($solicitud->fechasal)->format('d/m/Y') }}</td>
-                                    <td>{{ \Carbon\Carbon::parse($solicitud->fecharet)->format('d/m/Y') }}</td>
-                                    <td class="fw-bold">{{ $solicitud->cantidad }}</td>
-                                    <!-- Columna Estado (ya existente) -->
-                                    <td>
-                                        @php
-                                            $estados = [
-                                                'aprobado' => ['class'=>'success','icon'=>'fa-check-circle','text'=>'Aprobado'],
-                                                'pendiente_jefe' => ['class'=>'warning','icon'=>'fa-clock','text'=>'Pendiente Jefe'],
-                                                'pendiente_rrhh' => ['class'=>'warning','icon'=>'fa-clock','text'=>'Pendiente RRHH'],
-                                                'rechazado' => ['class'=>'danger','icon'=>'fa-times-circle','text'=>'Rechazado'],
-                                                'cancelado' => ['class'=>'secondary','icon'=>'fa-ban','text'=>'Cancelado'],
-                                            ];
-                                            $est = $estados[$solicitud->estado] ?? ['class'=>'secondary','icon'=>'fa-question-circle','text'=>'Desconocido'];
-                                            $editable = in_array($solicitud->estado, ['pendiente_jefe','pendiente_rrhh']);
-                                        @endphp
-                                        <span class="badge bg-{{ $est['class'] }} py-2 px-3">
-                                            <i class="fas {{ $est['icon'] }} me-1"></i>{{ $est['text'] }}
-                                        </span>
-                                    </td>
+                                    @php
+                                        $estadoJefe = strtolower($solicitud->estado_jefe ?? '');
+                                        $estadoRRHH = strtolower($solicitud->estado_rrhh ?? '');
+                                    @endphp
+                                    <tr id="fila-{{ $solicitud->id }}">
+                                        <td>{{ $loop->iteration }}</td>
+                                        <td>{{ \Carbon\Carbon::parse($solicitud->fechasol)->format('d/m/Y') }}</td>
+                                        <td>{{ \Carbon\Carbon::parse($solicitud->fechasal)->format('d/m/Y') }}</td>
+                                        <td>{{ \Carbon\Carbon::parse($solicitud->fecharet)->format('d/m/Y') }}</td>
+                                        <td class="fw-bold">{{ $solicitud->cantidad }}</td>
 
-                                    <!-- NUEVA COLUMNA: Responsable -->
-                                    <td>
-                                        @php
-                                            $responsable = '-';
-                                            $fecha = '';
+                                        {{-- ===== JEFE INMEDIATO ===== --}}
+                                        <td>
+                                            @php
+                                                $badgeJefe = 'bg-secondary';
+                                                $textoJefe = 'Sin estado';
+                                                $iconoJefe = 'fa-question-circle';
 
-                                            switch ($solicitud->estado) {
-                                                case 'pendiente_jefe':
-                                                    $responsable = $solicitud->jefe 
-                                                        ? $solicitud->jefe->nombre . ' ' . $solicitud->jefe->apellidoPat
-                                                        : 'Sin jefe asignado';
-                                                    break;
+                                                if ($estadoJefe === 'pendiente') {
+                                                    $badgeJefe = 'bg-warning text-dark'; $textoJefe = 'Pendiente'; $iconoJefe = 'fa-clock';
+                                                } elseif ($estadoJefe === 'aprobado') {
+                                                    $badgeJefe = 'bg-success'; $textoJefe = 'Aprobado'; $iconoJefe = 'fa-check-circle';
+                                                } elseif ($estadoJefe === 'rechazado') {
+                                                    $badgeJefe = 'bg-danger'; $textoJefe = 'Rechazado'; $iconoJefe = 'fa-times-circle';
+                                                } elseif (empty($estadoJefe)) {
+                                                    $badgeJefe = 'bg-light text-dark border'; $textoJefe = 'Sin asignar'; $iconoJefe = 'fa-user-slash';
+                                                }
+                                            @endphp
+                                            <span class="badge {{ $badgeJefe }} py-2 px-3 mb-1 d-inline-block">
+                                                <i class="fas {{ $iconoJefe }} me-1"></i>{{ $textoJefe }}
+                                            </span>
+                                            <div class="small mt-1">
+                                                @if($solicitud->jefe)
+                                                    <i class="fas fa-user-tie me-1 text-muted"></i>
+                                                    {{ $solicitud->jefe->nombre }} {{ $solicitud->jefe->apellidoPat }}
+                                                    @if($solicitud->fecha_aprobacion_jefe)
+                                                        <br>
+                                                        <span class="text-muted" style="font-size: 0.75rem;">
+                                                            <i class="far fa-calendar-alt me-1"></i>
+                                                            {{ \Carbon\Carbon::parse($solicitud->fecha_aprobacion_jefe)->format('d/m/Y H:i') }}
+                                                        </span>
+                                                    @endif
+                                                @else
+                                                    <span class="text-muted fst-italic" style="font-size: 0.8rem;">
+                                                        <i class="fas fa-user-slash me-1"></i>Sin jefe asignado
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        </td>
 
-                                                case 'pendiente_rrhh':
-                                                    $responsable = 'Recursos Humanos';
-                                                    break;
+                                        {{-- ===== RRHH ===== --}}
+                                        <td>
+                                            @php
+                                                $rrhhPuedeActuar = $estadoJefe === 'aprobado';
+                                                $rrhhNoAplica = $estadoJefe === 'rechazado' || empty($estadoJefe);
 
-                                                case 'aprobado':
-                                                    // ¿Quién aprobó? Si tiene fecha de aprobación de jefe, fue el jefe; 
-                                                    // si tiene fecha de RRHH, fue RRHH.
-                                                    if ($solicitud->fecha_aprobacion_jefe) {
-                                                        $responsable = $solicitud->jefe 
-                                                            ? $solicitud->jefe->nombre . ' ' . $solicitud->jefe->apellidoPat
-                                                            : 'Jefe (sin nombre)';
-                                                        $fecha = $solicitud->fecha_aprobacion_jefe;
-                                                    } elseif ($solicitud->fecha_aprobacion_rrhh) {
-                                                        $responsable = $solicitud->rrhh 
-                                                            ? $solicitud->rrhh->nombre . ' ' . $solicitud->rrhh->apellidoPat
-                                                            : 'RRHH (sin nombre)';
-                                                        $fecha = $solicitud->fecha_aprobacion_rrhh;
-                                                    } else {
-                                                        $responsable = 'Aprobado (sin registro)';
-                                                    }
-                                                    break;
+                                                $badgeRRHH = 'bg-secondary';
+                                                $textoRRHH = 'Desconocido';
+                                                $iconoRRHH = 'fa-question-circle';
 
-                                                case 'rechazado':
-                                                    if ($solicitud->fecha_aprobacion_jefe && $solicitud->estado_jefe === 'rechazado') {
-                                                        $responsable = $solicitud->jefe 
-                                                            ? $solicitud->jefe->nombre . ' ' . $solicitud->jefe->apellidoPat
-                                                            : 'Jefe (sin nombre)';
-                                                    } elseif ($solicitud->fecha_aprobacion_rrhh && $solicitud->estado_rrhh === 'rechazado') {
-                                                        $responsable = $solicitud->rrhh 
-                                                            ? $solicitud->rrhh->nombre . ' ' . $solicitud->rrhh->apellidoPat
-                                                            : 'RRHH (sin nombre)';
-                                                    } else {
-                                                        $responsable = 'Rechazado (sin responsable)';
-                                                    }
-                                                    break;
+                                                if ($rrhhNoAplica) {
+                                                    $badgeRRHH = 'bg-light text-muted border'; $textoRRHH = 'N/A'; $iconoRRHH = 'fa-minus-circle';
+                                                } elseif (!$rrhhPuedeActuar) {
+                                                    $badgeRRHH = 'bg-light text-dark border'; $textoRRHH = 'En espera'; $iconoRRHH = 'fa-hourglass-half';
+                                                } elseif ($estadoRRHH === 'pendiente') {
+                                                    $badgeRRHH = 'bg-warning text-dark'; $textoRRHH = 'Pendiente'; $iconoRRHH = 'fa-clock';
+                                                } elseif ($estadoRRHH === 'aprobado') {
+                                                    $badgeRRHH = 'bg-success'; $textoRRHH = 'Aprobado'; $iconoRRHH = 'fa-check-circle';
+                                                } elseif ($estadoRRHH === 'rechazado') {
+                                                    $badgeRRHH = 'bg-danger'; $textoRRHH = 'Rechazado'; $iconoRRHH = 'fa-times-circle';
+                                                }
+                                            @endphp
+                                            <span class="badge {{ $badgeRRHH }} py-2 px-3 mb-1 d-inline-block">
+                                                <i class="fas {{ $iconoRRHH }} me-1"></i>{{ $textoRRHH }}
+                                            </span>
+                                            <div class="small mt-1">
+                                                @if($rrhhPuedeActuar && !$rrhhNoAplica)
+                                                    <i class="fas fa-user-shield me-1 text-muted"></i>
+                                                    {{ $solicitud->rrhh?->nombre ?? '' }} {{ $solicitud->rrhh?->apellidoPat ?? '' }}
+                                                    @if($solicitud->fecha_aprobacion_rrhh)
+                                                        <br>
+                                                        <span class="text-muted" style="font-size: 0.75rem;">
+                                                            <i class="far fa-calendar-alt me-1"></i>
+                                                            {{ \Carbon\Carbon::parse($solicitud->fecha_aprobacion_rrhh)->format('d/m/Y H:i') }}
+                                                        </span>
+                                                    @endif
+                                                @elseif($rrhhNoAplica)
+                                                    <span class="text-muted fst-italic" style="font-size: 0.8rem;">
+                                                        No aplica por estado del jefe
+                                                    </span>
+                                                @else
+                                                    <span class="text-muted fst-italic" style="font-size: 0.8rem;">
+                                                        Esperando aprobación del jefe
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        </td>
 
-                                                default:
-                                                    $responsable = '-';
-                                            }
-                                        @endphp
-
-                                        <span class="small">
-                                            <i class="fas fa-user-circle me-1 text-muted"></i>
-                                            {{ $responsable }}
-                                            @if($fecha)
-                                                <br><span class="text-muted" style="font-size: 0.75rem;">
-                                                    <i class="far fa-calendar-alt me-1"></i>{{ \Carbon\Carbon::parse($fecha)->format('d/m/Y H:i') }}
-                                                </span>
+                                        <td>
+                                            @if($solicitud->observacion)
+                                                <span class="text-muted small">{{ Str::limit($solicitud->observacion, 30) }}</span>
+                                                <button type="button" class="btn btn-sm btn-link p-0 ms-1" data-bs-toggle="tooltip" title="{{ $solicitud->observacion }}">
+                                                    <i class="fas fa-eye text-muted"></i>
+                                                </button>
+                                            @else
+                                                <span class="text-muted">-</span>
                                             @endif
-                                        </span>
-                                    </td>
-                                    <td>
-                                        @if($solicitud->observacion)
-                                            <span class="text-muted small">{{ Str::limit($solicitud->observacion,30) }}</span>
-                                            <button type="button" class="btn btn-sm btn-link p-0 ms-1" data-bs-toggle="tooltip" title="{{ $solicitud->observacion }}">
-                                                <i class="fas fa-eye text-muted"></i>
-                                            </button>
-                                        @else
-                                            <span class="text-muted">-</span>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        @if($editable)
-                                            <button class="btn btn-sm btn-warning btn-editar me-1" data-id="{{ $solicitud->id }}" title="Editar"><i class="fas fa-edit"></i></button>
-                                        @endif
-                                        <button class="btn btn-sm btn-danger btn-eliminar me-1" data-id="{{ $solicitud->id }}" title="Eliminar"><i class="fas fa-trash"></i></button>
-                                        <a href="{{ route('vacacion.boleta', $solicitud->id) }}" class="btn btn-sm btn-danger" title="PDF"><i class="fas fa-file-pdf"></i></a>
-                                    </td>
-                                </tr>
+                                        </td>
+
+                                        {{-- ===== ACCIONES ===== --}}
+                                        <td>
+                                            @php
+                                                $editableVac = empty($estadoJefe) || $estadoJefe === 'pendiente';
+                                                $pdfVac = $estadoJefe === 'aprobado';
+                                            @endphp
+
+                                            @if($editableVac)
+                                                <button class="btn btn-sm btn-info btn-editar me-1" data-id="{{ $solicitud->id }}" title="Editar">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-danger btn-eliminar me-1" data-id="{{ $solicitud->id }}" title="Eliminar">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            @else
+                                                <span class="text-muted me-1" style="font-size: 0.8rem;">No editable</span>
+                                            @endif
+                                            <a href="{{ route('vacacion.boleta', $solicitud->id) }}" class="btn btn-sm btn-danger" title="PDF" target="_blank">
+                                                <i class="fas fa-file-pdf"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
                                 @empty
-                                <tr><td colspan="7" class="text-center py-4"><i class="fas fa-inbox text-muted fs-1 mb-3 d-block"></i><p class="text-muted mb-0">No has realizado ninguna solicitud de vacación</p></td></tr>
+                                    <tr>
+                                        <td colspan="9" class="text-center text-muted py-4">
+                                            <i class="fas fa-inbox text-muted fs-1 mb-3 d-block"></i>
+                                            No has realizado ninguna solicitud de vacación
+                                        </td>
+                                    </tr>
                                 @endforelse
                             </tbody>
                         </table>
@@ -375,266 +457,507 @@
 </div>
 @section('modales')
     <!-- ============================================================ -->
-    <!-- MODAL CREAR (colocado al final del section) -->
+    <!-- MODAL CREAR -->
     <!-- ============================================================ -->
     <div class="modal fade" id="modalCrearVacacion" tabindex="-1" aria-labelledby="modalCrearLabel" aria-hidden="true">
         <div class="modal-dialog modal-xl modal-dialog-centered modal-vacaciones">
-            <div class="modal-content" style="border-radius: 0.4rem;">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title" id="modalCrearLabel"><i class="fas fa-plus me-2"></i>Nueva Solicitud de Vacación</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            <div class="modal-content" style="border-radius: 1rem; border: none; overflow: hidden;">
+                
+                <div class="modal-header text-white position-relative overflow-hidden" style="border: none;">
+
+                    <!-- Imagen de fondo suave -->
+                    <div class="position-absolute top-0 start-0 w-100 h-100"
+                        style="
+                            background: url('{{ asset('images/tejido-horizontal.jpg') }}') center/cover no-repeat;
+                            opacity: 0.45;
+                        ">
+                    </div>
+
+                    <!-- Overlay suave -->
+                    <div class="position-absolute top-0 start-0 w-100 h-100"
+                        style="
+                            background: linear-gradient(
+                                135deg,
+                                rgba(159, 199, 121, 0.8) 0%,
+                                rgba(47, 136, 20, 0.8) 100%
+                            );
+                        ">
+                    </div>
+
+                    <!-- Contenido -->
+                    <div class="d-flex align-items-center position-relative z-1">
+
+                        <div class="rounded-circle bg-white bg-opacity-25
+                                    d-flex align-items-center justify-content-center me-3"
+                            style="width: 42px; height: 42px;">
+                            <i class="fas fa-umbrella-beach fa-lg" style="color: #0B5D1E;"></i>
+                        </div>
+
+                        <div>
+                            <h5 class="modal-title mb-0 fw-bold"
+                                id="modalCrearLabel"
+                                style="color: #0B5D1E;">
+                                Nueva Solicitud de Vacación
+                            </h5>
+
+                            <small style="color: #0B5D1E; font-weight: 600;">
+                                Complete los datos de su período de descanso
+                            </small>
+                        </div>
+
+                    </div>
+
+                    <button type="button"
+                            class="btn-close btn-close-white position-relative z-1"
+                            data-bs-dismiss="modal"
+                            aria-label="Cerrar">
+                    </button>
+
                 </div>
-                <div class="modal-body">
-                    {{-- Formulario integrado directamente --}}
-                    <div id="formCrear">
+
+                <div class="modal-body p-0">
+                    <div id="formCrear" class="p-4">
                         <input type="hidden" id="idpersona" value="{{ auth()->user()->persona->id ?? '' }}">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <div class="form-floating mb-2">
-                                        <input type="text" class="form-control form-control-sm" id="nomb" placeholder="Nombres y apellidos" disabled
-                                               value="{{ auth()->user()->persona->nombre ?? '' }} {{ auth()->user()->persona->apellidoPat ?? '' }} {{ auth()->user()->persona->apellidoMat ?? '' }}">
-                                        <label for="nomb">Servidor Público:</label>
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <div class="form-floating mb-2">
-                                        <select class="form-select tipoSal" id="salida" disabled>
-                                            @foreach ($tipoSal as $sal)
-                                                @if ($sal->descripcion == 'VACACION')
-                                                    <option value="{{ $sal->id }}">{{ $sal->descripcion }}</option>
-                                                @endif
-                                            @endforeach
-                                        </select>
-                                        <label for="salida">Tipo de salida:</label>
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <div class="form-floating mb-2">
-                                        <input type="date" class="form-control fechasol" required readonly>
-                                        <label>Fecha de solicitud:</label>
+                        
+                        <!-- Fila superior compacta -->
+                        <div class="row g-2 mb-4">
+                            <div class="col-md-3">
+                                <div class="alert alert-success py-2 mb-0 d-flex align-items-center h-100">
+                                    <i class="fas fa-wallet me-2 fs-5"></i>
+                                    <div>
+                                        <div class="small text-success" style="font-size: 0.7rem;">Días Disponibles</div>
+                                        <div class="fw-bold">{{ number_format($resumen['saldo_actual'], 1) }}</div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-6">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <div class="form-floating mb-2">
-                                                <input type="text" class="form-control fsalida" required>
-                                                <label>Inicio vacación:</label>
-                                            </div>
+                            <div class="col-md-5">
+                                <div class="form-floating">
+                                    <input type="text" class="form-control" disabled
+                                           value="{{ auth()->user()->persona->nombre ?? '' }} {{ auth()->user()->persona->apellidoPat ?? '' }} {{ auth()->user()->persona->apellidoMat ?? '' }}">
+                                    <label>Servidor Público</label>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-floating">
+                                    <select class="form-select tipoSal" id="salida" disabled>
+                                        @foreach ($tipoSal as $sal)
+                                            @if ($sal->descripcion == 'VACACION')
+                                                <option value="{{ $sal->id }}">{{ $sal->descripcion }}</option>
+                                            @endif
+                                        @endforeach
+                                    </select>
+                                    <label>Tipo de Salida</label>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="form-floating">
+                                    <input type="date" class="form-control fechasol" required readonly>
+                                    <label>Fecha de Solicitud</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sección de fechas -->
+                        <div class="card border-0 shadow-sm mb-4" style="border-radius: 12px;">
+                            <div class="card-header bg-white border-bottom-0 pt-3 pb-0">
+                                <h6 class="fw-bold text-dark mb-0">
+                                    <i class="fas fa-calendar-alt text-primary me-2"></i>Período de Vacaciones
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-bold text-dark mb-2">
+                                            <i class="fas fa-plane-departure text-success me-2"></i>Fecha de Inicio
+                                        </label>
+                                        <div class="form-floating">
+                                            <input type="text" class="form-control fsalida fs-5 fw-bold text-success border-success border-opacity-25" required placeholder="Inicio" style="border-radius: 10px;">
+                                            <label class="text-muted">Seleccione la fecha de inicio</label>
                                         </div>
                                     </div>
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <div class="form-floating mb-2">
-                                                <input type="text" class="form-control fretorno" required>
-                                                <label>Fin vacación:</label>
+                                    <div class="col-md-1 d-flex align-items-center justify-content-center">
+                                        <div class="rounded-circle bg-light d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                            <i class="fas fa-arrow-right text-muted"></i>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label fw-bold text-dark mb-2">
+                                            <i class="fas fa-plane-arrival text-danger me-2"></i>Fecha de Retorno
+                                        </label>
+                                        <div class="form-floating">
+                                            <input type="text" class="form-control fretorno fs-5 fw-bold text-danger border-danger border-opacity-25" required placeholder="Fin" style="border-radius: 10px;">
+                                            <label class="text-muted">Seleccione la fecha de retorno</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label fw-bold text-dark mb-2">
+                                            <i class="fas fa-calculator text-info me-2"></i>Total de Días
+                                        </label>
+                                        <div class="position-relative">
+                                            <div class="form-floating">
+                                                <input type="text" class="form-control totaldias fs-4 fw-bold text-info border-info border-opacity-25 text-center" readonly style="border-radius: 10px; background: #e3f2fd;">
+                                                <label class="text-muted">Días hábiles calculados</label>
+                                            </div>
+                                            <div class="position-absolute top-50 end-0 translate-middle-y me-2">
+                                                <span class="badge bg-info">auto</span>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <div class="form-floating mb-2">
-                                                <input type="text" class="form-control border-warning totaldias" readonly>
-                                                <label>Cantidad de días solicitadas:</label>
+
+                                <div class="mt-3 p-3 rounded-3 row" >
+                                    <div class="col-md-4 d-flex align-items-center justify-content-between" style="background: #fff8e1; border: 1px dashed #ffc107;">
+                                        <div class="d-flex align-items-center">
+                                            <div class="rounded-circle bg-warning bg-opacity-25 d-flex align-items-center justify-content-center me-3" style="width: 36px; height: 36px;">
+                                                <i class="fas fa-adjust text-warning"></i>
+                                            </div>
+                                            <div>
+                                                <div class="fw-bold text-dark">¿Solicita medio día?</div>
+                                                <div class="text-muted">Marque esta opción si solo necesita medio día</div>
                                             </div>
                                         </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-check">
+                                        <div class="form-check form-switch" style="transform: scale(1.3);">
                                             <input class="form-check-input mdia" type="checkbox" id="mdia">
-                                            <label class="form-check-label" for="mdia">Medio día</label>
+                                            <label class="form-check-label visually-hidden" for="mdia">Medio día</label>
                                         </div>
                                     </div>
-                                </div>
-                                <div class="mb-2 form-floating">
-                                    <input type="text" class="form-control border border-warning observacion" placeholder="Observacion" required>
-                                    <label>Observaciones:</label>
-                                </div>
-                                <div class="bg-secondary text-white p-2">
-                                    <p><strong>Días disponibles de vacación:</strong> <span>{{ number_format($resumen['saldo_actual'], 1) }}</span></p>
-                                </div>
-                            </div>
-                        </div>
-                        <hr>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="row mb-3">
-                                    <div class="col-md-10">
+                                    
+                                    
+                                    <div class="col-md-8">
+                                        <label class="form-label fw-bold text-dark mb-2">
+                                            <i class="fas fa-comment-alt text-warning me-2"></i>Motivo
+                                        </label>
                                         <div class="form-floating">
-                                            <input type="text" class="form-control dato" placeholder="Nombre o apellido" required>
-                                            <label>Buscar inmediato superior (nombre o apellido):</label>
+                                            <input type="text" class="form-control observacion border-warning" placeholder="Observaciones" required style="border-radius: 10px;">
+                                            <label class="text-muted">Ingrese el motivo o detalle adicional de la solicitud</label>
                                         </div>
                                     </div>
-                                    <div class="col-md-2 text-start">
-                                        <button class="btn btn-success btnBuscarSup"><i class="fa fa-search"></i></button>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <input type="hidden" class="idSup">
-                                    <div class="form-floating mb-2">
-                                        <input type="text" class="form-control nombreSup" readonly>
-                                        <label>Inmediato Superior Seleccionado:</label>
-                                    </div>
+
                                 </div>
                             </div>
                         </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <table class="table">
-                                        <thead><tr><th>Nombre</th><th>Acción</th></tr></thead>
-                                        <tbody class="tablaSup"></tbody>
-                                    </table>
+
+
+                        <!-- Sección de Superior -->
+                        <div class="card border-0 shadow-sm" style="border-radius: 12px; background: linear-gradient(to bottom, #ffffff, #f8f9fa);">
+                            <div class="card-header bg-transparent border-bottom-0 pt-3">
+                                <h6 class="fw-bold text-dark mb-0">
+                                    <i class="fas fa-user-tie text-secondary me-2"></i>Aprobación del Inmediato Superior
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <div class="col-md-7">
+                                        <label class="form-label fw-bold text-dark mb-2">Buscar inmediato superior por nombre o apellido</label>
+                                        <div class="input-group input-group-lg" style="border-radius: 10px; overflow: hidden;">
+                                            <span class="input-group-text bg-white border-end-0">
+                                                <i class="fas fa-search text-muted"></i>
+                                            </span>
+                                            <input type="text" class="form-control dato border-start-0" placeholder="Ejemplo: Juan Pérez..." required>
+                                            <button class="btn btn-success btnBuscarSup px-4 fw-bold" type="button">
+                                                <i class="fa fa-search me-1"></i> Buscar
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-5">
+                                        <label class="form-label fw-bold text-dark mb-2">Inmediato superior seleccionado</label>
+                                        <input type="hidden" class="idSup">
+                                        <div class="form-floating">
+                                            <input type="text" class="form-control nombreSup bg-light" readonly placeholder="Superior" style="border-radius: 10px;">
+                                            <label class="text-muted"><i class="fas fa-user-check text-success me-1"></i>Nombre del superior</label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mt-3">
+                                    <div class="table-responsive rounded-3 border" style="max-height: 200px; overflow-y: auto;">
+                                        <table class="table table-hover align-middle mb-0">
+                                            <thead class="table-light sticky-top">
+                                                <tr>
+                                                    <th class="ps-3 fw-bold"><i class="fas fa-user me-1 text-muted"></i>Nombre Completo</th>
+                                                    <th class="text-center fw-bold" style="width: 100px;">Acción</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="tablaSup">
+                                                <tr>
+                                                    <td colspan="2" class="text-center text-muted py-4">
+                                                        <i class="fas fa-search text-muted mb-2 d-block" style="font-size: 1.5rem;"></i>
+                                                        Realice una búsqueda para ver resultados
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" id="btnGuardarCrear"><i class="fas fa-save me-2"></i>Registrar</button>
+
+                <div class="modal-footer bg-light border-top" style="padding: 1.2rem 1.5rem;">
+                    <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i> Cancelar
+                    </button>
+                    <button type="button" class="btn btn-primary px-4 fw-bold" id="btnGuardarCrear" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
+                        <i class="fas fa-paper-plane me-2"></i>Enviar Solicitud
+                    </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="modal fade" id="modalEditarVacacion" tabindex="-1" aria-labelledby="modalEditarLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header bg-warning text-dark">
-                    <h5 class="modal-title" id="modalEditarLabel"><i class="fas fa-edit me-2"></i>Editar Solicitud</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+<!-- ============================================================ -->
+<!-- MODAL EDITAR (ahora idéntico en diseño al de crear) -->
+<!-- ============================================================ -->
+<div class="modal fade" id="modalEditarVacacion" tabindex="-1" aria-labelledby="modalEditarLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-vacaciones">
+        <div class="modal-content" style="border-radius: 1rem; border: none; overflow: hidden;">
+            
+            <!-- Header con mismo fondo/overlay que el crear -->
+            <div class="modal-header text-white position-relative overflow-hidden" style="border: none;">
+
+                <!-- Imagen de fondo suave -->
+                <div class="position-absolute top-0 start-0 w-100 h-100"
+                    style="
+                        background: url('{{ asset('images/tejido-horizontal.jpg') }}') center/cover no-repeat;
+                        opacity: 0.45;
+                    ">
                 </div>
-                <div class="modal-body">
-                    <!-- Mismo formulario pero con datos precargados (se clona o se llena por JS) -->
-                    <div id="formEditar">
-                        <input type="hidden" id="edit_solicitud_id" value="">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <div class="form-floating mb-2">
-                                        <input type="text" class="form-control form-control-sm" id="edit_nomb" placeholder="Nombres y apellidos" disabled
-                                               value="{{ auth()->user()->persona->nombre ?? '' }} {{ auth()->user()->persona->apellidoPat ?? '' }} {{ auth()->user()->persona->apellidoMat ?? '' }}">
-                                        <label for="edit_nomb">Servidor Público:</label>
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <div class="form-floating mb-2">
-                                        <select class="form-select tipoSal" id="edit_salida" disabled>
-                                            @foreach ($tipoSal as $sal)
-                                                @if ($sal->descripcion == 'VACACION')
-                                                    <option value="{{ $sal->id }}">{{ $sal->descripcion }}</option>
-                                                @endif
-                                            @endforeach
-                                        </select>
-                                        <label for="edit_salida">Tipo de salida:</label>
-                                    </div>
-                                </div>
-                                <div class="mb-3">
-                                    <div class="form-floating mb-2">
-                                        <input type="date" class="form-control fechasol" id="edit_fechasol" required readonly>
-                                        <label>Fecha de solicitud:</label>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <div class="form-floating mb-2">
-                                                <input type="text" class="form-control fsalida" id="edit_fsalida" required>
-                                                <label>Inicio vacación:</label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <div class="form-floating mb-2">
-                                                <input type="text" class="form-control fretorno" id="edit_fretorno" required>
-                                                <label>Fin vacación:</label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="mb-3">
-                                            <div class="form-floating mb-2">
-                                                <input type="text" class="form-control border-warning totaldias" id="edit_totaldias" readonly>
-                                                <label>Cantidad de días solicitadas:</label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-check">
-                                            <input class="form-check-input mdia" type="checkbox" id="edit_mdia">
-                                            <label class="form-check-label" for="edit_mdia">Medio día</label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="mb-2 form-floating">
-                                    <input type="text" class="form-control border border-warning observacion" id="edit_observacion" placeholder="Observacion" required>
-                                    <label>Observaciones:</label>
-                                </div>
-                                <div class="bg-secondary text-white p-2">
-                                    <p><strong>Días disponibles de vacación:</strong> <span class="diasDisponiblesSpan">0</span></p>
+
+                <!-- Overlay con el mismo gradiente azul/violeta que el crear -->
+                <div class="position-absolute top-0 start-0 w-100 h-100"
+                    style="
+                        background: linear-gradient(
+                            135deg,
+                            rgba(245, 225, 138, 0.8) 0%,
+                            rgba(172, 160, 5, 0.8) 100%
+                        );
+                    ">
+                </div>
+
+                <!-- Contenido (mismos estilos de texto que el crear) -->
+                <div class="d-flex align-items-center position-relative z-1">
+
+                    <div class="rounded-circle bg-white bg-opacity-25
+                                d-flex align-items-center justify-content-center me-3"
+                        style="width: 42px; height: 42px;">
+                        <i class="fas fa-edit fa-lg" style="color: #0B5D1E;"></i>
+                    </div>
+
+                    <div>
+                        <h5 class="modal-title mb-0 fw-bold"
+                            id="modalEditarLabel"
+                            style="color: #0B5D1E;">
+                            Editar Solicitud de Vacación
+                        </h5>
+
+                        <small style="color: #0B5D1E; font-weight: 600;">
+                            Modifique los datos de su solicitud
+                        </small>
+                    </div>
+
+                </div>
+
+                <button type="button"
+                        class="btn-close btn-close-white position-relative z-1"
+                        data-bs-dismiss="modal"
+                        aria-label="Cerrar">
+                </button>
+
+            </div>
+
+            <div class="modal-body p-0">
+                <div id="formEditar" class="p-4">
+                    <input type="hidden" id="edit_solicitud_id" value="">
+                    
+                    <!-- Fila superior compacta (misma que el crear) -->
+                    <div class="row g-2 mb-4">
+                        <div class="col-md-3">
+                            <!-- Cambiado a alert-success para que sea igual -->
+                            <div class="alert alert-success py-2 mb-0 d-flex align-items-center h-100">
+                                <i class="fas fa-wallet me-2 fs-5"></i>
+                                <div>
+                                    <div class="small text-success" style="font-size: 0.7rem;">Días Disponibles</div>
+                                    <div class="fw-bold diasDisponiblesSpan">0</div>
                                 </div>
                             </div>
                         </div>
-                        <hr>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="row mb-3">
-                                    <div class="col-md-10">
-                                        <div class="form-floating">
-                                            <input type="text" class="form-control dato" id="edit_dato" placeholder="Nombre o apellido" required>
-                                            <label>Buscar inmediato superior (nombre o apellido):</label>
-                                        </div>
+                        <div class="col-md-5">
+                            <div class="form-floating">
+                                <input type="text" class="form-control" id="edit_nomb" disabled
+                                       value="{{ auth()->user()->persona->nombre ?? '' }} {{ auth()->user()->persona->apellidoPat ?? '' }} {{ auth()->user()->persona->apellidoMat ?? '' }}">
+                                <label>Servidor Público</label>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-floating">
+                                <select class="form-select tipoSal" id="edit_salida" disabled>
+                                    @foreach ($tipoSal as $sal)
+                                        @if ($sal->descripcion == 'VACACION')
+                                            <option value="{{ $sal->id }}">{{ $sal->descripcion }}</option>
+                                        @endif
+                                    @endforeach
+                                </select>
+                                <label>Tipo de Salida</label>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-floating">
+                                <input type="date" class="form-control fechasol" id="edit_fechasol" required readonly>
+                                <label>Fecha de Solicitud</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sección de fechas (igual que el crear) -->
+                    <div class="card border-0 shadow-sm mb-4" style="border-radius: 12px;">
+                        <div class="card-header bg-white border-bottom-0 pt-3 pb-0">
+                            <h6 class="fw-bold text-dark mb-0">
+                                <i class="fas fa-calendar-alt text-primary me-2"></i>Período de Vacaciones
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold text-dark mb-2">
+                                        <i class="fas fa-plane-departure text-success me-2"></i>Fecha de Inicio
+                                    </label>
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control fsalida fs-5 fw-bold text-success border-success border-opacity-25" id="edit_fsalida" required placeholder="Inicio" style="border-radius: 10px;">
+                                        <label class="text-muted">Seleccione la fecha de inicio</label>
                                     </div>
-                                    <div class="col-md-2 text-start">
-                                        <button class="btn btn-success btnBuscarSup"><i class="fa fa-search"></i></button>
+                                </div>
+                                <div class="col-md-1 d-flex align-items-center justify-content-center">
+                                    <div class="rounded-circle bg-light d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                        <i class="fas fa-arrow-right text-muted"></i>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold text-dark mb-2">
+                                        <i class="fas fa-plane-arrival text-danger me-2"></i>Fecha de Retorno
+                                    </label>
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control fretorno fs-5 fw-bold text-danger border-danger border-opacity-25" id="edit_fretorno" required placeholder="Fin" style="border-radius: 10px;">
+                                        <label class="text-muted">Seleccione la fecha de retorno</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-bold text-dark mb-2">
+                                        <i class="fas fa-calculator text-info me-2"></i>Total de Días
+                                    </label>
+                                    <div class="position-relative">
+                                        <div class="form-floating">
+                                            <input type="text" class="form-control totaldias fs-4 fw-bold text-info border-info border-opacity-25 text-center" id="edit_totaldias" readonly style="border-radius: 10px; background: #e3f2fd;">
+                                            <label class="text-muted">Días hábiles calculados</label>
+                                        </div>
+                                        <div class="position-absolute top-50 end-0 translate-middle-y me-2">
+                                            <span class="badge bg-info">auto</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
+
+                            <!-- Aquí está el bloque combinado de medio día + observaciones (igual que el crear) -->
+                            <div class="mt-3 p-3 rounded-3 row" >
+                                <div class="col-md-4 d-flex align-items-center justify-content-between" style="background: #fff8e1; border: 1px dashed #ffc107;">
+                                    <div class="d-flex align-items-center">
+                                        <div class="rounded-circle bg-warning bg-opacity-25 d-flex align-items-center justify-content-center me-3" style="width: 36px; height: 36px;">
+                                            <i class="fas fa-adjust text-warning"></i>
+                                        </div>
+                                        <div>
+                                            <div class="fw-bold text-dark">¿Solicita medio día?</div>
+                                            <div class="text-muted">Marque esta opción si solo necesita medio día</div>
+                                        </div>
+                                    </div>
+                                    <div class="form-check form-switch" style="transform: scale(1.3);">
+                                        <input class="form-check-input mdia" type="checkbox" id="edit_mdia">
+                                        <label class="form-check-label visually-hidden" for="edit_mdia">Medio día</label>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-8">
+                                    <label class="form-label fw-bold text-dark mb-2">
+                                        <i class="fas fa-comment-alt text-warning me-2"></i>Motivo
+                                    </label>
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control observacion border-warning" id="edit_observacion" placeholder="Observaciones" required style="border-radius: 10px;">
+                                        <label class="text-muted">Ingrese el motivo o detalle adicional de la solicitud</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Fin del bloque combinado -->
+                        </div>
+                    </div>
+
+                    <!-- Sección de Superior (igual que el crear) -->
+                    <div class="card border-0 shadow-sm" style="border-radius: 12px; background: linear-gradient(to bottom, #ffffff, #f8f9fa);">
+                        <div class="card-header bg-transparent border-bottom-0 pt-3">
+                            <h6 class="fw-bold text-dark mb-0">
+                                <i class="fas fa-user-tie text-secondary me-2"></i>Aprobación del Inmediato Superior
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-7">
+                                    <label class="form-label fw-bold text-dark mb-2">Buscar inmediato superior por nombre o apellido</label>
+                                    <div class="input-group input-group-lg" style="border-radius: 10px; overflow: hidden;">
+                                        <span class="input-group-text bg-white border-end-0">
+                                            <i class="fas fa-search text-muted"></i>
+                                        </span>
+                                        <input type="text" class="form-control dato border-start-0" id="edit_dato" placeholder="Ejemplo: Juan Pérez..." required>
+                                        <button class="btn btn-success btnBuscarSup px-4 fw-bold" type="button">
+                                            <i class="fa fa-search me-1"></i> Buscar
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="col-md-5">
+                                    <label class="form-label fw-bold text-dark mb-2">Inmediato superior seleccionado</label>
                                     <input type="hidden" class="idSup" id="edit_idSup">
-                                    <div class="form-floating mb-2">
-                                        <input type="text" class="form-control nombreSup" id="edit_nombreSup" readonly>
-                                        <label>Inmediato Superior Seleccionado:</label>
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control nombreSup bg-light" id="edit_nombreSup" readonly placeholder="Superior" style="border-radius: 10px;">
+                                        <label class="text-muted"><i class="fas fa-user-check text-success me-1"></i>Nombre del superior</label>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <table class="table">
-                                        <thead><tr><th>Nombre</th><th>Acción</th></tr></thead>
-                                        <tbody class="tablaSup" id="edit_tablaSup"></tbody>
+
+                            <div class="mt-3">
+                                <div class="table-responsive rounded-3 border" style="max-height: 200px; overflow-y: auto;">
+                                    <table class="table table-hover align-middle mb-0">
+                                        <thead class="table-light sticky-top">
+                                            <tr>
+                                                <th class="ps-3 fw-bold"><i class="fas fa-user me-1 text-muted"></i>Nombre Completo</th>
+                                                <th class="text-center fw-bold" style="width: 100px;">Acción</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="tablaSup" id="edit_tablaSup">
+                                            <tr>
+                                                <td colspan="2" class="text-center text-muted py-4">
+                                                    <i class="fas fa-search text-muted mb-2 d-block" style="font-size: 1.5rem;"></i>
+                                                    Realice una búsqueda para ver resultados
+                                                </td>
+                                            </tr>
+                                        </tbody>
                                     </table>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-warning" id="btnGuardarEditar"><i class="fas fa-save me-2"></i>Actualizar</button>
-                </div>
+            </div>
+
+            <div class="modal-footer bg-light border-top" style="padding: 1.2rem 1.5rem;">
+                <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i> Cancelar
+                </button>
+                <!-- Botón con el mismo gradiente que el crear -->
+                <button type="button" class="btn btn-primary px-4 fw-bold" id="btnGuardarEditar" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
+                    <i class="fas fa-save me-2"></i>Actualizar Solicitud
+                </button>
             </div>
         </div>
     </div>
+</div>
 @endsection
-
-
 @endsection
 
 @push('scripts')
@@ -652,7 +975,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Datos
     const idPersona = document.getElementById('idpersona')?.value || '{{ auth()->user()->persona_id ?? 0 }}';
-    // Usamos json_encode con opciones para evitar caracteres especiales
     const feriados = @json($feriado->pluck('fechaf')->map(fn($f) => \Carbon\Carbon::parse($f)->format('Y-m-d'))->toArray(), JSON_HEX_TAG);
 
     // Funciones auxiliares
@@ -697,6 +1019,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         function recalc() {
             if (!inputFsalida || !inputFretorno || !inputTotal) return;
+            // Flatpickr con altInput mantiene el valor real en Y-m-d en el input original
             const fs = inputFsalida.value;
             const fr = inputFretorno.value;
             const md = checkboxMedio ? checkboxMedio.checked : false;
@@ -704,23 +1027,21 @@ document.addEventListener('DOMContentLoaded', function() {
             inputTotal.value = calcularDias(fs, fr, feriados, md);
         }
 
+        const configFlatpickr = {
+            minDate: 'today',
+            disable: [deshabilitar],
+            locale: 'es',
+            dateFormat: 'Y-m-d',     // formato interno para JS y servidor
+            altInput: true,          // input visual alternativo
+            altFormat: 'd/m/Y',      // <-- AQUÍ: usuario ve día/mes/año
+            onChange: recalc
+        };
+
         if (inputFsalida) {
-            flatpickr(inputFsalida, {
-                minDate: 'today',
-                disable: [deshabilitar],
-                locale: 'es',
-                dateFormat: 'Y-m-d',
-                onChange: recalc
-            });
+            flatpickr(inputFsalida, configFlatpickr);
         }
         if (inputFretorno) {
-            flatpickr(inputFretorno, {
-                minDate: 'today',
-                disable: [deshabilitar],
-                locale: 'es',
-                dateFormat: 'Y-m-d',
-                onChange: recalc
-            });
+            flatpickr(inputFretorno, configFlatpickr);
         }
         if (checkboxMedio) {
             checkboxMedio.addEventListener('change', recalc);
@@ -729,7 +1050,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Cargar días disponibles en un contenedor
-    // Función para cargar días disponibles desde el servidor
     function cargarDiasDisponibles(container) {
         const span = container.querySelector('.diasDisponiblesSpan');
         if (!span) return;
@@ -741,7 +1061,7 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .catch(err => {
             console.error('Error al cargar días disponibles:', err);
-            span.textContent = '0'; // Valor por defecto en caso de error
+            span.textContent = '0';
         });
     }
 
@@ -790,10 +1110,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const container = this.querySelector('.modal-body');
         initFlatpickr(container);
         cargarDiasDisponibles(container);
-        // Fecha de solicitud hoy
         const fechasol = container.querySelector('.fechasol');
         if (fechasol) fechasol.value = new Date().toISOString().split('T')[0];
-        // Limpiar selección de superior
         const idSup = container.querySelector('.idSup');
         const nombreSup = container.querySelector('.nombreSup');
         if (idSup) idSup.value = '';
@@ -807,7 +1125,6 @@ document.addEventListener('DOMContentLoaded', function() {
     modalEditar.addEventListener('shown.bs.modal', function() {
         const container = this.querySelector('.modal-body');
         initFlatpickr(container);
-        // Los datos se cargan al abrir el modal de edición (ver evento btn-editar)
     });
 
     // --- Búsqueda de superior (delegación) ---
@@ -920,7 +1237,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     container.querySelector('.idSup').value = sol.superior_id || '';
                     container.querySelector('.nombreSup').value = sol.superior_nombre || '';
                     cargarDiasDisponibles(container);
-                    // Recalcular días (Flatpickr ya está inicializado al abrir el modal)
                     const fs = container.querySelector('.fsalida');
                     const fr = container.querySelector('.fretorno');
                     const td = container.querySelector('.totaldias');
@@ -946,7 +1262,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!data) return;
 
         Swal.fire({ title: 'Actualizando...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-        axios.put(`/vacacion/update-vacacion/${id}/salida`, data)
+        axios.put(`/vacacion/update-vacacion/${id}`, data)
             .then(res => {
                 Swal.fire('Éxito', res.data.message, 'success').then(() => location.reload());
             })

@@ -1080,7 +1080,7 @@ Route::middleware([
         Route::get('/particular/{id}/edit', [SalidaController::class, 'editParticular'])->name('particular.edit');
         Route::post('/vacacion/registrar-vacacion', [SalidaController::class, 'registrarVacacion'])->name('vacacion.registrar'); // registrar vacacion por api
         Route::get('/vacacion/editar-vacacion/{id}/salida', [SalidaController::class, 'editVacacion'])->name('editar.vacacion'); // editar vacacion por api
-        Route::put('/vacacion/update-vacacion/{id}/salida', [SalidaController::class, 'updateVacacion'])->name('update.vacacion'); // editar vacacion por api
+        Route::put('/vacacion/update-vacacion/{id}', [SalidaController::class, 'updateVacacion'])->name('vacacion.update');
         Route::delete('/vacacion/destroy-vacacion/{id}/salida', [SalidaController::class, 'destroyVacacion'])->name('destroy.vacacion'); // eliminar vacacion por api
         Route::post('/comision/registrar', [SalidaController::class, 'registrarComision']); // registrar comision por api
         Route::post('/vacacion/registrar-salida-salud', [SalidaController::class, "registrarSalSalud"]); // registrar salida a salud por api
@@ -1124,6 +1124,8 @@ Route::middleware([
 
         Route::get('/comision/mis-solicitudes', [SalidaController::class, 'misSolicitudes'])->name('comision.mis-solicitudes');
         Route::get('/salud/usuario', [SalidaController::class, "funcSalud"])->name('salud.usuario');
+        Route::get('/salud/boleta/{id}', [SalidaController::class, "pdfSalud"])->name('salud.boleta');
+        
         Route::get('/empleado/salida-particular', [SalidaController::class, "indexParticular"])->name('empleado.salida-particular');
         Route::get('/salidas/particulares/{id}/pdf', [SalidaController::class, 'pdfParticular'])->name('salidas.particular.pdf');
         //  *************************** USUARIO ****************************************

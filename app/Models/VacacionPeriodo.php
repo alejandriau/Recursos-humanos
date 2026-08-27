@@ -14,6 +14,9 @@ class VacacionPeriodo extends Model
         'dias_arrastre', 'periodo_vencido', 'estado', 'observacion'
     ];
 
+    protected $casts = [
+        'fecha_habilitacion' => 'date',
+    ];
     public function personal()
     {
         return $this->belongsTo(Persona::class, 'persona_id');

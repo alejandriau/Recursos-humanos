@@ -283,6 +283,7 @@ public function indexParticular()
         'feriado',
         'particular'
     ));
+
 }
 
     public function showParticular($id)
@@ -663,8 +664,8 @@ public function editParticular($id)
             data: $urlVerificacion,
             encoding: new Encoding('UTF-8'),
             errorCorrectionLevel: ErrorCorrectionLevel::High,
-            size: 120,
-            margin: 5
+            size: 220,
+            margin: 8
         );
         $writer = new PngWriter();
         $qrBase64 = base64_encode($writer->write($qrCode)->getString());
@@ -693,8 +694,8 @@ public function funcSalud()
     $idg = $gestion->first()?->id ?? 0;
     $feriado = Feriado::where('gestion_id', $idg)->get();
 
-    // Obtener solo los tipos de salida de salud
-    $tipoSal = TipoSalida::where('descripcion', 'SALUD')->get(); // o donde descripcion LIKE '%SALUD%'
+    // Tipos de salida de salud
+    $tipoSal = TipoSalida::where('descripcion', 'SALUD')->get();
 
     $user = auth()->user();
     $persona = Persona::where('user_id', $user->id)->first();
@@ -703,13 +704,12 @@ public function funcSalud()
         return redirect('/dashboard')->with('error', 'No se encontró su registro de persona.');
     }
 
-    // Obtener IDs de los tipos de salud
     $tiposSaludIds = $tipoSal->pluck('id');
 
-    // Obtener SOLO las solicitudes cuyo tipo de salida esté en la lista de salud
+    // IMPORTANTE: with(['jefe','rrhh']) evita N+1
     $solicitudes = Salida::where('persona_id', $persona->id)
         ->whereIn('tiposalida_id', $tiposSaludIds)
-        ->with('jefe')
+        ->with(['jefe', 'rrhh'])
         ->orderBy('created_at', 'desc')
         ->get();
 
@@ -721,7 +721,64 @@ public function funcSalud()
         "solicitudes"
     ));
 }
+public function pdfSalud($id)
+{
+    $salida = Salida::with(['persona', 'jefe', 'rrhh'])->findOrFail($id);
+    $user = auth()->user();
+    $persona = Persona::where('user_id', $user->id)->first();
+    if ($salida->persona_id != $persona->id) {
+        abort(403);
+    }
 
+    // Historial activo para cargo/unidad
+    $historial = Historial::where('persona_id', $salida->persona_id)
+                        ->where('estado', 'activo')
+                        ->whereNull('fecha_fin')
+                        ->with(['puesto.unidadOrganizacional'])
+                        ->first();
+
+    $cargo = $historial ? $historial->puesto->denominacion : 'No definido';
+    $unidad = $historial ? $historial->puesto->unidadOrganizacional->denominacion : 'No definida';
+
+    $urlVerificacion = URL::temporarySignedRoute(
+        'boleta.verificar',
+        now()->addYears(2),
+        ['id' => $salida->id]
+    );
+
+    // Generar QR
+    $qrCode = new QRCode(
+        data: $urlVerificacion,
+        encoding: new Encoding('UTF-8'),
+        errorCorrectionLevel: ErrorCorrectionLevel::High,
+        size: 220,
+        margin: 8
+    );
+    $writer = new PngWriter();
+    $qrBase64 = base64_encode($writer->write($qrCode)->getString());
+
+    $codigoControl = $salida->codigo
+        ? substr($salida->codigo, 0, 4) . '-' . substr($salida->codigo, 4)
+        : 'SIN-CODIGO';
+
+    // Puedes agregar el sustento legal si existe en la base de datos
+    // Ej: $sustentoLegal = $salida->sustento_legal ?? 'No especificado';
+
+    $data = [
+        'salida'        => $salida,
+        'cargo'         => $cargo,
+        'unidad'        => $unidad,
+        'qrBase64'      => $qrBase64,
+        'codigoControl' => $codigoControl,
+        // 'sustentoLegal' => $sustentoLegal, // si lo necesitas
+    ];
+
+    $pdf = Pdf::loadView('empleado.boletas.boleta_salud', $data)
+            ->setPaper('letter')
+            ->setOption('defaultFont', 'dejavu sans');
+
+    return $pdf->download("boleta-salud-{$salida->codigo}.pdf");
+}
     public function index(Request $request)
     {
         // Obtener la gestión habilitada actual
@@ -953,19 +1010,15 @@ public function updateVacacion(Request $request, $id)
     ]);
 
     $user = auth()->user();
-
-    // Obtener la persona asociada al usuario autenticado
     $persona = Persona::where('user_id', $user->id)->first();
     if (!$persona) {
         return response()->json(['error' => 'Servidor público no encontrado'], 404);
     }
 
-    // Buscar la solicitud por ID y verificar que pertenezca a la persona
     $solicitud = Salida::where('id', $id)
                        ->where('persona_id', $persona->id)
                        ->firstOrFail();
 
-    // Verificar que sea editable
     if (!in_array($solicitud->estado, ['pendiente_jefe', 'pendiente_rrhh'])) {
         return response()->json(['error' => 'No se puede editar una solicitud ya procesada.'], 422);
     }
@@ -973,7 +1026,7 @@ public function updateVacacion(Request $request, $id)
     $fsalida = Carbon::parse($request->fsalida);
     $fretorno = Carbon::parse($request->fretorno);
 
-    // Verificar superposición de fechas con otras solicitudes (excepto rechazadas y la misma)
+    // Verificar superposición
     $existe = Salida::where('persona_id', $persona->id)
         ->where('tiposalida_id', $solicitud->tiposalida_id)
         ->where('estado', '!=', 'rechazado')
@@ -985,20 +1038,18 @@ public function updateVacacion(Request $request, $id)
                   $q2->where('fechasal', '<=', $fsalida)
                      ->where('fecharet', '>=', $fretorno);
               });
-        })
-        ->exists();
+        })->exists();
 
     if ($existe) {
         return response()->json(['error' => 'Ya existe otra solicitud en ese rango de fechas'], 409);
     }
 
-    // Obtener gestión habilitada
     $gestion = Gestion::where('estado', 'Habilitado')->first();
     if (!$gestion) {
         return response()->json(['error' => 'No hay una gestión habilitada'], 400);
     }
 
-    // Verificar período de vacación activo
+    // ✅ VERIFICAR PERÍODO ACTIVO
     $periodo = VacacionPeriodo::where('persona_id', $persona->id)
         ->where('gestion_id', $gestion->id)
         ->where('estado', 'activo')
@@ -1010,7 +1061,7 @@ public function updateVacacion(Request $request, $id)
         ], 400);
     }
 
-    // Calcular saldo disponible considerando otras solicitudes pendientes (excepto la actual)
+    // Calcular saldo disponible (restando otras pendientes)
     $saldoUsadoPendiente = Salida::where('persona_id', $persona->id)
         ->whereIn('estado', ['pendiente_jefe', 'pendiente_rrhh'])
         ->where('id', '!=', $id)
@@ -1020,33 +1071,31 @@ public function updateVacacion(Request $request, $id)
 
     if ($saldoDisponibleReal < floatval($request->totaldias)) {
         return response()->json([
-            'error' => "No dispone de suficientes días de vacación. Disponibles: {$saldoDisponibleReal} días"
+            'error' => "No dispone de suficientes días. Disponibles: {$saldoDisponibleReal} días"
         ], 403);
     }
 
     DB::beginTransaction();
     try {
-        // Actualizar la solicitud
+        // Actualizar solicitud
         $solicitud->fechasal = $fsalida;
         $solicitud->fecharet = $fretorno;
         $solicitud->cantidad = floatval($request->totaldias);
         $solicitud->jefe_id = $request->idSup;
-        $solicitud->observacion = $request->observacion ?? $solicitud->observacion;
+        //$solicitud->observacion = $request->observacion ?? $solicitud->observacion;
         $solicitud->save();
 
-        // Actualizar el movimiento asociado
+        // Actualizar o crear movimiento
         $movimiento = VacacionMovimiento::where('salida_id', $solicitud->id)->first();
         if ($movimiento) {
-            $saldoAnterior = $periodo->saldo_disponible;
             $movimiento->fecha_inicio = $fsalida;
             $movimiento->fecha_fin = $fretorno;
             $movimiento->cantidad = floatval($request->totaldias);
-            $movimiento->saldo_anterior = $saldoAnterior;
-            $movimiento->saldo_posterior = $saldoAnterior; // aún no se descuenta
-            $movimiento->descripcion = 'Solicitud de vacación actualizada';
+            $movimiento->saldo_anterior = $periodo->saldo_disponible;
+            $movimiento->saldo_posterior = $periodo->saldo_disponible;
+            $movimiento->descripcion = 'Solicitud actualizada';
             $movimiento->save();
         } else {
-            // Crear movimiento si no existe
             VacacionMovimiento::create([
                 'periodo_id' => $periodo->id,
                 'tipo' => 'debito',
@@ -1057,20 +1106,21 @@ public function updateVacacion(Request $request, $id)
                 'saldo_anterior' => $periodo->saldo_disponible,
                 'saldo_posterior' => $periodo->saldo_disponible,
                 'salida_id' => $solicitud->id,
-                'descripcion' => 'Solicitud de vacación actualizada (movimiento creado)',
+                'descripcion' => 'Movimiento creado al actualizar',
                 'registrado_por' => auth()->id(),
             ]);
         }
 
         DB::commit();
-
-        return response()->json([
-            'mensaje' => 'Solicitud actualizada correctamente',
-            'salida_id' => $solicitud->id,
-        ], 200);
+        return response()->json(['mensaje' => 'Solicitud actualizada correctamente'], 200);
 
     } catch (\Exception $e) {
         DB::rollBack();
+        // Registrar error
+        \Log::error('Error en updateVacacion: ' . $e->getMessage(), [
+            'trace' => $e->getTraceAsString(),
+            'request' => $request->all()
+        ]);
         return response()->json(['error' => 'Error al actualizar: ' . $e->getMessage()], 500);
     }
 }

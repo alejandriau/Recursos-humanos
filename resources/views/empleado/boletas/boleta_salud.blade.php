@@ -103,7 +103,6 @@
         }
         .field.small .value { font-size: 9.5px; }
 
-        /* Para texto largo (sustento legal) */
         .field .value-long {
             display: block;
             font-size: 9.5px;
@@ -111,8 +110,6 @@
             padding: 2px 0 3px;
             border-bottom: 0.75px solid #3e3e3f;
             line-height: 1.4;
-            max-height: 60px; /* opcional, para evitar desborde en PDF */
-            overflow: hidden;
         }
 
         .period-card {
@@ -256,7 +253,7 @@
         <table class="doctitle-row">
             <tr>
                 <td class="titulo">
-                    <span class="doctitle">BOLETA DE SALIDA PARTICULAR
+                    <span class="doctitle">BOLETA DE SALIDA POR SALUD
                         <span class="doctitle-sub">Autorización electrónica de salida</span>
                     </span>
                 </td>
@@ -286,11 +283,13 @@
                         <span class="label">Motivo de la salida</span>
                         <span class="value">{{ $salida->motivo }}</span>
                     </div>
+                    <!-- Si tienes sustento legal, descomenta y pasa la variable -->
+                    <!--
                     <div class="field small">
                         <span class="label">Sustento legal</span>
-                        <!-- Texto largo, puede ocupar varias líneas -->
                         <span class="value-long">{{ $sustentoLegal ?? 'No especificado' }}</span>
                     </div>
+                    -->
                     <div class="field small" style="margin-bottom:0;">
                         <span class="label">Fecha de solicitud</span>
                         <span class="value" style="border-bottom:none;">{{ \Carbon\Carbon::parse($salida->fechasol)->format('d-m-Y') }}</span>
@@ -313,7 +312,7 @@
                             <span class="label-time">Retorno estimado:</span> {{ $salida->horaret ?? '--:--' }}
                         </div>
                         <div class="badge-tipo">
-                            <span class="badge-tipo-text">&#9679; Salida particular</span>
+                            <span class="badge-tipo-text">&#9679; Salida por salud</span>
                         </div>
                     </div>
                 </td>

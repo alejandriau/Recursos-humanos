@@ -601,7 +601,7 @@ public function historial($id)
 
             DB::commit();
 
-            return redirect()->route('puesto')
+            return redirect()->route('historial')
                 ->with('success', 'Designación actualizada correctamente.');
 
         } catch (\Illuminate\Validation\ValidationException $e) {

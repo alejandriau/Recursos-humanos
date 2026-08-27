@@ -6,6 +6,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>UGRH · Portal del Empleado</title>
     <link href="{{ asset('images/logo-gober-i.png') }}" rel="icon" type="image/png">
+    <!-- SEO: sistema interno, no indexar -->
+    <meta name="robots" content="noindex, nofollow, noarchive">
+    <!-- Información general -->
+    <meta name="description" content="Sistema institucional de Control de Personal de la Unidad de Gestión de Recursos Humanos (UGRH) del Gobierno Autónomo Departamental de Cochabamba (GADC).">
+    <meta name="author" content="Unidad de Gestión de Recursos Humanos - GADC">
+    <meta name="application-name" content="Control de Personal UGRH">
+    <!-- Open Graph - Vista previa al compartir el enlace -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Control de Personal UGRH · GADC">
+    <meta property="og:description" content="Sistema institucional de la Unidad de Gestión de Recursos Humanos del Gobierno Autónomo Departamental de Cochabamba para la gestión y control del personal.">
+    <meta property="og:image" content="{{ asset('images/logo-gober-i.png') }}">
+    <meta property="og:image:alt" content="Gobierno Autónomo Departamental de Cochabamba">
+    <meta property="og:locale" content="es_BO">
+    <meta property="og:site_name" content="Gobierno Autónomo Departamental de Cochabamba">
+    <meta property="og:url" content="{{ url()->current() }}">
+
+    <!-- WhatsApp / Facebook / Messenger -->
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image">
+
+    <meta name="twitter:title" content="Control de Personal UGRH · GADC">
+    <meta name="twitter:description"content="Sistema institucional de la Unidad de Gestión de Recursos Humanos del Gobierno Autónomo Departamental de Cochabamba.">
+    <meta name="twitter:image" content="{{ asset('images/logo-gober-i.png') }}">
+
 
     <!-- Bootstrap 5 + Iconos + Fuentes -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -17,8 +44,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     {{-- Animate.css + Confetti --}}
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
-<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 
 <style>
     /* Variables dinámicas desde Laravel */

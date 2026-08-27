@@ -689,13 +689,13 @@
                             : null;
 
                         let htmlRRHH = '';
-                        if (nombreRRHH && rrhhPuedeActuar && !rrhhNoAplica) {
+                        if (rrhhPuedeActuar && !rrhhNoAplica) {
                             htmlRRHH = `<i class="fas fa-user-shield me-1 text-muted"></i>${nombreRRHH}
                                 ${sol.fecha_aprobacion_rrhh ? `<br><span class="text-muted" style="font-size:0.75rem;"><i class="far fa-calendar-alt me-1"></i>${sol.fecha_aprobacion_rrhh}</span>` : ''}`;
                         } else if (rrhhNoAplica) {
                             htmlRRHH = `<span class="text-muted fst-italic" style="font-size:0.8rem;">No aplica por estado del jefe</span>`;
                         } else {
-                            htmlRRHH = `<span class="text-muted fst-italic" style="font-size:0.8rem;">Esperando aprobación del jefe</span>`;
+                            htmlRRHH = `<span class="text-muted fst-italic" style="font-size:0.8rem;">Esperando aprobación del jefee</span>`;
                         }
 
                         // === ACCIONES ===

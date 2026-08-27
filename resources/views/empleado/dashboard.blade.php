@@ -6,22 +6,26 @@
     <!-- Encabezado de bienvenida -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="d-flex flex-wrap justify-content-between align-items-center">
+            <div class="welcome-header d-flex flex-wrap justify-content-between align-items-center">
                 <div>
                     <h1 class="display-6 mb-0">
                         <i class="fas fa-hand-peace text-primary me-2"></i>
                         ¡Bienvenido, {{ Auth::user()->name }}!
                     </h1>
-                    <p class="text-muted mt-2">
+
+                    <p class="text-muted mt-2 mb-0">
                         <i class="fas fa-calendar-day me-1"></i>
                         Hoy es {{ \Carbon\Carbon::now()->locale('es')->isoFormat('dddd, D [de] MMMM [de] YYYY') }}
+
                         @if($puestoActual)
-                        <span class="mx-2">|</span>
-                        <i class="fas fa-briefcase me-1"></i>
-                        {{ $puestoActual->nombre }} - {{ $puestoActual->unidadOrganizacional->nombre ?? '' }}
+                            <span class="mx-2">|</span>
+                            <i class="fas fa-briefcase me-1"></i>
+                            {{ $puestoActual->nombre }} -
+                            {{ $puestoActual->unidadOrganizacional->nombre ?? '' }}
                         @endif
                     </p>
                 </div>
+
                 <div class="mt-2 mt-sm-0">
                     <span class="badge bg-primary bg-opacity-10 text-primary p-3">
                         <i class="fas fa-clock me-2"></i>
@@ -241,6 +245,27 @@
 </div>
 
 <style>
+    .welcome-header {
+        position: relative;
+        padding: 1.5rem 2rem;
+        border-radius: 12px;
+        overflow: hidden;
+
+        background-color: #ffffff;
+
+        background-image:
+            linear-gradient(
+                rgba(255, 255, 255, 0.90),
+                rgba(255, 255, 255, 0.90)
+            ),
+            url('/images/tejido-horizontal.jpg');
+
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+
+        border: 1px solid var(--color-border);
+    }
     .bg-opacity-10 {
         --bs-bg-opacity: 0.1;
     }
