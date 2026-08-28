@@ -455,509 +455,1250 @@
         </div>
     </div>
 </div>
+
 @section('modales')
-    <!-- ============================================================ -->
-    <!-- MODAL CREAR -->
-    <!-- ============================================================ -->
-    <div class="modal fade" id="modalCrearVacacion" tabindex="-1" aria-labelledby="modalCrearLabel" aria-hidden="true">
-        <div class="modal-dialog modal-xl modal-dialog-centered modal-vacaciones">
-            <div class="modal-content" style="border-radius: 1rem; border: none; overflow: hidden;">
-                
-                <div class="modal-header text-white position-relative overflow-hidden" style="border: none;">
 
-                    <!-- Imagen de fondo suave -->
-                    <div class="position-absolute top-0 start-0 w-100 h-100"
-                        style="
-                            background: url('{{ asset('images/tejido-horizontal.jpg') }}') center/cover no-repeat;
-                            opacity: 0.45;
-                        ">
-                    </div>
+<style>
+    /* =========================================================
+       MODALES DE VACACIONES - DISEÑO MINIMALISTA
+       ========================================================= */
 
-                    <!-- Overlay suave -->
-                    <div class="position-absolute top-0 start-0 w-100 h-100"
-                        style="
-                            background: linear-gradient(
-                                135deg,
-                                rgba(159, 199, 121, 0.8) 0%,
-                                rgba(47, 136, 20, 0.8) 100%
-                            );
-                        ">
-                    </div>
+    .modal-vacaciones-min {
+        max-width: 880px;
+        width: 95%;
+    }
 
-                    <!-- Contenido -->
-                    <div class="d-flex align-items-center position-relative z-1">
+    .modal-vacaciones-min .modal-content {
+        border: none;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, .16);
+    }
 
-                        <div class="rounded-circle bg-white bg-opacity-25
-                                    d-flex align-items-center justify-content-center me-3"
-                            style="width: 42px; height: 42px;">
-                            <i class="fas fa-umbrella-beach fa-lg" style="color: #0B5D1E;"></i>
-                        </div>
+    /* =========================================================
+       HEADER
+       ========================================================= */
 
-                        <div>
-                            <h5 class="modal-title mb-0 fw-bold"
-                                id="modalCrearLabel"
-                                style="color: #0B5D1E;">
-                                Nueva Solicitud de Vacación
-                            </h5>
+    .modal-vacaciones-min .modal-header {
+        position: relative;
+        min-height: 78px;
+        padding: 17px 22px;
+        border: none;
+        overflow: hidden;
+        background: #4DA3FF;
+    }
 
-                            <small style="color: #0B5D1E; font-weight: 600;">
-                                Complete los datos de su período de descanso
-                            </small>
-                        </div>
+    .modal-vacaciones-min .header-bg {
+        position: absolute;
+        inset: 0;
+        background: url('{{ asset('images/tejido-horizontal.jpg') }}')
+                    center center / cover no-repeat;
+        opacity: .28;
+    }
 
-                    </div>
+    .modal-vacaciones-min .header-overlay {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+            90deg,
+            rgba(77, 163, 255, .95),
+            rgba(77, 163, 255, .72)
+        );
+    }
 
-                    <button type="button"
-                            class="btn-close btn-close-white position-relative z-1"
-                            data-bs-dismiss="modal"
-                            aria-label="Cerrar">
-                    </button>
+    .modal-vacaciones-min .header-content {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+    }
 
-                </div>
+    .modal-vacaciones-min .header-icon {
+        width: 42px;
+        height: 42px;
+        min-width: 42px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 12px;
+        background: rgba(255,255,255,.18);
+        color: #fff;
+    }
 
-                <div class="modal-body p-0">
-                    <div id="formCrear" class="p-4">
-                        <input type="hidden" id="idpersona" value="{{ auth()->user()->persona->id ?? '' }}">
-                        
-                        <!-- Fila superior compacta -->
-                        <div class="row g-2 mb-4">
-                            <div class="col-md-3">
-                                <div class="alert alert-success py-2 mb-0 d-flex align-items-center h-100">
-                                    <i class="fas fa-wallet me-2 fs-5"></i>
-                                    <div>
-                                        <div class="small text-success" style="font-size: 0.7rem;">Días Disponibles</div>
-                                        <div class="fw-bold">{{ number_format($resumen['saldo_actual'], 1) }}</div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-5">
-                                <div class="form-floating">
-                                    <input type="text" class="form-control" disabled
-                                           value="{{ auth()->user()->persona->nombre ?? '' }} {{ auth()->user()->persona->apellidoPat ?? '' }} {{ auth()->user()->persona->apellidoMat ?? '' }}">
-                                    <label>Servidor Público</label>
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="form-floating">
-                                    <select class="form-select tipoSal" id="salida" disabled>
-                                        @foreach ($tipoSal as $sal)
-                                            @if ($sal->descripcion == 'VACACION')
-                                                <option value="{{ $sal->id }}">{{ $sal->descripcion }}</option>
-                                            @endif
-                                        @endforeach
-                                    </select>
-                                    <label>Tipo de Salida</label>
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="form-floating">
-                                    <input type="date" class="form-control fechasol" required readonly>
-                                    <label>Fecha de Solicitud</label>
-                                </div>
-                            </div>
-                        </div>
+    .modal-vacaciones-min .modal-title {
+        color: #fff;
+        font-size: 17px;
+        font-weight: 600;
+        margin: 0;
+    }
 
-                        <!-- Sección de fechas -->
-                        <div class="card border-0 shadow-sm mb-4" style="border-radius: 12px;">
-                            <div class="card-header bg-white border-bottom-0 pt-3 pb-0">
-                                <h6 class="fw-bold text-dark mb-0">
-                                    <i class="fas fa-calendar-alt text-primary me-2"></i>Período de Vacaciones
-                                </h6>
-                            </div>
-                            <div class="card-body">
-                                <div class="row g-3">
-                                    <div class="col-md-4">
-                                        <label class="form-label fw-bold text-dark mb-2">
-                                            <i class="fas fa-plane-departure text-success me-2"></i>Fecha de Inicio
-                                        </label>
-                                        <div class="form-floating">
-                                            <input type="text" class="form-control fsalida fs-5 fw-bold text-success border-success border-opacity-25" required placeholder="Inicio" style="border-radius: 10px;">
-                                            <label class="text-muted">Seleccione la fecha de inicio</label>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-1 d-flex align-items-center justify-content-center">
-                                        <div class="rounded-circle bg-light d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                                            <i class="fas fa-arrow-right text-muted"></i>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4">
-                                        <label class="form-label fw-bold text-dark mb-2">
-                                            <i class="fas fa-plane-arrival text-danger me-2"></i>Fecha de Retorno
-                                        </label>
-                                        <div class="form-floating">
-                                            <input type="text" class="form-control fretorno fs-5 fw-bold text-danger border-danger border-opacity-25" required placeholder="Fin" style="border-radius: 10px;">
-                                            <label class="text-muted">Seleccione la fecha de retorno</label>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <label class="form-label fw-bold text-dark mb-2">
-                                            <i class="fas fa-calculator text-info me-2"></i>Total de Días
-                                        </label>
-                                        <div class="position-relative">
-                                            <div class="form-floating">
-                                                <input type="text" class="form-control totaldias fs-4 fw-bold text-info border-info border-opacity-25 text-center" readonly style="border-radius: 10px; background: #e3f2fd;">
-                                                <label class="text-muted">Días hábiles calculados</label>
-                                            </div>
-                                            <div class="position-absolute top-50 end-0 translate-middle-y me-2">
-                                                <span class="badge bg-info">auto</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+    .modal-vacaciones-min .modal-subtitle {
+        color: rgba(255,255,255,.85);
+        font-size: 11px;
+        margin-top: 2px;
+    }
 
-                                <div class="mt-3 p-3 rounded-3 row" >
-                                    <div class="col-md-4 d-flex align-items-center justify-content-between" style="background: #fff8e1; border: 1px dashed #ffc107;">
-                                        <div class="d-flex align-items-center">
-                                            <div class="rounded-circle bg-warning bg-opacity-25 d-flex align-items-center justify-content-center me-3" style="width: 36px; height: 36px;">
-                                                <i class="fas fa-adjust text-warning"></i>
-                                            </div>
-                                            <div>
-                                                <div class="fw-bold text-dark">¿Solicita medio día?</div>
-                                                <div class="text-muted">Marque esta opción si solo necesita medio día</div>
-                                            </div>
-                                        </div>
-                                        <div class="form-check form-switch" style="transform: scale(1.3);">
-                                            <input class="form-check-input mdia" type="checkbox" id="mdia">
-                                            <label class="form-check-label visually-hidden" for="mdia">Medio día</label>
-                                        </div>
-                                    </div>
-                                    
-                                    
-                                    <div class="col-md-8">
-                                        <label class="form-label fw-bold text-dark mb-2">
-                                            <i class="fas fa-comment-alt text-warning me-2"></i>Motivo
-                                        </label>
-                                        <div class="form-floating">
-                                            <input type="text" class="form-control observacion border-warning" placeholder="Observaciones" required style="border-radius: 10px;">
-                                            <label class="text-muted">Ingrese el motivo o detalle adicional de la solicitud</label>
-                                        </div>
-                                    </div>
-
-                                </div>
-                            </div>
-                        </div>
+    .modal-vacaciones-min .btn-close {
+        position: relative;
+        z-index: 3;
+        filter: brightness(0) invert(1);
+        opacity: .9;
+    }
 
 
-                        <!-- Sección de Superior -->
-                        <div class="card border-0 shadow-sm" style="border-radius: 12px; background: linear-gradient(to bottom, #ffffff, #f8f9fa);">
-                            <div class="card-header bg-transparent border-bottom-0 pt-3">
-                                <h6 class="fw-bold text-dark mb-0">
-                                    <i class="fas fa-user-tie text-secondary me-2"></i>Aprobación del Inmediato Superior
-                                </h6>
-                            </div>
-                            <div class="card-body">
-                                <div class="row g-3">
-                                    <div class="col-md-7">
-                                        <label class="form-label fw-bold text-dark mb-2">Buscar inmediato superior por nombre o apellido</label>
-                                        <div class="input-group input-group-lg" style="border-radius: 10px; overflow: hidden;">
-                                            <span class="input-group-text bg-white border-end-0">
-                                                <i class="fas fa-search text-muted"></i>
-                                            </span>
-                                            <input type="text" class="form-control dato border-start-0" placeholder="Ejemplo: Juan Pérez..." required>
-                                            <button class="btn btn-success btnBuscarSup px-4 fw-bold" type="button">
-                                                <i class="fa fa-search me-1"></i> Buscar
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-5">
-                                        <label class="form-label fw-bold text-dark mb-2">Inmediato superior seleccionado</label>
-                                        <input type="hidden" class="idSup">
-                                        <div class="form-floating">
-                                            <input type="text" class="form-control nombreSup bg-light" readonly placeholder="Superior" style="border-radius: 10px;">
-                                            <label class="text-muted"><i class="fas fa-user-check text-success me-1"></i>Nombre del superior</label>
-                                        </div>
-                                    </div>
-                                </div>
+    /* =========================================================
+       BODY
+       ========================================================= */
 
-                                <div class="mt-3">
-                                    <div class="table-responsive rounded-3 border" style="max-height: 200px; overflow-y: auto;">
-                                        <table class="table table-hover align-middle mb-0">
-                                            <thead class="table-light sticky-top">
-                                                <tr>
-                                                    <th class="ps-3 fw-bold"><i class="fas fa-user me-1 text-muted"></i>Nombre Completo</th>
-                                                    <th class="text-center fw-bold" style="width: 100px;">Acción</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody class="tablaSup">
-                                                <tr>
-                                                    <td colspan="2" class="text-center text-muted py-4">
-                                                        <i class="fas fa-search text-muted mb-2 d-block" style="font-size: 1.5rem;"></i>
-                                                        Realice una búsqueda para ver resultados
-                                                    </td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+    .modal-vacaciones-min .modal-body {
+        padding: 22px;
+        background: #fff;
+    }
 
-                <div class="modal-footer bg-light border-top" style="padding: 1.2rem 1.5rem;">
-                    <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">
-                        <i class="fas fa-times me-1"></i> Cancelar
-                    </button>
-                    <button type="button" class="btn btn-primary px-4 fw-bold" id="btnGuardarCrear" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
-                        <i class="fas fa-paper-plane me-2"></i>Enviar Solicitud
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
+    .modal-vacaciones-min .form-section {
+        margin-bottom: 20px;
+    }
 
-<!-- ============================================================ -->
-<!-- MODAL EDITAR (ahora idéntico en diseño al de crear) -->
-<!-- ============================================================ -->
-<div class="modal fade" id="modalEditarVacacion" tabindex="-1" aria-labelledby="modalEditarLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-vacaciones">
-        <div class="modal-content" style="border-radius: 1rem; border: none; overflow: hidden;">
-            
-            <!-- Header con mismo fondo/overlay que el crear -->
-            <div class="modal-header text-white position-relative overflow-hidden" style="border: none;">
+    .modal-vacaciones-min .section-title {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin-bottom: 12px;
+        color: #343a40;
+        font-size: 13px;
+        font-weight: 600;
+    }
 
-                <!-- Imagen de fondo suave -->
-                <div class="position-absolute top-0 start-0 w-100 h-100"
-                    style="
-                        background: url('{{ asset('images/tejido-horizontal.jpg') }}') center/cover no-repeat;
-                        opacity: 0.45;
-                    ">
-                </div>
+    .modal-vacaciones-min .section-title i {
+        color: #4DA3FF;
+        font-size: 12px;
+    }
 
-                <!-- Overlay con el mismo gradiente azul/violeta que el crear -->
-                <div class="position-absolute top-0 start-0 w-100 h-100"
-                    style="
-                        background: linear-gradient(
-                            135deg,
-                            rgba(245, 225, 138, 0.8) 0%,
-                            rgba(172, 160, 5, 0.8) 100%
-                        );
-                    ">
-                </div>
 
-                <!-- Contenido (mismos estilos de texto que el crear) -->
-                <div class="d-flex align-items-center position-relative z-1">
+    /* =========================================================
+       LABELS
+       ========================================================= */
 
-                    <div class="rounded-circle bg-white bg-opacity-25
-                                d-flex align-items-center justify-content-center me-3"
-                        style="width: 42px; height: 42px;">
-                        <i class="fas fa-edit fa-lg" style="color: #0B5D1E;"></i>
+    .modal-vacaciones-min .form-label {
+        color: #6c757d;
+        font-size: 11px;
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+
+
+    /* =========================================================
+       INPUTS
+       ========================================================= */
+
+    .modal-vacaciones-min .form-control,
+    .modal-vacaciones-min .form-select {
+        border-color: #dee2e6;
+        border-radius: 8px;
+        font-size: 13px;
+        box-shadow: none;
+    }
+
+    .modal-vacaciones-min .form-control {
+        min-height: 40px;
+    }
+
+    .modal-vacaciones-min .form-control:focus,
+    .modal-vacaciones-min .form-select:focus {
+        border-color: #4DA3FF;
+        box-shadow: 0 0 0 3px rgba(77,163,255,.10);
+    }
+
+    .modal-vacaciones-min .form-control:disabled,
+    .modal-vacaciones-min .form-control[readonly],
+    .modal-vacaciones-min .form-select:disabled {
+        background-color: #f8f9fa;
+    }
+
+
+    /* =========================================================
+       FORM FLOATING
+       ========================================================= */
+
+    .modal-vacaciones-min .form-floating {
+        position: relative;
+    }
+
+    .modal-vacaciones-min .form-floating > .form-control,
+    .modal-vacaciones-min .form-floating > .form-select {
+        height: 52px;
+        min-height: 52px;
+        padding: 1.25rem .85rem .35rem;
+    }
+
+    .modal-vacaciones-min .form-floating > label {
+        padding: .55rem .85rem;
+        font-size: 11px;
+        color: #6c757d;
+    }
+
+    .modal-vacaciones-min .form-floating > .form-control:focus ~ label,
+    .modal-vacaciones-min .form-floating > .form-control:not(:placeholder-shown) ~ label,
+    .modal-vacaciones-min .form-floating > .form-select ~ label {
+        color: #6c757d;
+    }
+
+
+    /* =========================================================
+       DISPONIBILIDAD
+       ========================================================= */
+
+    .saldo-box {
+        height: 52px;
+        border: 1px solid #d9efff;
+        background: #f4faff;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 12px;
+    }
+
+    .saldo-box .saldo-label {
+        font-size: 10px;
+        color: #6c757d;
+    }
+
+    .saldo-box .saldo-value {
+        font-size: 16px;
+        font-weight: 700;
+        color: #198754;
+    }
+
+
+    /* =========================================================
+       FECHAS
+       ========================================================= */
+
+    .fecha-input {
+        font-size: 14px !important;
+        font-weight: 600;
+    }
+
+    .fecha-inicio {
+        color: #198754;
+    }
+
+    .fecha-retorno {
+        color: #dc3545;
+    }
+
+    .total-dias {
+        text-align: center;
+        font-size: 16px !important;
+        font-weight: 700;
+        color: #198754 !important;
+        background: #f4faff !important;
+    }
+
+
+    /* =========================================================
+       MEDIO DÍA
+       ========================================================= */
+
+    .medio-dia {
+        height: 52px;
+        border: 1px solid #dee2e6;
+        background: #fafafa;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 12px;
+    }
+
+    .medio-dia-text {
+        font-size: 11px;
+        color: #6c757d;
+    }
+
+    .medio-dia .form-switch {
+        margin: 0;
+    }
+
+    .medio-dia .form-check-input {
+        cursor: pointer;
+    }
+
+
+    /* =========================================================
+       SUPERIOR
+       ========================================================= */
+
+    .busqueda-superior .input-group {
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .busqueda-superior .input-group .form-control {
+        border-right: none;
+    }
+
+    .busqueda-superior .btn {
+        width: 45px;
+        border-radius: 0;
+    }
+
+    .superior-selected {
+        background: #f8f9fa !important;
+    }
+
+
+    /* =========================================================
+       TABLA SUPERIOR
+       ========================================================= */
+
+    .tabla-superior {
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        overflow: hidden;
+        max-height: 145px;
+        overflow-y: auto;
+        margin-top: 9px;
+    }
+
+    .tabla-superior table {
+        margin-bottom: 0;
+        font-size: 12px;
+    }
+
+    .tabla-superior thead th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background: #f8f9fa;
+        color: #6c757d;
+        font-size: 10px;
+        font-weight: 600;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .tabla-superior tbody td {
+        padding: 7px 10px;
+    }
+
+
+    /* =========================================================
+       FOOTER
+       ========================================================= */
+
+    .modal-vacaciones-min .modal-footer {
+        background: #fafafa;
+        border-top: 1px solid #e9ecef;
+        padding: 12px 20px;
+    }
+
+    .modal-vacaciones-min .modal-footer .btn {
+        border-radius: 7px;
+        font-size: 12px;
+        padding: 7px 15px;
+    }
+
+    .btn-guardar-vacacion {
+        background: #4DA3FF;
+        border-color: #4DA3FF;
+        color: #fff;
+    }
+
+    .btn-guardar-vacacion:hover {
+        background: #318fe8;
+        border-color: #318fe8;
+        color: #fff;
+    }
+
+
+    /* =========================================================
+       RESPONSIVE
+       ========================================================= */
+
+    @media (max-width: 767px) {
+
+        .modal-vacaciones-min {
+            width: 96%;
+            max-width: 96%;
+        }
+
+        .modal-vacaciones-min .modal-body {
+            padding: 16px;
+        }
+
+        .modal-vacaciones-min .modal-header {
+            padding: 15px 17px;
+        }
+
+        .modal-vacaciones-min .modal-title {
+            font-size: 15px;
+        }
+
+        .modal-vacaciones-min .row > div {
+            margin-bottom: 5px;
+        }
+    }
+</style>
+
+
+{{-- ============================================================
+     MODAL CREAR
+     ============================================================ --}}
+<div class="modal fade"
+     id="modalCrearVacacion"
+     tabindex="-1"
+     aria-labelledby="modalCrearLabel"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-dialog-centered modal-vacaciones-min">
+
+        <div class="modal-content">
+
+            {{-- HEADER --}}
+            <div class="modal-header">
+
+                <div class="header-bg"></div>
+                <div class="header-overlay"></div>
+
+                <div class="header-content">
+
+                    <div class="header-icon">
+                        <i class="fas fa-calendar-plus"></i>
                     </div>
 
                     <div>
-                        <h5 class="modal-title mb-0 fw-bold"
-                            id="modalEditarLabel"
-                            style="color: #0B5D1E;">
-                            Editar Solicitud de Vacación
+                        <h5 class="modal-title"
+                            id="modalCrearLabel">
+                            Nueva solicitud de vacación
                         </h5>
 
-                        <small style="color: #0B5D1E; font-weight: 600;">
-                            Modifique los datos de su solicitud
-                        </small>
+                        <div class="modal-subtitle">
+                            Complete los datos de su solicitud
+                        </div>
                     </div>
 
                 </div>
 
                 <button type="button"
-                        class="btn-close btn-close-white position-relative z-1"
+                        class="btn-close"
                         data-bs-dismiss="modal"
                         aria-label="Cerrar">
                 </button>
 
             </div>
 
-            <div class="modal-body p-0">
-                <div id="formEditar" class="p-4">
-                    <input type="hidden" id="edit_solicitud_id" value="">
-                    
-                    <!-- Fila superior compacta (misma que el crear) -->
-                    <div class="row g-2 mb-4">
-                        <div class="col-md-3">
-                            <!-- Cambiado a alert-success para que sea igual -->
-                            <div class="alert alert-success py-2 mb-0 d-flex align-items-center h-100">
-                                <i class="fas fa-wallet me-2 fs-5"></i>
-                                <div>
-                                    <div class="small text-success" style="font-size: 0.7rem;">Días Disponibles</div>
-                                    <div class="fw-bold diasDisponiblesSpan">0</div>
+
+            {{-- BODY --}}
+            <div class="modal-body">
+
+                <div id="formCrear">
+
+                    <input type="hidden"
+                           id="idpersona"
+                           value="{{ auth()->user()->persona->id ?? '' }}">
+
+
+                    {{-- =====================================================
+                         INFORMACIÓN
+                         ===================================================== --}}
+                    <div class="form-section">
+
+                        <div class="section-title">
+                            <i class="fas fa-user"></i>
+                            Información
+                        </div>
+
+                        <div class="row g-2">
+
+                            {{-- Servidor --}}
+                            <div class="col-md-5">
+
+                                <div class="form-floating">
+
+                                    <input type="text"
+                                           class="form-control"
+                                           disabled
+                                           placeholder=" "
+                                           value="{{ auth()->user()->persona->nombre ?? '' }}
+                                                  {{ auth()->user()->persona->apellidoPat ?? '' }}
+                                                  {{ auth()->user()->persona->apellidoMat ?? '' }}">
+
+                                    <label>
+                                        Servidor público
+                                    </label>
+
                                 </div>
+
                             </div>
-                        </div>
-                        <div class="col-md-5">
-                            <div class="form-floating">
-                                <input type="text" class="form-control" id="edit_nomb" disabled
-                                       value="{{ auth()->user()->persona->nombre ?? '' }} {{ auth()->user()->persona->apellidoPat ?? '' }} {{ auth()->user()->persona->apellidoMat ?? '' }}">
-                                <label>Servidor Público</label>
+
+
+                            {{-- Tipo --}}
+                            <div class="col-md-2">
+
+                                <div class="form-floating">
+
+                                    <select class="form-select tipoSal"
+                                            id="salida"
+                                            disabled>
+
+                                        @foreach ($tipoSal as $sal)
+
+                                            @if ($sal->descripcion == 'VACACION')
+
+                                                <option value="{{ $sal->id }}">
+                                                    {{ $sal->descripcion }}
+                                                </option>
+
+                                            @endif
+
+                                        @endforeach
+
+                                    </select>
+
+                                    <label>
+                                        Tipo
+                                    </label>
+
+                                </div>
+
                             </div>
-                        </div>
-                        <div class="col-md-2">
-                            <div class="form-floating">
-                                <select class="form-select tipoSal" id="edit_salida" disabled>
-                                    @foreach ($tipoSal as $sal)
-                                        @if ($sal->descripcion == 'VACACION')
-                                            <option value="{{ $sal->id }}">{{ $sal->descripcion }}</option>
-                                        @endif
-                                    @endforeach
-                                </select>
-                                <label>Tipo de Salida</label>
+
+
+                            {{-- Fecha solicitud --}}
+                            <div class="col-md-3">
+
+                                <div class="form-floating">
+
+                                    <input type="date"
+                                           class="form-control fechasol"
+                                           placeholder=" "
+                                           readonly>
+
+                                    <label>
+                                        Fecha de solicitud
+                                    </label>
+
+                                </div>
+
                             </div>
-                        </div>
-                        <div class="col-md-2">
-                            <div class="form-floating">
-                                <input type="date" class="form-control fechasol" id="edit_fechasol" required readonly>
-                                <label>Fecha de Solicitud</label>
+
+
+                            {{-- Saldo --}}
+                            <div class="col-md-2">
+
+                                <div class="saldo-box">
+
+                                    <span class="saldo-label">
+                                        Disponible
+                                    </span>
+
+                                    <strong class="saldo-value">
+                                        {{ number_format($resumen['saldo_actual'], 1) }}
+                                    </strong>
+
+                                </div>
+
                             </div>
+
                         </div>
+
                     </div>
 
-                    <!-- Sección de fechas (igual que el crear) -->
-                    <div class="card border-0 shadow-sm mb-4" style="border-radius: 12px;">
-                        <div class="card-header bg-white border-bottom-0 pt-3 pb-0">
-                            <h6 class="fw-bold text-dark mb-0">
-                                <i class="fas fa-calendar-alt text-primary me-2"></i>Período de Vacaciones
-                            </h6>
+
+                    {{-- =====================================================
+                         PERÍODO
+                         ===================================================== --}}
+                    <div class="form-section">
+
+                        <div class="section-title">
+                            <i class="fas fa-calendar-alt"></i>
+                            Período de vacaciones
                         </div>
-                        <div class="card-body">
-                            <div class="row g-3">
-                                <div class="col-md-4">
-                                    <label class="form-label fw-bold text-dark mb-2">
-                                        <i class="fas fa-plane-departure text-success me-2"></i>Fecha de Inicio
+
+                        <div class="row g-2">
+
+                            {{-- Inicio --}}
+                            <div class="col-md-4">
+
+                                <div class="form-floating">
+
+                                    <input type="text"
+                                           class="form-control fsalida fecha-input fecha-inicio"
+                                           placeholder=" "
+                                           required>
+
+                                    <label>
+                                        Fecha de inicio
                                     </label>
-                                    <div class="form-floating">
-                                        <input type="text" class="form-control fsalida fs-5 fw-bold text-success border-success border-opacity-25" id="edit_fsalida" required placeholder="Inicio" style="border-radius: 10px;">
-                                        <label class="text-muted">Seleccione la fecha de inicio</label>
-                                    </div>
+
                                 </div>
-                                <div class="col-md-1 d-flex align-items-center justify-content-center">
-                                    <div class="rounded-circle bg-light d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                                        <i class="fas fa-arrow-right text-muted"></i>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label fw-bold text-dark mb-2">
-                                        <i class="fas fa-plane-arrival text-danger me-2"></i>Fecha de Retorno
-                                    </label>
-                                    <div class="form-floating">
-                                        <input type="text" class="form-control fretorno fs-5 fw-bold text-danger border-danger border-opacity-25" id="edit_fretorno" required placeholder="Fin" style="border-radius: 10px;">
-                                        <label class="text-muted">Seleccione la fecha de retorno</label>
-                                    </div>
-                                </div>
-                                <div class="col-md-3">
-                                    <label class="form-label fw-bold text-dark mb-2">
-                                        <i class="fas fa-calculator text-info me-2"></i>Total de Días
-                                    </label>
-                                    <div class="position-relative">
-                                        <div class="form-floating">
-                                            <input type="text" class="form-control totaldias fs-4 fw-bold text-info border-info border-opacity-25 text-center" id="edit_totaldias" readonly style="border-radius: 10px; background: #e3f2fd;">
-                                            <label class="text-muted">Días hábiles calculados</label>
-                                        </div>
-                                        <div class="position-absolute top-50 end-0 translate-middle-y me-2">
-                                            <span class="badge bg-info">auto</span>
-                                        </div>
-                                    </div>
-                                </div>
+
                             </div>
 
-                            <!-- Aquí está el bloque combinado de medio día + observaciones (igual que el crear) -->
-                            <div class="mt-3 p-3 rounded-3 row" >
-                                <div class="col-md-4 d-flex align-items-center justify-content-between" style="background: #fff8e1; border: 1px dashed #ffc107;">
-                                    <div class="d-flex align-items-center">
-                                        <div class="rounded-circle bg-warning bg-opacity-25 d-flex align-items-center justify-content-center me-3" style="width: 36px; height: 36px;">
-                                            <i class="fas fa-adjust text-warning"></i>
-                                        </div>
-                                        <div>
-                                            <div class="fw-bold text-dark">¿Solicita medio día?</div>
-                                            <div class="text-muted">Marque esta opción si solo necesita medio día</div>
-                                        </div>
-                                    </div>
-                                    <div class="form-check form-switch" style="transform: scale(1.3);">
-                                        <input class="form-check-input mdia" type="checkbox" id="edit_mdia">
-                                        <label class="form-check-label visually-hidden" for="edit_mdia">Medio día</label>
-                                    </div>
-                                </div>
-                                
-                                <div class="col-md-8">
-                                    <label class="form-label fw-bold text-dark mb-2">
-                                        <i class="fas fa-comment-alt text-warning me-2"></i>Motivo
+
+                            {{-- Retorno --}}
+                            <div class="col-md-4">
+
+                                <div class="form-floating">
+
+                                    <input type="text"
+                                           class="form-control fretorno fecha-input fecha-retorno"
+                                           placeholder=" "
+                                           required>
+
+                                    <label>
+                                        Fecha de retorno
                                     </label>
-                                    <div class="form-floating">
-                                        <input type="text" class="form-control observacion border-warning" id="edit_observacion" placeholder="Observaciones" required style="border-radius: 10px;">
-                                        <label class="text-muted">Ingrese el motivo o detalle adicional de la solicitud</label>
-                                    </div>
+
                                 </div>
+
                             </div>
-                            <!-- Fin del bloque combinado -->
+
+
+                            {{-- Días --}}
+                            <div class="col-md-2">
+
+                                <div class="form-floating">
+
+                                    <input type="text"
+                                           class="form-control totaldias total-dias"
+                                           placeholder=" "
+                                           readonly>
+
+                                    <label>
+                                        Días hábiles
+                                    </label>
+
+                                </div>
+
+                            </div>
+
+
+                            {{-- Medio día --}}
+                            <div class="col-md-2">
+
+                                <div class="medio-dia">
+
+                                    <span class="medio-dia-text">
+                                        Medio día
+                                    </span>
+
+                                    <div class="form-check form-switch">
+
+                                        <input class="form-check-input mdia"
+                                               type="checkbox"
+                                               id="mdia">
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
                         </div>
+
                     </div>
 
-                    <!-- Sección de Superior (igual que el crear) -->
-                    <div class="card border-0 shadow-sm" style="border-radius: 12px; background: linear-gradient(to bottom, #ffffff, #f8f9fa);">
-                        <div class="card-header bg-transparent border-bottom-0 pt-3">
-                            <h6 class="fw-bold text-dark mb-0">
-                                <i class="fas fa-user-tie text-secondary me-2"></i>Aprobación del Inmediato Superior
-                            </h6>
+
+                    {{-- =====================================================
+                         MOTIVO
+                         ===================================================== --}}
+                    <div class="form-section">
+
+                        <div class="section-title">
+                            <i class="fas fa-comment-alt"></i>
+                            Motivo
                         </div>
-                        <div class="card-body">
-                            <div class="row g-3">
-                                <div class="col-md-7">
-                                    <label class="form-label fw-bold text-dark mb-2">Buscar inmediato superior por nombre o apellido</label>
-                                    <div class="input-group input-group-lg" style="border-radius: 10px; overflow: hidden;">
-                                        <span class="input-group-text bg-white border-end-0">
-                                            <i class="fas fa-search text-muted"></i>
-                                        </span>
-                                        <input type="text" class="form-control dato border-start-0" id="edit_dato" placeholder="Ejemplo: Juan Pérez..." required>
-                                        <button class="btn btn-success btnBuscarSup px-4 fw-bold" type="button">
-                                            <i class="fa fa-search me-1"></i> Buscar
-                                        </button>
-                                    </div>
+
+                        <div class="form-floating">
+
+                            <input type="text"
+                                   class="form-control observacion"
+                                   placeholder=" "
+                                   required>
+
+                            <label>
+                                Motivo o detalle de la solicitud
+                            </label>
+
+                        </div>
+
+                    </div>
+
+
+                    {{-- =====================================================
+                         SUPERIOR
+                         ===================================================== --}}
+                    <div class="form-section mb-0">
+
+                        <div class="section-title">
+                            <i class="fas fa-user-tie"></i>
+                            Inmediato superior
+                        </div>
+
+                        <div class="row g-2">
+
+                            {{-- Buscar --}}
+                            <div class="col-md-7 busqueda-superior">
+
+                                <label class="form-label">
+                                    Buscar por nombre o apellido
+                                </label>
+
+                                <div class="input-group">
+
+                                    <input type="text"
+                                           class="form-control dato"
+                                           placeholder="Ej. Juan Pérez..."
+                                           required>
+
+                                    <button class="btn btn-outline-primary btnBuscarSup"
+                                            type="button">
+
+                                        <i class="fas fa-search"></i>
+
+                                    </button>
+
                                 </div>
-                                <div class="col-md-5">
-                                    <label class="form-label fw-bold text-dark mb-2">Inmediato superior seleccionado</label>
-                                    <input type="hidden" class="idSup" id="edit_idSup">
-                                    <div class="form-floating">
-                                        <input type="text" class="form-control nombreSup bg-light" id="edit_nombreSup" readonly placeholder="Superior" style="border-radius: 10px;">
-                                        <label class="text-muted"><i class="fas fa-user-check text-success me-1"></i>Nombre del superior</label>
-                                    </div>
-                                </div>
+
                             </div>
 
-                            <div class="mt-3">
-                                <div class="table-responsive rounded-3 border" style="max-height: 200px; overflow-y: auto;">
-                                    <table class="table table-hover align-middle mb-0">
-                                        <thead class="table-light sticky-top">
-                                            <tr>
-                                                <th class="ps-3 fw-bold"><i class="fas fa-user me-1 text-muted"></i>Nombre Completo</th>
-                                                <th class="text-center fw-bold" style="width: 100px;">Acción</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="tablaSup" id="edit_tablaSup">
-                                            <tr>
-                                                <td colspan="2" class="text-center text-muted py-4">
-                                                    <i class="fas fa-search text-muted mb-2 d-block" style="font-size: 1.5rem;"></i>
-                                                    Realice una búsqueda para ver resultados
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
+
+                            {{-- Seleccionado --}}
+                            <div class="col-md-5">
+
+                                <label class="form-label">
+                                    Superior seleccionado
+                                </label>
+
+                                <input type="hidden"
+                                       class="idSup">
+
+                                <input type="text"
+                                       class="form-control nombreSup superior-selected"
+                                       readonly
+                                       placeholder="Ninguno seleccionado">
+
                             </div>
+
                         </div>
+
+
+                        {{-- Tabla --}}
+                        <div class="tabla-superior">
+
+                            <table class="table table-hover align-middle">
+
+                                <thead>
+
+                                    <tr>
+
+                                        <th>
+                                            Nombre completo
+                                        </th>
+
+                                        <th class="text-center"
+                                            style="width:70px;">
+                                            Acción
+                                        </th>
+
+                                    </tr>
+
+                                </thead>
+
+                                <tbody class="tablaSup">
+
+                                    <tr>
+
+                                        <td colspan="2"
+                                            class="text-center text-muted py-3">
+
+                                            <i class="fas fa-search me-1"></i>
+                                            Busque un superior para continuar
+
+                                        </td>
+
+                                    </tr>
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
                     </div>
+
                 </div>
+
             </div>
 
-            <div class="modal-footer bg-light border-top" style="padding: 1.2rem 1.5rem;">
-                <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">
-                    <i class="fas fa-times me-1"></i> Cancelar
+
+            {{-- FOOTER --}}
+            <div class="modal-footer">
+
+                <button type="button"
+                        class="btn btn-light border"
+                        data-bs-dismiss="modal">
+
+                    Cancelar
+
                 </button>
-                <!-- Botón con el mismo gradiente que el crear -->
-                <button type="button" class="btn btn-primary px-4 fw-bold" id="btnGuardarEditar" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
-                    <i class="fas fa-save me-2"></i>Actualizar Solicitud
+
+                <button type="button"
+                        class="btn btn-guardar-vacacion"
+                        id="btnGuardarCrear">
+
+                    <i class="fas fa-paper-plane me-1"></i>
+                    Enviar solicitud
+
                 </button>
+
             </div>
+
         </div>
+
     </div>
+
 </div>
+
+
+
+{{-- ============================================================
+     MODAL EDITAR
+     ============================================================ --}}
+<div class="modal fade"
+     id="modalEditarVacacion"
+     tabindex="-1"
+     aria-labelledby="modalEditarLabel"
+     aria-hidden="true">
+
+    <div class="modal-dialog modal-dialog-centered modal-vacaciones-min">
+
+        <div class="modal-content">
+
+            {{-- HEADER --}}
+            <div class="modal-header">
+
+                <div class="header-bg"></div>
+                <div class="header-overlay"></div>
+
+                <div class="header-content">
+
+                    <div class="header-icon">
+                        <i class="fas fa-edit"></i>
+                    </div>
+
+                    <div>
+
+                        <h5 class="modal-title"
+                            id="modalEditarLabel">
+                            Editar solicitud de vacación
+                        </h5>
+
+                        <div class="modal-subtitle">
+                            Modifique los datos de su solicitud
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Cerrar">
+                </button>
+
+            </div>
+
+
+            {{-- BODY --}}
+            <div class="modal-body">
+
+                <div id="formEditar">
+
+                    <input type="hidden"
+                           id="edit_solicitud_id">
+
+
+                    {{-- =====================================================
+                         INFORMACIÓN
+                         ===================================================== --}}
+                    <div class="form-section">
+
+                        <div class="section-title">
+                            <i class="fas fa-user"></i>
+                            Información
+                        </div>
+
+                        <div class="row g-2">
+
+                            {{-- Servidor --}}
+                            <div class="col-md-5">
+
+                                <div class="form-floating">
+
+                                    <input type="text"
+                                           class="form-control"
+                                           id="edit_nomb"
+                                           disabled
+                                           placeholder=" "
+                                           value="{{ auth()->user()->persona->nombre ?? '' }}
+                                                  {{ auth()->user()->persona->apellidoPat ?? '' }}
+                                                  {{ auth()->user()->persona->apellidoMat ?? '' }}">
+
+                                    <label>
+                                        Servidor público
+                                    </label>
+
+                                </div>
+
+                            </div>
+
+
+                            {{-- Tipo --}}
+                            <div class="col-md-2">
+
+                                <div class="form-floating">
+
+                                    <select class="form-select tipoSal"
+                                            id="edit_salida"
+                                            disabled>
+
+                                        @foreach ($tipoSal as $sal)
+
+                                            @if ($sal->descripcion == 'VACACION')
+
+                                                <option value="{{ $sal->id }}">
+                                                    {{ $sal->descripcion }}
+                                                </option>
+
+                                            @endif
+
+                                        @endforeach
+
+                                    </select>
+
+                                    <label>
+                                        Tipo
+                                    </label>
+
+                                </div>
+
+                            </div>
+
+
+                            {{-- Fecha --}}
+                            <div class="col-md-3">
+
+                                <div class="form-floating">
+
+                                    <input type="date"
+                                           class="form-control fechasol"
+                                           id="edit_fechasol"
+                                           placeholder=" "
+                                           readonly>
+
+                                    <label>
+                                        Fecha de solicitud
+                                    </label>
+
+                                </div>
+
+                            </div>
+
+
+                            {{-- Saldo --}}
+                            <div class="col-md-2">
+
+                                <div class="saldo-box">
+
+                                    <span class="saldo-label">
+                                        Disponible
+                                    </span>
+
+                                    <strong class="saldo-value diasDisponiblesSpan">
+                                        0
+                                    </strong>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    {{-- =====================================================
+                         PERÍODO
+                         ===================================================== --}}
+                    <div class="form-section">
+
+                        <div class="section-title">
+                            <i class="fas fa-calendar-alt"></i>
+                            Período de vacaciones
+                        </div>
+
+                        <div class="row g-2">
+
+                            {{-- Inicio --}}
+                            <div class="col-md-4">
+
+                                <div class="form-floating">
+
+                                    <input type="text"
+                                           class="form-control fsalida fecha-input fecha-inicio"
+                                           id="edit_fsalida"
+                                           placeholder=" "
+                                           required>
+
+                                    <label>
+                                        Fecha de inicio
+                                    </label>
+
+                                </div>
+
+                            </div>
+
+
+                            {{-- Retorno --}}
+                            <div class="col-md-4">
+
+                                <div class="form-floating">
+
+                                    <input type="text"
+                                           class="form-control fretorno fecha-input fecha-retorno"
+                                           id="edit_fretorno"
+                                           placeholder=" "
+                                           required>
+
+                                    <label>
+                                        Fecha de retorno
+                                    </label>
+
+                                </div>
+
+                            </div>
+
+
+                            {{-- Días --}}
+                            <div class="col-md-2">
+
+                                <div class="form-floating">
+
+                                    <input type="text"
+                                           class="form-control totaldias total-dias"
+                                           id="edit_totaldias"
+                                           placeholder=" "
+                                           readonly>
+
+                                    <label>
+                                        Días hábiles
+                                    </label>
+
+                                </div>
+
+                            </div>
+
+
+                            {{-- Medio día --}}
+                            <div class="col-md-2">
+
+                                <div class="medio-dia">
+
+                                    <span class="medio-dia-text">
+                                        Medio día
+                                    </span>
+
+                                    <div class="form-check form-switch">
+
+                                        <input class="form-check-input mdia"
+                                               type="checkbox"
+                                               id="edit_mdia">
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    {{-- =====================================================
+                         MOTIVO
+                         ===================================================== --}}
+                    <div class="form-section">
+
+                        <div class="section-title">
+                            <i class="fas fa-comment-alt"></i>
+                            Motivo
+                        </div>
+
+                        <div class="form-floating">
+
+                            <input type="text"
+                                   class="form-control observacion"
+                                   id="edit_observacion"
+                                   placeholder=" "
+                                   required>
+
+                            <label>
+                                Motivo o detalle de la solicitud
+                            </label>
+
+                        </div>
+
+                    </div>
+
+
+                    {{-- =====================================================
+                         SUPERIOR
+                         ===================================================== --}}
+                    <div class="form-section mb-0">
+
+                        <div class="section-title">
+                            <i class="fas fa-user-tie"></i>
+                            Inmediato superior
+                        </div>
+
+                        <div class="row g-2">
+
+                            {{-- Buscar --}}
+                            <div class="col-md-7 busqueda-superior">
+
+                                <label class="form-label">
+                                    Buscar por nombre o apellido
+                                </label>
+
+                                <div class="input-group">
+
+                                    <input type="text"
+                                           class="form-control dato"
+                                           id="edit_dato"
+                                           placeholder="Ej. Juan Pérez..."
+                                           required>
+
+                                    <button class="btn btn-outline-primary btnBuscarSup"
+                                            type="button">
+
+                                        <i class="fas fa-search"></i>
+
+                                    </button>
+
+                                </div>
+
+                            </div>
+
+
+                            {{-- Seleccionado --}}
+                            <div class="col-md-5">
+
+                                <label class="form-label">
+                                    Superior seleccionado
+                                </label>
+
+                                <input type="hidden"
+                                       class="idSup"
+                                       id="edit_idSup">
+
+                                <input type="text"
+                                       class="form-control nombreSup superior-selected"
+                                       id="edit_nombreSup"
+                                       readonly
+                                       placeholder="Ninguno seleccionado">
+
+                            </div>
+
+                        </div>
+
+
+                        {{-- Tabla --}}
+                        <div class="tabla-superior">
+
+                            <table class="table table-hover align-middle">
+
+                                <thead>
+
+                                    <tr>
+
+                                        <th>
+                                            Nombre completo
+                                        </th>
+
+                                        <th class="text-center"
+                                            style="width:70px;">
+                                            Acción
+                                        </th>
+
+                                    </tr>
+
+                                </thead>
+
+                                <tbody class="tablaSup"
+                                       id="edit_tablaSup">
+
+                                    <tr>
+
+                                        <td colspan="2"
+                                            class="text-center text-muted py-3">
+
+                                            <i class="fas fa-search me-1"></i>
+                                            Busque un superior para continuar
+
+                                        </td>
+
+                                    </tr>
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            {{-- FOOTER --}}
+            <div class="modal-footer">
+
+                <button type="button"
+                        class="btn btn-light border"
+                        data-bs-dismiss="modal">
+
+                    Cancelar
+
+                </button>
+
+                <button type="button"
+                        class="btn btn-guardar-vacacion"
+                        id="btnGuardarEditar">
+
+                    <i class="fas fa-save me-1"></i>
+                    Guardar cambios
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
 @endsection
+
+
 @endsection
 
 @push('scripts')

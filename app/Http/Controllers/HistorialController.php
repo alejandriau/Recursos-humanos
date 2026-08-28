@@ -294,71 +294,101 @@ public function store(Request $request)
     }
 
     // Lista principal con filtros
-public function index(Request $request)
-{
-    $search = $request->input('search');
-    $tipoMovimiento = $request->input('tipo_movimiento');
-    $estado = $request->input('estado');
-    $tipoContrato = $request->input('tipo_contrato');
+    public function index(Request $request)
+    {
+        $search = $request->input('search');
+        $tipoMovimiento = $request->input('tipo_movimiento');
+        $estado = $request->input('estado');
+        $tipoContrato = $request->input('tipo_contrato');
 
-    $puestos = Puesto::where('estado', 1)
-        ->where(function ($query) use ($search, $tipoMovimiento, $estado, $tipoContrato) {
-            if ($search) {
-                $query->where('item', 'like', "%$search%")
-                      ->orWhere('nivelJerarquico', 'like', "%$search%")
-                      ->orWhere('denominacion', 'like', "%$search%")
-                      ->orWhereHas('historial', function ($historialQuery) use ($search, $tipoMovimiento, $estado, $tipoContrato) {
-                          $historialQuery->whereNull('fecha_fin')
-                              ->when($tipoMovimiento, function ($q) use ($tipoMovimiento) {
-                                  $q->where('tipo_movimiento', $tipoMovimiento);
-                              })
-                              ->when($estado, function ($q) use ($estado) {
-                                  $q->where('estado', $estado);
-                              })
-                              ->when($tipoContrato, function ($q) use ($tipoContrato) {
-                                  $q->where('tipo_contrato', $tipoContrato);
-                              })
-                              ->whereHas('persona', function ($personaQuery) use ($search) {
-                                  $personaQuery->where('estado', 1)
-                                      ->where(function ($subquery) use ($search) {
-                                          $subquery->where('nombre', 'like', '%' . $search . '%')
-                                              ->orWhere('apellidoPat', 'like', '%' . $search . '%')
-                                              ->orWhere('apellidoMat', 'like', '%' . $search . '%')
-                                              ->orWhere(DB::raw("CONCAT(nombre, ' ', apellidoPat, ' ', apellidoMat)"), 'like', '%' . $search . '%');
-                                      });
-                              });
-                      });
-            }
-        })
-        ->with([
-            'unidadOrganizacional.padre.padre.padre',
-            'historial' => function ($query) use ($tipoMovimiento, $estado, $tipoContrato) {
-                $query->whereNull('fecha_fin')
-                      ->when($tipoMovimiento, function ($q) use ($tipoMovimiento) {
-                          $q->where('tipo_movimiento', $tipoMovimiento);
-                      })
-                      ->when($estado, function ($q) use ($estado) {
-                          $q->where('estado', $estado);
-                      })
-                      ->when($tipoContrato, function ($q) use ($tipoContrato) {
-                          $q->where('tipo_contrato', $tipoContrato);
-                      })
-                      ->with('persona')
-                      ->orderBy('id', 'desc');
-            }
-        ])
-        ->paginate(100); // Primero paginar
+        $baseQuery = Puesto::where('estado', 1)
+            ->where(function ($query) use ($search, $tipoMovimiento, $estado, $tipoContrato) {
+                if ($search) {
+                    $query->where('item', 'like', "%$search%")
+                        ->orWhere('nivelJerarquico', 'like', "%$search%")
+                        ->orWhere('denominacion', 'like', "%$search%")
+                        ->orWhereHas('historial', function ($historialQuery) use ($search, $tipoMovimiento, $estado, $tipoContrato) {
+                            $historialQuery->whereNull('fecha_fin')
+                                ->when($tipoMovimiento, function ($q) use ($tipoMovimiento) {
+                                    $q->where('tipo_movimiento', $tipoMovimiento);
+                                })
+                                ->when($estado, function ($q) use ($estado) {
+                                    $q->where('estado', $estado);
+                                })
+                                ->when($tipoContrato, function ($q) use ($tipoContrato) {
+                                    $q->where('tipo_contrato', $tipoContrato);
+                                })
+                                ->whereHas('persona', function ($personaQuery) use ($search) {
+                                    $personaQuery->where('estado', 1)
+                                        ->where(function ($subquery) use ($search) {
+                                            $subquery->where('nombre', 'like', '%' . $search . '%')
+                                                ->orWhere('apellidoPat', 'like', '%' . $search . '%')
+                                                ->orWhere('apellidoMat', 'like', '%' . $search . '%')
+                                                ->orWhere(DB::raw("CONCAT(nombre, ' ', apellidoPat, ' ', apellidoMat)"), 'like', '%' . $search . '%');
+                                        });
+                                });
+                        });
+                }
+            });
 
-    // Luego mapear los resultados
-    $puestos->getCollection()->transform(function ($puesto) {
-        $historial = $puesto->historial->first();
-        $puesto->persona = $historial?->persona;
-        $puesto->historial_actual = $historial;
-        return $puesto;
-    });
+        // --- Totales reales (sin paginación) ---
+        // Clonamos el query antes de aplicar with()/paginate() para no arrastrar eager loads innecesarios
+        $totalDesignacionesActivas = (clone $baseQuery)
+            ->whereHas('historial', function ($q) use ($tipoMovimiento, $estado, $tipoContrato) {
+                $q->whereNull('fecha_fin')
+                ->where('estado', 'activo')
+                ->when($tipoMovimiento, fn($q2) => $q2->where('tipo_movimiento', $tipoMovimiento))
+                ->when($tipoContrato, fn($q2) => $q2->where('tipo_contrato', $tipoContrato));
+            })->count();
 
-    return view('admin.pasivos.bajas', compact('puestos', 'search', 'tipoMovimiento', 'estado', 'tipoContrato'));
-}
+        $totalPuestosVacios = (clone $baseQuery)
+            ->whereDoesntHave('historial', function ($q) {
+                $q->whereNull('fecha_fin');
+            })->count();
+
+        $totalComisiones = (clone $baseQuery)
+            ->whereHas('historial', function ($q) use ($estado, $tipoContrato) {
+                $q->whereNull('fecha_fin')
+                ->where('tipo_movimiento', 'comision')
+                ->when($estado, fn($q2) => $q2->where('estado', $estado))
+                ->when($tipoContrato, fn($q2) => $q2->where('tipo_contrato', $tipoContrato));
+            })->count();
+
+        $totalInterinatos = (clone $baseQuery)
+            ->whereHas('historial', function ($q) use ($estado, $tipoContrato) {
+                $q->whereNull('fecha_fin')
+                ->where('tipo_movimiento', 'interinato')
+                ->when($estado, fn($q2) => $q2->where('estado', $estado))
+                ->when($tipoContrato, fn($q2) => $q2->where('tipo_contrato', $tipoContrato));
+            })->count();
+
+        // --- Listado paginado ---
+        $puestos = (clone $baseQuery)
+            ->with([
+                'unidadOrganizacional.padre.padre.padre',
+                'historial' => function ($query) use ($tipoMovimiento, $estado, $tipoContrato) {
+                    $query->whereNull('fecha_fin')
+                        ->when($tipoMovimiento, fn($q) => $q->where('tipo_movimiento', $tipoMovimiento))
+                        ->when($estado, fn($q) => $q->where('estado', $estado))
+                        ->when($tipoContrato, fn($q) => $q->where('tipo_contrato', $tipoContrato))
+                        ->with('persona')
+                        ->orderBy('id', 'desc');
+                }
+            ])
+            ->paginate(100);
+
+        $puestos->getCollection()->transform(function ($puesto) {
+            $historial = $puesto->historial->first();
+            $puesto->persona = $historial?->persona;
+            $puesto->historial_actual = $historial;
+            return $puesto;
+        });
+
+        return view('admin.pasivos.bajas', compact(
+            'puestos', 'search', 'tipoMovimiento', 'estado', 'tipoContrato',
+            'totalDesignacionesActivas', 'totalPuestosVacios', 'totalComisiones', 'totalInterinatos'
+        ));
+    }
 
     // Puestos vacíos
 // Puestos vacíos
@@ -699,111 +729,156 @@ public function marcarComoConcluido($fechaFin = null, $motivo = 'Movimiento a nu
      * Trae TODOS los puestos activos, ordenados por item,
      * agrupados por su unidad raíz.
      */
-    private function obtenerDatosPlanilla(Request $request)
-    {
-        $search = $request->input('search');
-        $tipoMovimiento = $request->input('tipo_movimiento');
-        $estado = $request->input('estado');
-        $tipoContrato = $request->input('tipo_contrato');
+private function obtenerDatosPlanilla(Request $request)
+{
+    $search = $request->input('search');
+    $tipoMovimiento = $request->input('tipo_movimiento');
+    $estado = $request->input('estado');
+    $tipoContrato = $request->input('tipo_contrato');
 
-        // Query base: todos los activos, ordenados por item ASC
-        $query = Puesto::where('estado', 1)
-            ->orderBy('item', 'asc'); // <-- ORDEN POR ITEM
+    // Query base: todos los activos, ordenados por item ASC
+    $query = Puesto::where('estado', 1)
+        ->orderBy('item', 'asc');
 
-        // Filtros de búsqueda (solo si hay término)
-        if ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('item', 'like', "%{$search}%")
-                  ->orWhere('denominacion', 'like', "%{$search}%")
-                  ->orWhere('nivelJerarquico', 'like', "%{$search}%")
-                  ->orWhereHas('historial', function ($hq) use ($search) {
-                      $hq->whereNull('fecha_fin')
-                         ->whereHas('persona', function ($pq) use ($search) {
-                             $pq->where('estado', 1)
-                                ->where(function ($sq) use ($search) {
-                                    $sq->where('nombre', 'like', "%{$search}%")
-                                       ->orWhere('apellidoPat', 'like', "%{$search}%")
-                                       ->orWhere('apellidoMat', 'like', "%{$search}%")
-                                       ->orWhereRaw("CONCAT(nombre,' ',apellidoPat,' ',apellidoMat) LIKE ?", ["%{$search}%"]);
-                                });
-                         });
-                  });
-            });
-        }
-
-        // Filtros de historial (movimiento, estado, contrato)
-        if ($tipoMovimiento || $estado || $tipoContrato) {
-            $query->whereHas('historial', function ($hq) use ($tipoMovimiento, $estado, $tipoContrato) {
-                $hq->whereNull('fecha_fin');
-                if ($tipoMovimiento) $hq->where('tipo_movimiento', $tipoMovimiento);
-                if ($estado)         $hq->where('estado', $estado);
-                if ($tipoContrato)   $hq->where('tipo_contrato', $tipoContrato);
-            });
-        }
-
-        // Cargar relaciones
-        $puestos = $query->with([
-            'unidadOrganizacional',
-            'historial' => function ($q) use ($tipoMovimiento, $estado, $tipoContrato) {
-                $q->whereNull('fecha_fin')
-                  ->when($tipoMovimiento, fn($sq) => $sq->where('tipo_movimiento', $tipoMovimiento))
-                  ->when($estado,         fn($sq) => $sq->where('estado', $estado))
-                  ->when($tipoContrato,   fn($sq) => $sq->where('tipo_contrato', $tipoContrato))
-                  ->with('persona')
-                  ->orderBy('id', 'desc');
-            }
-        ])->get();
-
-        // Agrupar por la unidad RAÍZ (la de más alto nivel)
-        $agrupados = $puestos->groupBy(function ($puesto) {
-            return $this->obtenerUnidadRaiz($puesto->unidadOrganizacional);
-        })->sortKeys();
-
-        // Construir array plano para la vista
-        $resultado = [];
-        foreach ($agrupados as $nombreUnidadRaiz => $items) {
-            // Fila combinada de la unidad principal
-            $resultado[] = [
-                'tipo' => 'dependencia',
-                'nombre' => strtoupper($nombreUnidadRaiz),
-            ];
-
-            // Items de esa unidad, ya vienen ordenados por item asc
-            foreach ($items as $puesto) {
-                $historial = $puesto->historial->first();
-                $persona   = $historial?->persona;
-
-                // Unidad DIRECTA (sin padres, sin hijos, solo la que tiene asignada el puesto)
-                $unidadDirecta = $puesto->unidadOrganizacional?->denominacion ?? '-';
-
-                $resultado[] = [
-                    'tipo'                 => 'puesto',
-                    'item'                 => $puesto->item,
-                    'dependencia_jerarquica' => $unidadDirecta, // <-- SOLO LA UNIDAD DIRECTA
-                    'nombre_cargo'         => $puesto->denominacion,
-                    'categoria'            => $this->inferirCategoria($puesto->nivelJerarquico),
-                    'nivel_clase'          => $puesto->nivelJerarquico,
-                    'nivel_salarial'       => $puesto->nivel_salarial ?? '',
-                    'clasificacion'        => $puesto->clasificacion ?? 'SUSTANTIVO',
-                    'haber'                => $puesto->haber,
-                    'nombre_completo'      => $persona
-                        ? trim("{$persona->apellidoPat} {$persona->apellidoMat} {$persona->nombre}")
-                        : 'ACEFALIA',
-                    'fecha_nacimiento'     => $persona?->fecha_nacimiento
-                        ? \Carbon\Carbon::parse($persona->fecha_nacimiento)->format('d/m/Y')
-                        : '',
-                    'ci'                   => $persona?->ci ?? '',
-                    'fecha_ingreso'        => $historial?->fecha_inicio
-                        ? \Carbon\Carbon::parse($historial->fecha_inicio)->format('d/m/Y')
-                        : '',
-                    'observaciones'        => $historial?->observaciones ?? '',
-                    'formacion'            => $persona?->formacion ?? '',
-                ];
-            }
-        }
-
-        return $resultado;
+    // Filtros de búsqueda (solo si hay término)
+    if ($search) {
+        $query->where(function ($q) use ($search) {
+            $q->where('item', 'like', "%{$search}%")
+              ->orWhere('denominacion', 'like', "%{$search}%")
+              ->orWhere('nivelJerarquico', 'like', "%{$search}%")
+              ->orWhereHas('historial', function ($hq) use ($search) {
+                  $hq->whereNull('fecha_fin')
+                     ->whereHas('persona', function ($pq) use ($search) {
+                         $pq->where('estado', 1)
+                            ->where(function ($sq) use ($search) {
+                                $sq->where('nombre', 'like', "%{$search}%")
+                                   ->orWhere('apellidoPat', 'like', "%{$search}%")
+                                   ->orWhere('apellidoMat', 'like', "%{$search}%")
+                                   ->orWhereRaw("CONCAT(nombre,' ',apellidoPat,' ',apellidoMat) LIKE ?", ["%{$search}%"]);
+                            });
+                     });
+              });
+        });
     }
+
+    // Filtros de historial (movimiento, estado, contrato)
+    if ($tipoMovimiento || $estado || $tipoContrato) {
+        $query->whereHas('historial', function ($hq) use ($tipoMovimiento, $estado, $tipoContrato) {
+            $hq->whereNull('fecha_fin');
+            if ($tipoMovimiento) $hq->where('tipo_movimiento', $tipoMovimiento);
+            if ($estado)         $hq->where('estado', $estado);
+            if ($tipoContrato)   $hq->where('tipo_contrato', $tipoContrato);
+        });
+    }
+
+    // Cargar relaciones (ajusta la cadena de .padre si tu organigrama tiene más niveles)
+    $puestos = $query->with([
+        'unidadOrganizacional.padre.padre.padre.padre.padre',
+        'historial' => function ($q) use ($tipoMovimiento, $estado, $tipoContrato) {
+            $q->whereNull('fecha_fin')
+              ->when($tipoMovimiento, fn($sq) => $sq->where('tipo_movimiento', $tipoMovimiento))
+              ->when($estado,         fn($sq) => $sq->where('estado', $estado))
+              ->when($tipoContrato,   fn($sq) => $sq->where('tipo_contrato', $tipoContrato))
+              ->with('persona')
+              ->orderBy('id', 'desc');
+        }
+    ])->get();
+
+    // 1) Puestos agrupados por el id de su unidad DIRECTA
+    $puestosPorUnidad = $puestos->groupBy(fn($p) => $p->unidadOrganizacional?->id ?? 0);
+
+    // 2) Mapa de todas las unidades involucradas (la directa + todos sus ancestros)
+    $unidadesMap = [];
+    foreach ($puestos as $puesto) {
+        $unidad = $puesto->unidadOrganizacional;
+        while ($unidad) {
+            $unidadesMap[$unidad->id] = $unidad;
+            $unidad = $unidad->padre;
+        }
+    }
+
+    // 3) Árbol: hijos por padre, y raíces (unidades sin padre dentro del mapa)
+    $hijosPorPadre = [];
+    $raices = [];
+    foreach ($unidadesMap as $unidad) {
+        $padreId = $unidad->padre?->id;
+        if ($padreId && isset($unidadesMap[$padreId])) {
+            $hijosPorPadre[$padreId][] = $unidad;
+        } else {
+            $raices[] = $unidad;
+        }
+    }
+
+    // 4) Ítem mínimo de cada unidad (propio + toda su descendencia), para ordenar
+    $itemMinimoCache = [];
+    $calcularItemMinimo = function ($unidadId) use (&$calcularItemMinimo, &$itemMinimoCache, $puestosPorUnidad, $hijosPorPadre) {
+        if (isset($itemMinimoCache[$unidadId])) return $itemMinimoCache[$unidadId];
+        $min = PHP_INT_MAX;
+        foreach (($puestosPorUnidad[$unidadId] ?? []) as $p) {
+            $min = min($min, (int) $p->item);
+        }
+        foreach (($hijosPorPadre[$unidadId] ?? []) as $hijo) {
+            $min = min($min, $calcularItemMinimo($hijo->id));
+        }
+        return $itemMinimoCache[$unidadId] = $min;
+    };
+
+    // 5) Recorrido en profundidad: cabecera de unidad -> sus ítems -> sus hijos (recursivo)
+    $resultado = [];
+    $recorrer = function ($unidad) use (&$recorrer, &$resultado, $puestosPorUnidad, $hijosPorPadre, $calcularItemMinimo) {
+        $itemsPropios = ($puestosPorUnidad[$unidad->id] ?? collect())->isNotEmpty();
+        $hijos = $hijosPorPadre[$unidad->id] ?? [];
+
+        if (!$itemsPropios && empty($hijos)) return; // unidad sin nada que mostrar
+
+        $resultado[] = [
+            'tipo'   => 'dependencia',
+            'nombre' => strtoupper($unidad->denominacion),
+        ];
+
+        $items = ($puestosPorUnidad[$unidad->id] ?? collect())->sortBy(fn($p) => (int) $p->item);
+        foreach ($items as $puesto) {
+            $historial = $puesto->historial->first();
+            $persona   = $historial?->persona;
+
+            $resultado[] = [
+                'tipo'                   => 'puesto',
+                'item'                   => $puesto->item,
+                'dependencia_jerarquica' => $unidad->denominacion,
+                'nombre_cargo'           => $puesto->denominacion,
+                'categoria'              => $this->inferirCategoria($puesto->nivelJerarquico),
+                'nivel_clase'            => $puesto->nivelJerarquico,
+                'nivel_salarial'         => $puesto->nivel_salarial ?? '',
+                'clasificacion'          => $puesto->clasificacion ?? 'SUSTANTIVO',
+                'haber'                  => $puesto->haber,
+                'nombre_completo'        => $persona
+                    ? trim("{$persona->apellidoPat} {$persona->apellidoMat} {$persona->nombre}")
+                    : 'ACEFALIA',
+                'fecha_nacimiento'       => $persona?->fecha_nacimiento
+                    ? \Carbon\Carbon::parse($persona->fecha_nacimiento)->format('d/m/Y')
+                    : '',
+                'ci'                     => $persona?->ci ?? '',
+                'fecha_ingreso'          => $historial?->fecha_inicio
+                    ? \Carbon\Carbon::parse($historial->fecha_inicio)->format('d/m/Y')
+                    : '',
+                'observaciones'          => $historial?->observaciones ?? '',
+                'formacion'              => $persona?->formacion ?? '',
+            ];
+        }
+
+        $hijosOrdenados = collect($hijos)->sortBy(fn($h) => $calcularItemMinimo($h->id));
+        foreach ($hijosOrdenados as $hijo) {
+            $recorrer($hijo);
+        }
+    };
+
+    $raicesOrdenadas = collect($raices)->sortBy(fn($u) => $calcularItemMinimo($u->id));
+    foreach ($raicesOrdenadas as $raiz) {
+        $recorrer($raiz);
+    }
+
+    return $resultado;
+}
 
     /**
      * Sube hasta la unidad de nivel 0 (raíz) para agrupar la planilla

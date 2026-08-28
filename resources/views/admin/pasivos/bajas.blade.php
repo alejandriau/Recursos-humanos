@@ -119,7 +119,7 @@
             <div class="card bg-primary text-white">
                 <div class="card-body">
                     <h6 class="card-title">Designaciones Activas</h6>
-                    <h3>{{ $puestos->where('historial_actual.estado', 'activo')->count() }}</h3>
+                    <h3>{{ $totalDesignacionesActivas }}</h3>
                 </div>
             </div>
         </div>
@@ -127,7 +127,7 @@
             <div class="card bg-success text-white">
                 <div class="card-body">
                     <h6 class="card-title">Puestos Vacíos</h6>
-                    <h3>{{ $puestos->where('historial_actual', null)->count() }}</h3>
+                    <h3>{{ $totalPuestosVacios }}</h3>
                 </div>
             </div>
         </div>
@@ -135,7 +135,7 @@
             <div class="card bg-info text-white">
                 <div class="card-body">
                     <h6 class="card-title">Comisiones</h6>
-                    <h3>{{ $puestos->where('historial_actual.tipo_movimiento', 'comision')->count() }}</h3>
+                    <h3>{{ $totalComisiones }}</h3>
                 </div>
             </div>
         </div>
@@ -143,7 +143,7 @@
             <div class="card bg-warning text-white">
                 <div class="card-body">
                     <h6 class="card-title">Interinatos</h6>
-                    <h3>{{ $puestos->where('historial_actual.tipo_movimiento', 'interinato')->count() }}</h3>
+                    <h3>{{ $totalInterinatos }}</h3>
                 </div>
             </div>
         </div>
