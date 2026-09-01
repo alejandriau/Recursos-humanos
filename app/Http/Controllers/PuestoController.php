@@ -425,14 +425,18 @@ public function edit(string $id)
     {
         try {
             $puesto = Puesto::findOrFail($id);
-            $puesto->update(['esActivo' => false]);
+
+            $puesto->update([
+                'esActivo' => 0,
+                'estado'   => 0,
+            ]);
 
             return redirect()->back()
-                             ->with('success', 'Puesto desactivado correctamente');
+                            ->with('success', 'Puesto desactivado correctamente');
 
         } catch (\Exception $e) {
             return redirect()->back()
-                             ->with('error', 'Error al desactivar puesto: ' . $e->getMessage());
+                            ->with('error', 'Error al desactivar puesto: ' . $e->getMessage());
         }
     }
 
@@ -443,14 +447,18 @@ public function edit(string $id)
     {
         try {
             $puesto = Puesto::findOrFail($id);
-            $puesto->update(['esActivo' => true]);
+
+            $puesto->update([
+                'esActivo' => 1,
+                'estado'   => 1,
+            ]);
 
             return redirect()->back()
-                             ->with('success', 'Puesto reactivado correctamente');
+                            ->with('success', 'Puesto reactivado correctamente');
 
         } catch (\Exception $e) {
             return redirect()->back()
-                             ->with('error', 'Error al reactivar puesto: ' . $e->getMessage());
+                            ->with('error', 'Error al reactivar puesto: ' . $e->getMessage());
         }
     }
 }

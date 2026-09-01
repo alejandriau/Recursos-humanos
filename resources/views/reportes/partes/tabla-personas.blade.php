@@ -130,11 +130,21 @@
                                     <li><a class="dropdown-item" href="{{ route('personas.edit', $persona->id) }}">✏️
                                             Editar</a></li>
                                     <li>
-                                        <form action="{{ route('personas.destroy', $persona->id) }}" method="POST"
-                                            onsubmit="return confirm('¿Estás seguro de desactivar a esta persona?');">
+                                        <form action="{{ route('personas.destroy', $persona->id) }}"
+                                            method="POST"
+                                            onsubmit="return confirm('{{ $persona->estado == 1 ? '¿Estás seguro de desactivar a esta persona?' : '¿Deseas activar a esta persona?' }}');">
                                             @csrf
                                             @method('PATCH')
-                                            <button type="submit" class="dropdown-item text-danger">🗑️ Desactivar</button>
+
+                                            @if ($persona->estado == 1)
+                                                <button type="submit" class="dropdown-item text-danger">
+                                                    🗑️ Desactivar
+                                                </button>
+                                            @else
+                                                <button type="submit" class="dropdown-item text-success">
+                                                    ✅ Activar
+                                                </button>
+                                            @endif
                                         </form>
                                     </li>
                                     <li><a class="dropdown-item" href="{{ route('persona.dashboard', $persona->id) }}">📊

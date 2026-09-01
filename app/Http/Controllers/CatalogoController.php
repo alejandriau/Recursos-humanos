@@ -238,7 +238,7 @@ public function nivelesStore(Request $request): JsonResponse
     {
         $carreras = Carrera::with(['areaConocimiento', 'nivelAcademico'])
             ->orderBy('nombre')
-            ->paginate(20);
+            ->paginate(100);
         
         $areas = AreaConocimiento::where('estado', true)->get();
         $niveles = NivelAcademico::where('estado', true)->get();

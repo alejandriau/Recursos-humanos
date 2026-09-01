@@ -12,11 +12,13 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
+
 
 
 class BajasaltasController extends Controller
 {
-public function index(Request $request)
+    public function index(Request $request)
     {
         $query = Bajasaltas::with(['persona' => function($query) {
                 $query->select('id', 'nombre', 'apellidoPat', 'apellidoMat', 'ci', 'fechaNacimiento', 'fechaIngreso', 'foto');
@@ -45,7 +47,7 @@ public function index(Request $request)
             $query->where('motivo', $request->motivo);
         }
 
-        $bajas = $query->paginate(10)->withQueryString();
+        $bajas = $query->paginate(50)->withQueryString();
 
         // Procesar datos para la vista
         $bajasProcesadas = $bajas->getCollection()->map(function($baja) {
@@ -197,7 +199,7 @@ public function store(Request $request)
 
         \Log::info('Baja registrada:', ['id' => $baja->id]);
 
-        return redirect()->route('altasbajas')->with('success', 'Baja registrada correctamente');
+        return redirect()->route('bajasaltas.index')->with('success', 'Baja registrada correctamente');
 
     } catch (\Exception $e) {
         \Log::error('Error al registrar baja:', [
@@ -258,29 +260,25 @@ public function store(Request $request)
         \Log::info('Datos recibidos en update:', array_merge($validated, ['id' => $id]));
 
         try {
-            // Buscar la baja existente
             $baja = Bajasaltas::findOrFail($id);
-            \Log::info('Baja encontrada:', ['id' => $baja->id, 'idPersona' => $baja->idPersona]);
-
-            // Obtener la persona relacionada
             $persona = Persona::find($baja->idPersona);
+
             if (!$persona) {
                 return back()->with('error', 'La persona asociada a esta baja no existe.')->withInput();
             }
 
-            // Actualizar el historial laboral si existe
+            // Actualizar historial
             $historial = Historial::where('idPersona', $baja->idPersona)
                                 ->where('estado', 'concluido')
                                 ->latest()
                                 ->first();
 
             if ($historial) {
-                $historial->fecha_fin = $validated['fecha'];
+                $historial->fecha_fin = $validated['fecha']; // ← Cambiado
                 $historial->save();
-                \Log::info('Historial actualizado:', ['id' => $historial->id, 'fecha_fin' => $historial->fecha_fin]);
             }
 
-            // Actualizar el registro en pasivodos si existe
+            // Actualizar pasivodos (sin cambios)
             $nombreCompleto = trim(($persona->apellidopaterno ?? '') . " " .
                                 ($persona->apellidomaterno ?? '') . " " .
                                 ($persona->nombre ?? ''));
@@ -292,17 +290,14 @@ public function store(Request $request)
                             ->first();
 
             if ($pasivo) {
-                // Si encontramos un pasivo, actualizamos el nombre completo por si hubo cambios
                 $pasivo->nombrecompleto = $nombreCompleto;
                 $pasivo->save();
-                \Log::info('Pasivo actualizado:', ['id' => $pasivo->id]);
             }
 
-            // Manejar archivo PDF igual que en store
-            $pdfPath = $baja->pdfbaja; // Mantener el PDF existente por defecto
+            // Manejar PDF (sin cambios en la lógica, solo mantenemos ruta)
+            $pdfPath = $baja->pdfbaja;
 
             if ($request->hasFile('pdffile')) {
-                // Verificar/crear estructura de carpetas de la persona
                 if (!$persona->archivo) {
                     $nombre = Str::slug($persona->nombre);
                     $apellidoMat = Str::slug($persona->apellidomaterno ?? 'SinApellido');
@@ -310,52 +305,37 @@ public function store(Request $request)
                     $nombreCarpeta = "{$persona->id}_{$nombre}_{$apellidoMat}_{$fecha}";
                     $rutaBase = "archivos/{$nombreCarpeta}";
 
-                    // Crear carpeta principal y subcarpetas
                     Storage::disk('local')->makeDirectory($rutaBase);
-
-                    // Actualizar persona con la ruta
                     $persona->archivo = $rutaBase;
                     $persona->save();
-                    \Log::info('Carpeta creada para persona:', ['ruta' => $rutaBase]);
                 }
 
-                // Crear subcarpeta para bajas si no existe (igual que en store)
                 $rutaBajas = $persona->archivo . '/bajas';
                 if (!Storage::disk('local')->exists($rutaBajas)) {
                     Storage::disk('local')->makeDirectory($rutaBajas);
                 }
 
-                // Generar nombre único para el archivo (igual que en store)
                 $nombreArchivo = "BAJA_" . $persona->ci . "_" .
                             now()->format('YmdHis') . "_" .
                             Str::slug($validated['motivo'], '_') . ".pdf";
 
-                // Guardar archivo en el disco local (igual que en store)
                 $path = $request->file('pdffile')->storeAs($rutaBajas, $nombreArchivo, 'local');
                 $pdfPath = $path;
 
-                // Eliminar archivo anterior si existe
                 if ($baja->pdfbaja && Storage::disk('local')->exists($baja->pdfbaja)) {
                     Storage::disk('local')->delete($baja->pdfbaja);
-                    \Log::info('PDF anterior eliminado:', ['ruta' => $baja->pdfbaja]);
                 } elseif ($baja->pdfbaja && Storage::disk('public')->exists($baja->pdfbaja)) {
-                    // Para compatibilidad: si el archivo antiguo está en 'public', eliminarlo de allí también
                     Storage::disk('public')->delete($baja->pdfbaja);
-                    \Log::info('PDF anterior eliminado de public:', ['ruta' => $baja->pdfbaja]);
                 }
-
-                \Log::info('Nuevo PDF guardado:', ['ruta' => $pdfPath]);
             }
 
-            // Actualizar el registro de baja
+            // ✅ AQUÍ ESTÁ EL CAMBIO CLAVE
             $baja->update([
-                'fecha' => $validated['fecha'],
+                'fecha' => $validated['fecha'],  // ← Cambiado
                 'motivo' => $validated['motivo'],
                 'observacion' => $validated['observacion'] ?? null,
                 'pdfbaja' => $pdfPath
             ]);
-
-            \Log::info('Baja actualizada correctamente:', ['id' => $baja->id]);
 
             return redirect()->route('bajasaltas.index')
                             ->with('success', 'Baja actualizada correctamente');
@@ -363,10 +343,8 @@ public function store(Request $request)
         } catch (\Exception $e) {
             \Log::error('Error al actualizar baja:', [
                 'id' => $id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'error' => $e->getMessage()
             ]);
-
             return back()->with('error', 'Error al actualizar la baja: ' . $e->getMessage())->withInput();
         }
     }

@@ -349,10 +349,16 @@ public function usuarioMostrarFoto($id)
     public function destroy($id)
     {
         $persona = Persona::findOrFail($id);
-        $persona->estado = 0;
+
+        // Cambiar automáticamente el estado
+        $persona->estado = $persona->estado == 1 ? 0 : 1;
         $persona->save();
 
-        return redirect()->route('reportes.index')->with('success', 'Registro desactivado.');
+        $mensaje = $persona->estado == 1
+            ? 'Persona activada correctamente.'
+            : 'Persona desactivada correctamente.';
+
+        return redirect()->back()->with('success', $mensaje);
     }
     //public function show($id)
     //{
