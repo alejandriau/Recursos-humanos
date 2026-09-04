@@ -51,7 +51,7 @@ Schedule::call(function () {
 // Laravel 10: app/Console/Kernel.php
 // Laravel 11+: routes/console.php
 
-$schedule->command('beneficios:replicar-gestion')->dailyAt('00:05');
+Schedule::command('beneficios:replicar-gestion')->dailyAt('00:05');
 
 // ═══════════════════════════════════════════════════════════
 // CIERRE DEFINITIVO: lo "pendiente" pasa a falta real

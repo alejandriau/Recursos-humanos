@@ -34,7 +34,7 @@
                     <tr>
                         <th>ID</th>
                         <th>Descripción</th>
-                        <th>Sustento</th>
+                        <th>Sustento legal</th>
                         <th>Expresa</th>
                         <th>Dependencia</th>
                         <th>Cupo</th>
@@ -56,7 +56,7 @@
                             <td><b>{{ $sal->id }}</b></td>
                             <td>{{ $sal->descripcion }}</td>
                             <td>
-                                <span class="d-inline-block text-truncate" style="max-width: 120px;" title="{{ $sal->sustLegal }}">
+                                <span style="font-size: 0.8rem; word-break: break-word; white-space: normal;">
                                     {{ $sal->sustLegal }}
                                 </span>
                             </td>
