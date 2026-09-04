@@ -150,41 +150,41 @@ class PlanillaImport implements ToModel, WithHeadingRow, WithChunkReading
         return is_numeric($value) ? (float) $value : null;
     }
     
-private function parseFecha($value)
-{
-    if (empty($value)) return null;
-    
-    // Si ya es un objeto Carbon o DateTime
-    if ($value instanceof \DateTime) {
-        return $value->format('Y-m-d');
-    }
-    
-    // Si es un número serial de Excel (ej: 44562 → 2022-01-01)
-    if (is_numeric($value)) {
-        $unix = ($value - 25569) * 86400; // Excel usa 1900 o 1904, aproximación
-        return date('Y-m-d', $unix);
-    }
-    
-    // Si es string, intentar parsear formatos d/m/yyyy o dd/mm/yyyy
-    $value = trim($value);
-    $parts = explode('/', $value);
-    if (count($parts) === 3) {
-        $day = str_pad($parts[0], 2, '0', STR_PAD_LEFT);
-        $month = str_pad($parts[1], 2, '0', STR_PAD_LEFT);
-        $year = $parts[2];
-        if (checkdate($month, $day, $year)) {
-            return "{$year}-{$month}-{$day}";
+    private function parseFecha($value)
+    {
+        if (empty($value)) return null;
+
+        // Si Maatwebsite ya lo convirtió a Carbon/DateTime
+        if ($value instanceof \DateTime) {
+            return $value->format('Y-m-d');
+        }
+
+        // Si viene como número serial de Excel
+        if (is_numeric($value)) {
+            $unix = ($value - 25569) * 86400;
+            return gmdate('Y-m-d', $unix); // <-- gmdate, no date
+        }
+
+        // Si es string con formato d/m/yyyy
+        $value = trim($value);
+        $parts = explode('/', $value);
+        if (count($parts) === 3) {
+            $day   = str_pad($parts[0], 2, '0', STR_PAD_LEFT);
+            $month = str_pad($parts[1], 2, '0', STR_PAD_LEFT);
+            $year  = $parts[2];
+            if (checkdate($month, $day, $year)) {
+                return "{$year}-{$month}-{$day}";
+            }
+        }
+
+        // Fallback con Carbon
+        try {
+            return \Carbon\Carbon::parse($value)->format('Y-m-d');
+        } catch (\Exception $e) {
+            \Log::warning("No se pudo parsear fecha: {$value}");
+            return null;
         }
     }
-    
-    // Si nada funciona, intentar con Carbon (formatos adicionales)
-    try {
-        return \Carbon\Carbon::parse($value)->format('Y-m-d');
-    } catch (\Exception $e) {
-        \Log::warning("No se pudo parsear fecha: {$value}");
-        return null;
-    }
-}
     
     public function chunkSize(): int
     {

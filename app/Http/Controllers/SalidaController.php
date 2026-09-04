@@ -721,6 +721,243 @@ public function funcSalud()
         "solicitudes"
     ));
 }
+/**
+ * Muestra el formulario de edición de una solicitud de salud.
+ */
+public function editSalud($id)
+{
+    try {
+        $salida = Salida::with(['jefe', 'rrhh'])->findOrFail($id);
+    } catch (\Exception $e) {
+        return response()->json(['error' => 'Salida no encontrada'], 404);
+    }
+
+    $user = auth()->user();
+    if (!$user) {
+        return response()->json(['error' => 'Usuario no autenticado'], 401);
+    }
+
+    $persona = Persona::where('user_id', $user->id)->first();
+    if (!$persona || $salida->persona_id != $persona->id) {
+        return response()->json(['error' => 'No tiene permiso para editar esta solicitud'], 403);
+    }
+
+    if ($salida->estado != 'pendiente_jefe') {
+        return response()->json(['error' => 'Esta solicitud ya no se puede editar'], 422);
+    }
+
+    // Función auxiliar para formatear fechas de forma segura
+    $formatDate = function ($date) {
+        if (empty($date)) return null;
+        try {
+            return Carbon::parse($date)->format('Y-m-d');
+        } catch (\Exception $e) {
+            return null;
+        }
+    };
+
+    return response()->json([
+        'id'            => $salida->id,
+        'tiposalida_id' => $salida->tiposalida_id,
+        'fechasol'      => $formatDate($salida->fechasol),
+        'motivo'        => $salida->motivo,
+        'fechasal'      => $formatDate($salida->fechasal),
+        'horasal'       => $salida->horasal,
+        'fecharet'      => $formatDate($salida->fecharet),
+        'horaret'       => $salida->horaret,
+        'cantidad'      => $salida->cantidad,
+        'jefe_id'       => $salida->jefe_id,
+        'jefe'          => $salida->jefe ? [
+            'nombre'      => $salida->jefe->nombre ?? '',
+            'apellidoPat' => $salida->jefe->apellidoPat ?? '',
+        ] : null,
+    ]);
+}
+
+/**
+ * Actualiza una solicitud de salud existente.
+ */
+public function updateSalud(Request $request, $id)
+{
+    // 1. Validar datos (mismas reglas que en registrarSalSalud)
+    $validator = Validator::make($request->all(), [
+        'persona_id' => 'required|exists:persona,id',
+        'fsalida'    => 'required|date|date_format:Y-m-d',
+        'fretorno'   => 'required|date|date_format:Y-m-d|after_or_equal:fsalida',
+        'horasal'    => 'required|date_format:H:i',
+        'horaret'    => 'required|date_format:H:i|after:horasal',
+        'fechasol'   => 'required|date|date_format:Y-m-d|before_or_equal:fsalida',
+        'tipoSal'    => 'required|exists:tiposalidas,id',
+        'idSup'      => 'required|exists:persona,id',
+        'motivo'     => 'nullable|string|max:255',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json(['errors' => $validator->errors()], 422);
+    }
+
+    // Buscar salida
+    $salida = Salida::find($id);
+    if (!$salida) {
+        return response()->json(['error' => 'Salida no encontrada'], 404);
+    }
+
+    $user = auth()->user();
+    $persona = Persona::where('user_id', $user->id)->first();
+    if (!$persona || $salida->persona_id != $persona->id) {
+        return response()->json(['error' => 'No tiene permiso para editar esta solicitud'], 403);
+    }
+    if ($salida->estado != 'pendiente_jefe') {
+        return response()->json(['error' => 'Esta solicitud ya no se puede editar'], 422);
+    }
+
+    // Parsear fechas (por si vienen como string)
+    $fsalida  = Carbon::parse($request->fsalida);
+    $fretorno = Carbon::parse($request->fretorno);
+    $fechasol = Carbon::parse($request->fechasol);
+
+    // 4. Validar que la fecha de solicitud no sea posterior a la salida
+    if ($fechasol->gt($fsalida)) {
+        return response()->json([
+            'error' => 'La fecha de solicitud no puede ser posterior a la fecha de salida'
+        ], 422);
+    }
+
+    // 5. Obtener salidas existentes que se solapan, excluyendo la actual
+    $salidasExistentes = Salida::where('persona_id', $persona->id)
+        ->where('id', '!=', $salida->id)
+        ->where('estado', '!=', 'rechazado')
+        ->where(function ($query) use ($fsalida, $fretorno) {
+            $query->where(function ($q) use ($fsalida, $fretorno) {
+                $q->where('fechasal', '<=', $fsalida)
+                  ->where('fecharet', '>=', $fretorno);
+            })->orWhere(function ($q) use ($fsalida, $fretorno) {
+                $q->where('fechasal', '>=', $fsalida)
+                  ->where('fecharet', '<=', $fretorno);
+            })->orWhere(function ($q) use ($fsalida, $fretorno) {
+                $q->where('fechasal', '>=', $fsalida)
+                  ->where('fechasal', '<=', $fretorno);
+            })->orWhere(function ($q) use ($fsalida, $fretorno) {
+                $q->where('fecharet', '>=', $fsalida)
+                  ->where('fecharet', '<=', $fretorno);
+            });
+        })
+        ->get();
+
+    // 6. Verificar cruce de horarios día por día
+    $fechaActual = clone $fsalida;
+    $fechasConConflicto = [];
+
+    while ($fechaActual <= $fretorno) {
+        $fechaStr = $fechaActual->format('Y-m-d');
+
+        foreach ($salidasExistentes as $existente) {
+            $fechaSalida = Carbon::parse($existente->fechasal);
+            $fechaRetornoSalida = Carbon::parse($existente->fecharet);
+
+            if ($fechaSalida <= $fechaActual && $fechaRetornoSalida >= $fechaActual) {
+                if ($existente->horasal && $existente->horaret) {
+                    $horaSalidaExistente = Carbon::parse($existente->horasal);
+                    $horaRetornoExistente = Carbon::parse($existente->horaret);
+                    $horaSalidaNueva = Carbon::parse($request->horasal);
+                    $horaRetornoNueva = Carbon::parse($request->horaret);
+
+                    if ($horaSalidaNueva < $horaRetornoExistente &&
+                        $horaRetornoNueva > $horaSalidaExistente) {
+                        $fechasConConflicto[] = $fechaStr;
+                        break 2;
+                    }
+                }
+            }
+        }
+
+        $fechaActual->addDay();
+    }
+
+    if (!empty($fechasConConflicto)) {
+        return response()->json([
+            'error' => "El horario seleccionado se cruza con otra salida en la(s) fecha(s): " . implode(', ', $fechasConConflicto)
+        ], 422);
+    }
+
+    // 7. Verificar si ya tiene otra solicitud pendiente del mismo tipo (excluyendo esta)
+    $pendiente = Salida::where('persona_id', $persona->id)
+        ->where('tiposalida_id', $request->tipoSal)
+        ->where('id', '!=', $salida->id)
+        ->where(function($q) {
+            $q->where('estado', 'pendiente_jefe')
+              ->orWhere('estado', 'pendiente_rrhh');
+        })
+        ->exists();
+
+    if ($pendiente) {
+        return response()->json([
+            'error' => 'Ya tiene otra solicitud pendiente de aprobación para este tipo de salida'
+        ], 409);
+    }
+
+    // 8. Verificar vacaciones aprobadas en el rango (excluyendo esta)
+    $vacacionesEnRango = Salida::where('persona_id', $persona->id)
+        ->where('estado', 'aprobado')
+        ->where('id', '!=', $salida->id)
+        ->whereHas('tipoSalida', function($q) {
+            $q->where('descripcion', 'LIKE', '%VACACION%');
+        })
+        ->where(function($query) use ($fsalida, $fretorno) {
+            $query->where('fechasal', '<=', $fretorno)
+                  ->where('fecharet', '>=', $fsalida);
+        })
+        ->exists();
+
+    if ($vacacionesEnRango) {
+        return response()->json([
+            'error' => 'Tiene vacaciones aprobadas en el rango de fechas seleccionado'
+        ], 422);
+    }
+
+    // 9. Calcular cantidad (días u horas)
+    $tipoSalida = TipoSalida::find($request->tipoSal);
+    $cantidad = null;
+    if ($tipoSalida) {
+        if ($tipoSalida->unidad === 'dias') {
+            $cantidad = $fsalida->diffInDays($fretorno) + 1;
+        } elseif ($tipoSalida->unidad === 'horas') {
+            $horaSalida = Carbon::parse($request->horasal);
+            $horaRetorno = Carbon::parse($request->horaret);
+            $cantidad = $horaSalida->diffInHours($horaRetorno);
+        }
+    }
+
+    // 10. Actualizar en transacción
+    DB::beginTransaction();
+    try {
+        $salida->persona_id    = $persona->id;
+        $salida->tiposalida_id = $request->tipoSal;
+        $salida->fechasal      = $fsalida;
+        $salida->horasal       = $request->horasal;
+        $salida->fecharet      = $fretorno;
+        $salida->horaret       = $request->horaret;
+        $salida->cantidad      = $cantidad;
+        $salida->motivo        = $request->motivo;
+        $salida->fechasol      = $fechasol;
+        $salida->jefe_id       = $request->idSup;
+        // No modificamos los estados (estado_jefe, estado_rrhh, estado)
+        $salida->save();
+
+        DB::commit();
+
+        return response()->json([
+            'mensaje' => 'Salida médica actualizada correctamente',
+            'data'    => $salida
+        ], 200);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return response()->json([
+            'error' => 'Error al actualizar la salida: ' . $e->getMessage()
+        ], 500);
+    }
+}
 public function pdfSalud($id)
 {
     $salida = Salida::with(['persona', 'jefe', 'rrhh'])->findOrFail($id);

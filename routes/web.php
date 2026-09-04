@@ -1084,6 +1084,8 @@ Route::middleware([
         Route::delete('/vacacion/destroy-vacacion/{id}/salida', [SalidaController::class, 'destroyVacacion'])->name('destroy.vacacion'); // eliminar vacacion por api
         Route::post('/comision/registrar', [SalidaController::class, 'registrarComision']); // registrar comision por api
         Route::post('/vacacion/registrar-salida-salud', [SalidaController::class, "registrarSalSalud"]); // registrar salida a salud por api
+        Route::get('/salud/{id}/edit', [SalidaController::class, 'editSalud'])->name('salud.edit');
+        Route::put('/salud/actualizar/{id}', [SalidaController::class, 'updateSalud'])->name('salud.update');
         Route::post('/list-vacacion', [PersonaController::class, "listarVacacion"]); // listar vacaciones por api
         Route::post('/list-comision', [PersonaController::class, "listarComision"]); // listar comisiones  por api
         Route::post('/list-salud', [PersonaController::class, "listarSalud"]); // listar salida de salud  por api

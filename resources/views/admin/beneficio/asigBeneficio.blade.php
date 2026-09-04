@@ -685,13 +685,17 @@ async function guardarBeneficios() {
     const beneficios = [];
 
     document.querySelectorAll('.tipo-check:checked').forEach(chk => {
-        const cantidad = document.getElementById('cantidad_' + chk.value).value;
-        if (cantidad && parseFloat(cantidad) > 0) {
-            beneficios.push({
-                tiposalida_id: chk.value,
-                cantidad: parseFloat(cantidad)
-            });
+        const input = document.getElementById('cantidad_' + chk.value);
+        let cantidad = input?.value?.trim();
+
+        // Si está vacío o no es un número válido, enviamos NULL (sin límite específico)
+        if (cantidad === '' || cantidad === undefined || isNaN(parseFloat(cantidad))) {
+            cantidad = 0; 
+        } else {
+            cantidad = parseFloat(cantidad);
         }
+
+        beneficios.push({ tiposalida_id: chk.value, cantidad });
     });
 
     if (!personaId) {
@@ -699,7 +703,7 @@ async function guardarBeneficios() {
     }
 
     if (beneficios.length === 0) {
-        return Swal.fire('Atención', 'Debe seleccionar al menos un beneficio con cantidad válida.', 'warning');
+        return Swal.fire('Atención', 'No hay beneficios seleccionados.', 'warning');
     }
 
     try {
@@ -711,10 +715,9 @@ async function guardarBeneficios() {
 
         Swal.fire('¡Éxito!', 'Beneficios asignados correctamente.', 'success');
 
-        // Recargar datos del empleado
         await cargarDatosEmpleado(personaId);
 
-        // Limpiar selección de checkboxes
+        // Limpiar selección
         document.querySelectorAll('.tipo-check:checked').forEach(chk => {
             chk.checked = false;
             document.getElementById('cantidad_' + chk.value).value = '';

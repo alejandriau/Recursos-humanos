@@ -98,17 +98,7 @@ class TipoSalidaController extends Controller
             'activo'                    => 'boolean',
         ]);
 
-        if (empty($data['tiene_cupo'])) {
-            $data['periodicidad']         = 'ninguna';
-            $data['cantidad_default']     = null;
-            $data['permite_arrastre']     = false;
-            $data['max_veces_periodo']    = null;
-            $data['usa_tabla_antiguedad'] = false;
-        }
 
-        if (!empty($data['usa_tabla_antiguedad'])) {
-            $data['cantidad_default'] = null;
-        }
 
         $data['tiene_cupo']               = $request->boolean('tiene_cupo');
         $data['permite_arrastre']         = $request->boolean('permite_arrastre');

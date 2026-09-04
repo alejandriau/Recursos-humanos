@@ -211,111 +211,457 @@
 @endsection
 
 @section('modales')
-{{-- ===== MODAL CREAR / EDITAR ===== --}}
+<style>
+    /* =========================================================
+       MODAL DE SALIDA MÉDICA - MISMO ESTILO QUE PARTICULAR
+       ========================================================= */
+
+    .modal-salud-min {
+        max-width: 900px;
+        width: 95%;
+    }
+
+    .modal-salud-min .modal-content {
+        border: none;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, .16);
+    }
+
+    /* HEADER */
+    .modal-salud-min .modal-header {
+        position: relative;
+        min-height: 78px;
+        padding: 17px 22px;
+        border: none;
+        overflow: hidden;
+        background: #dc3545;
+    }
+
+    .modal-salud-min .header-bg {
+        position: absolute;
+        inset: 0;
+        background: url('{{ asset('images/tejido-horizontal.jpg') }}')
+                    center center / cover no-repeat;
+        opacity: .28;
+    }
+
+    .modal-salud-min .header-overlay {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+            90deg,
+            rgba(220, 53, 69, .95),
+            rgba(220, 53, 69, .72)
+        );
+    }
+
+    .modal-salud-min .header-content {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+    }
+
+    .modal-salud-min .header-icon {
+        width: 42px; height: 42px;
+        min-width: 42px;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        margin-right: 12px;
+        background: rgba(255,255,255,.18);
+        color: #fff;
+    }
+
+    .modal-salud-min .modal-title {
+        color: #fff;
+        font-size: 17px;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .modal-salud-min .modal-subtitle {
+        color: rgba(255,255,255,.85);
+        font-size: 11px;
+        margin-top: 2px;
+    }
+
+    .modal-salud-min .btn-close {
+        position: relative;
+        z-index: 3;
+        filter: brightness(0) invert(1);
+        opacity: .9;
+    }
+
+    /* BODY */
+    .modal-salud-min .modal-body {
+        padding: 22px;
+        background: #fff;
+    }
+
+    .modal-salud-min .form-section {
+        margin-bottom: 20px;
+    }
+
+    .modal-salud-min .section-title {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin-bottom: 12px;
+        color: #343a40;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .modal-salud-min .section-title i {
+        color: #dc3545;
+        font-size: 12px;
+    }
+
+    .modal-salud-min .form-label {
+        color: #6c757d;
+        font-size: 11px;
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+
+    .modal-salud-min .form-control,
+    .modal-salud-min .form-select {
+        border-color: #dee2e6;
+        border-radius: 8px;
+        font-size: 13px;
+        box-shadow: none;
+    }
+
+    .modal-salud-min .form-control {
+        min-height: 40px;
+    }
+
+    .modal-salud-min .form-control:focus,
+    .modal-salud-min .form-select:focus {
+        border-color: #dc3545;
+        box-shadow: 0 0 0 3px rgba(220, 53, 69, .10);
+    }
+
+    .modal-salud-min .form-control:disabled,
+    .modal-salud-min .form-control[readonly],
+    .modal-salud-min .form-select:disabled {
+        background-color: #f8f9fa;
+    }
+
+    /* FORM FLOATING */
+    .modal-salud-min .form-floating {
+        position: relative;
+    }
+
+    .modal-salud-min .form-floating > .form-control,
+    .modal-salud-min .form-floating > .form-select {
+        height: 52px;
+        min-height: 52px;
+        padding: 1.25rem .85rem .35rem;
+    }
+
+    .modal-salud-min .form-floating > textarea.form-control {
+        height: auto;
+        min-height: 90px;
+        padding-top: 1.5rem;
+    }
+
+    .modal-salud-min .form-floating > label {
+        padding: .55rem .85rem;
+        font-size: 11px;
+        color: #6c757d;
+    }
+
+    .modal-salud-min .form-floating > .form-control:focus ~ label,
+    .modal-salud-min .form-floating > .form-control:not(:placeholder-shown) ~ label,
+    .modal-salud-min .form-floating > .form-select ~ label {
+        color: #6c757d;
+    }
+
+    /* CANTIDAD DESTACADA */
+    .cantidad-box {
+        height: 90px;
+        border: 2px solid #f8d7da;
+        background: #fff5f5;
+        border-radius: 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 8px;
+        text-align: center;
+        transition: all .2s;
+    }
+    .cantidad-box:focus-within {
+        border-color: #dc3545;
+        box-shadow: 0 0 0 3px rgba(220, 53, 69, .10);
+    }
+    .cantidad-box .cantidad-label {
+        font-size: 10px;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: .4px;
+        margin-bottom: 2px;
+    }
+    .cantidad-box .cantidad-input {
+        font-size: 26px;
+        font-weight: 700;
+        color: #dc3545;
+        line-height: 1;
+        background: transparent;
+        border: none;
+        text-align: center;
+        width: 100%;
+        padding: 0;
+        outline: none;
+    }
+    .cantidad-box .cantidad-unit {
+        font-size: 11px;
+        color: #dc3545;
+        font-weight: 600;
+    }
+
+    /* FECHAS */
+    .modal-salud-min .fecha-input {
+        font-size: 14px !important;
+        font-weight: 600;
+    }
+
+    /* SUPERIOR */
+    .busqueda-superior .input-group {
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    .busqueda-superior .input-group .form-control {
+        border-right: none;
+    }
+    .busqueda-superior .btn {
+        width: 45px;
+        border-radius: 0;
+    }
+    .superior-selected {
+        background: #f8f9fa !important;
+    }
+    .tabla-superior {
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        overflow: hidden;
+        max-height: 145px;
+        overflow-y: auto;
+        margin-top: 9px;
+    }
+    .tabla-superior table {
+        margin-bottom: 0;
+        font-size: 12px;
+    }
+    .tabla-superior thead th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background: #f8f9fa;
+        color: #6c757d;
+        font-size: 10px;
+        font-weight: 600;
+        border-bottom: 1px solid #e9ecef;
+    }
+    .tabla-superior tbody td {
+        padding: 7px 10px;
+    }
+
+    /* FOOTER */
+    .modal-salud-min .modal-footer {
+        background: #fafafa;
+        border-top: 1px solid #e9ecef;
+        padding: 12px 20px;
+    }
+    .modal-salud-min .modal-footer .btn {
+        border-radius: 7px;
+        font-size: 12px;
+        padding: 7px 15px;
+    }
+    .btn-guardar-salud {
+        background: #dc3545;
+        border-color: #dc3545;
+        color: #fff;
+    }
+    .btn-guardar-salud:hover {
+        background: #c82333;
+        border-color: #c82333;
+        color: #fff;
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 767px) {
+        .modal-salud-min {
+            width: 96%;
+            max-width: 96%;
+        }
+        .modal-salud-min .modal-body {
+            padding: 16px;
+        }
+        .modal-salud-min .modal-header {
+            padding: 15px 17px;
+        }
+        .modal-salud-min .modal-title {
+            font-size: 15px;
+        }
+        .cantidad-box {
+            height: 70px;
+        }
+        .cantidad-box .cantidad-input {
+            font-size: 22px;
+        }
+    }
+</style>
+
+{{-- ==================== MODAL CREAR / EDITAR SALUD ==================== --}}
 <div class="modal fade" id="modalSalud" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-dialog-centered modal-salud-min">
         <div class="modal-content">
+
+            {{-- HEADER --}}
+            <div class="modal-header">
+                <div class="header-bg"></div>
+                <div class="header-overlay"></div>
+                <div class="header-content">
+                    <div class="header-icon"><i class="fas fa-notes-medical"></i></div>
+                    <div>
+                        <h5 class="modal-title" id="modalTitle">Registrar Salida Médica</h5>
+                        <div class="modal-subtitle">Complete los datos de su permiso médico</div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+
+            {{-- FORMULARIO (con footer dentro) --}}
             <form id="formSalud">
                 @csrf
                 <input type="hidden" name="_method" id="methodField" value="POST">
                 <input type="hidden" name="id_editar" id="idEditar" value="">
-
-                <div class="modal-header bg-danger text-white">
-                    <h5 class="modal-title" id="modalTitle">Registrar Salida Médica</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
+                <input type="hidden" id="idserv" value="{{ $persona->id }}">
 
                 <div class="modal-body">
-                    <div class="row">
-                        {{-- Columna izquierda --}}
-                        <div class="col-md-6">
-                            <input type="hidden" id="idserv" name="idserv" value="{{ $persona->id }}">
-                            <div class="form-floating mb-2">
-                                <input type="text" class="form-control" id="nomb"
-                                       value="{{ $persona->nombre ?? '' }} {{ $persona->apellidoPat ?? '' }} {{ $persona->apellidoMat ?? '' }}"
-                                       disabled>
-                                <label>Servidor Público</label>
-                            </div>
-                            <div class="form-floating mb-2">
-                                <select class="form-select" id="tipoSal" name="tipoSal">
-                                    @foreach ($tipoSal as $tipo)
-                                        <option value="{{ $tipo->id }}">{{ $tipo->descripcion }}</option>
-                                    @endforeach
-                                </select>
-                                <label for="tipoSal">Tipo de salida (*)</label>
-                            </div>
-                            <div class="form-floating mb-2">
-                                <input type="date" class="form-control" id="fechasol" name="fechasol" readonly>
-                                <label for="fechasol">Fecha de solicitud</label>
-                            </div>
-                            <div class="form-floating mb-2">
-                                <textarea class="form-control" id="motivo" name="motivo" rows="3"></textarea>
-                                <label for="motivo">Motivo / Sustento legal (*)</label>
-                            </div>
-                        </div>
-
-                        {{-- Columna derecha --}}
-                        <div class="col-md-6">
-                            <div class="form-floating mb-2">
-                                <input type="text" class="form-control" id="fsalida" name="fsalida" required>
-                                <label for="fsalida">Fecha salida (*)</label>
-                            </div>
-                            <div class="form-floating mb-2">
-                                <input type="time" class="form-control" id="horasal" name="horasal" required>
-                                <label for="horasal">Hora salida (*)</label>
-                            </div>
-                            <div class="form-floating mb-2">
-                                <input type="text" class="form-control" id="fretorno" name="fretorno" required>
-                                <label for="fretorno">Fecha retorno (*)</label>
-                            </div>
-                            <div class="form-floating mb-2">
-                                <input type="time" class="form-control" id="horaret" name="horaret" required>
-                                <label for="horaret">Hora retorno (*)</label>
-                            </div>
-                            <div class="form-floating mb-2">
-                                <input type="text" class="form-control" id="cantidad" name="cantidad" readonly>
-                                <label for="cantidad">Cantidad (días/horas) *</label>
-                                <small class="text-muted">Se calcula automáticamente según el tipo</small>
-                            </div>
-                        </div>
-
-                        <hr>
-
-                        {{-- Búsqueda de superior --}}
-                        <div class="col-md-6">
-                            <h5><span class="text-secondary">Buscar inmediato superior</span></h5>
-                            <div class="row">
-                                <div class="col-md-8">
-                                    <div class="form-floating">
-                                        <input type="text" class="form-control" id="dato" placeholder="Nombre o apellido">
-                                        <label for="dato">Nombre o apellido</label>
-                                    </div>
-                                </div>
-                                <div class="col-md-4 mt-2">
-                                    <button type="button" class="btn btn-success" id="btnBuscarSuperior">
-                                        <i class="fa-solid fa-magnifying-glass"></i> Buscar
-                                    </button>
+                    {{-- INFORMACIÓN DEL SERVIDOR --}}
+                    <div class="form-section">
+                        <div class="section-title"><i class="fas fa-user-md"></i> Información del servidor</div>
+                        <div class="row g-2">
+                            <div class="col-md-6">
+                                <div class="form-floating">
+                                    <input type="text" class="form-control" id="nomb" disabled placeholder=" "
+                                        value="{{ $persona->nombre ?? '' }} {{ $persona->apellidoPat ?? '' }} {{ $persona->apellidoMat ?? '' }}">
+                                    <label>Servidor público</label>
                                 </div>
                             </div>
-                            <div class="row mx-1 mt-2" id="resultadosSuperior"></div>
-                        </div>
-
-                        {{-- Superior seleccionado --}}
-                        <div class="col-md-6">
-                            <h5><span class="text-secondary">Datos para aprobar</span></h5>
-                            <input type="hidden" id="idSup" name="idSup">
-                            <div class="form-floating mb-2">
-                                <input type="text" class="form-control" id="nombreSup" readonly required>
-                                <label for="nombreSup">Inmediato superior (*)</label>
+                            <div class="col-md-3">
+                                <div class="form-floating">
+                                    <select class="form-select" id="tipoSal" name="tipoSal">
+                                        @foreach ($tipoSal as $tipo)
+                                            <option value="{{ $tipo->id }}">{{ $tipo->descripcion }}</option>
+                                        @endforeach
+                                    </select>
+                                    <label>Tipo de salida (*)</label>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-floating">
+                                    <input type="date" class="form-control" id="fechasol" name="fechasol" readonly>
+                                    <label>Fecha de solicitud</label>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
+                    {{-- PERÍODO DEL PERMISO --}}
+                    <div class="form-section">
+                        <div class="section-title"><i class="fas fa-clock"></i> Período del permiso</div>
+                        <div class="row g-2">
+                            <div class="col-md-3">
+                                <div class="form-floating">
+                                    <input type="text" class="form-control fecha-input" id="fsalida" name="fsalida" placeholder=" ">
+                                    <label>Fecha de salida (*)</label>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-floating">
+                                    <input type="time" class="form-control" id="horasal" name="horasal" placeholder=" ">
+                                    <label>Hora de salida (*)</label>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-floating">
+                                    <input type="text" class="form-control fecha-input" id="fretorno" name="fretorno" placeholder=" ">
+                                    <label>Fecha de retorno (*)</label>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-floating">
+                                    <input type="time" class="form-control" id="horaret" name="horaret" placeholder=" ">
+                                    <label>Hora de retorno (*)</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- CANTIDAD Y MOTIVO --}}
+                    <div class="form-section">
+                        <div class="section-title"><i class="fas fa-calculator"></i> Cantidad y motivo</div>
+                        <div class="row g-2 align-items-start">
+                            {{-- Cantidad destacada --}}
+                            <div class="col-md-3">
+                                <div class="cantidad-box">
+                                    <span class="cantidad-label">Cantidad solicitada</span>
+                                    <input type="text" class="cantidad-input" id="cantidad" name="cantidad" readonly tabindex="-1" value="">
+                                    <span class="cantidad-unit" id="cantidadUnit">días / horas</span>
+                                </div>
+                                <small class="text-muted d-block mt-1" style="font-size: 10px; text-align:center">
+                                    Calculado según fechas, horas y tipo
+                                </small>
+                            </div>
+                            {{-- Motivo --}}
+                            <div class="col-md-9">
+                                <div class="form-floating">
+                                    <textarea class="form-control" id="motivo" name="motivo" style="min-height: 90px; height: 90px;" placeholder=" "></textarea>
+                                    <label>Motivo / Sustento legal (*)</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- INMEDIATO SUPERIOR --}}
+                    <div class="form-section mb-0">
+                        <div class="section-title"><i class="fas fa-user-tie"></i> Inmediato superior</div>
+                        <div class="row g-2">
+                            <div class="col-md-7 busqueda-superior">
+                                <label class="form-label">Buscar por nombre o apellido</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="dato" placeholder="Ej. Juan Pérez...">
+                                    <button class="btn btn-outline-danger" type="button" id="btnBuscarSuperior">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label">Superior seleccionado</label>
+                                <input type="hidden" id="idSup" name="idSup">
+                                <input type="text" class="form-control superior-selected" id="nombreSup" readonly placeholder="Ninguno seleccionado">
+                            </div>
+                        </div>
+                        <div class="tabla-superior">
+                            <div id="resultadosSuperior">
+                                <p class="text-center text-muted py-3 mb-0">
+                                    <i class="fas fa-search me-1"></i> Busque un superior para continuar
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div> {{-- /modal-body --}}
+
+                {{-- FOOTER (dentro del formulario) --}}
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-danger" id="btnGuardar">
-                        <i class="fa-solid fa-floppy-disk"></i> Guardar
+                    <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-guardar-salud" id="btnGuardar">
+                        <i class="fa-solid fa-floppy-disk me-1"></i> <span id="btnGuardarText">Guardar</span>
                     </button>
                 </div>
             </form>
@@ -561,6 +907,7 @@ document.addEventListener('DOMContentLoaded', function() {
         axios(config)
             .then(response => {
                 Swal.close();
+
                 Swal.fire({
                     toast: true,
                     position: 'top-end',
@@ -570,25 +917,22 @@ document.addEventListener('DOMContentLoaded', function() {
                     showConfirmButton: false,
                     timerProgressBar: true
                 }).then(() => {
-                    cargarSalud();
-                    bootstrap.Modal.getInstance(document.getElementById('modalSalud')).hide();
+                    location.reload();
                 });
             })
             .catch(error => {
-                Swal.close();
-                let mensaje = 'Ocurrió un error al procesar la solicitud.';
-                if (error.response) {
-                    const data = error.response.data;
-                    if (data.errors) {
-                        mensaje = Object.values(data.errors).flat().join('<br>');
-                    } else if (data.message) {
-                        mensaje = data.message;
-                    } else if (data.error) {
-                        mensaje = data.error;
-                    }
+            if (error.response && error.response.status === 422) {
+                // Errores de validación
+                const errors = error.response.data.errors;
+                let mensaje = '';
+                for (let campo in errors) {
+                    mensaje += `${campo}: ${errors[campo].join(' ')}\n`;
                 }
-                Swal.fire('Error', mensaje, 'error');
-            });
+                Swal.fire('Error de validación', mensaje, 'error');
+            } else {
+                Swal.fire('Error', error.response?.data?.error || 'Ocurrió un error', 'error');
+            }
+        });
     });
 
     // ============================================================
@@ -664,6 +1008,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.btn-eliminar').forEach(btn => {
             btn.addEventListener('click', function() {
                 const id = this.dataset.id;
+
                 Swal.fire({
                     title: '¿Está seguro?',
                     text: "Esta acción no se puede deshacer.",
@@ -674,14 +1019,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     confirmButtonText: 'Sí, eliminar',
                     cancelButtonText: 'Cancelar'
                 }).then((result) => {
+
                     if (result.isConfirmed) {
-                        axios.delete(`/salud/eliminar/${id}`, {
+
+                        axios.delete(`/comision/eliminar/${id}`, {
                             headers: {
                                 'X-CSRF-TOKEN': document.querySelector('input[name="_token"]').value,
                                 'X-Requested-With': 'XMLHttpRequest'
                             }
                         })
                         .then(response => {
+
                             Swal.fire({
                                 toast: true,
                                 position: 'top-end',
@@ -690,12 +1038,24 @@ document.addEventListener('DOMContentLoaded', function() {
                                 timer: 1500,
                                 showConfirmButton: false,
                                 timerProgressBar: true
+                            }).then(() => {
+
+                                // Recargar toda la página
+                                location.reload();
+
                             });
-                            cargarSalud();
+
                         })
                         .catch(error => {
+
                             let msg = error.response?.data?.error || 'Error al eliminar';
-                            Swal.fire('Error', msg, 'error');
+
+                            Swal.fire(
+                                'Error',
+                                msg,
+                                'error'
+                            );
+
                         });
                     }
                 });
@@ -707,7 +1067,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 9. RECARGAR TABLA DINÁMICAMENTE
     // ============================================================
     function cargarSalud() {
-        axios.get('/salud/mis-solicitudes')
+        axios.get('/salud/usuario')
             .then(res => {
                 if (!res.data.success) {
                     Swal.fire('Error', res.data.message, 'error');

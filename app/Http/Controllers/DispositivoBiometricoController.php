@@ -80,7 +80,7 @@ class DispositivoBiometricoController extends Controller
 
         $validator = Validator::make($request->all(), [
             'nombre' => 'required|string|max:255',
-            'ip' => 'required|ip',
+            'ip' => 'required|ip', 
             'puerto' => 'nullable|integer|min:1|max:65535',
             'ubicacion' => 'nullable|string|max:255',
             'timeout' => 'nullable|integer|min:5|max:300',

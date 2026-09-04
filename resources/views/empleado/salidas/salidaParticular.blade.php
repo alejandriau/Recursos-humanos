@@ -237,120 +237,463 @@
 @endsection
 
 @section('modales')
-    <!-- ===== MODAL CREAR / EDITAR ===== -->
-    <div class="modal fade" id="modalParticular" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
+<style>
+    /* =========================================================
+       MODALES DE SALIDA PARTICULAR - DISEÑO MINIMALISTA
+       ========================================================= */
+
+    .modal-particular-min {
+        max-width: 900px;
+        width: 95%;
+    }
+
+    .modal-particular-min .modal-content {
+        border: none;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, .16);
+    }
+
+    /* HEADER */
+    .modal-particular-min .modal-header {
+        position: relative;
+        min-height: 78px;
+        padding: 17px 22px;
+        border: none;
+        overflow: hidden;
+        background: #4DA3FF;
+    }
+
+    .modal-particular-min .header-bg {
+        position: absolute;
+        inset: 0;
+        background: url('{{ asset('images/tejido-horizontal.jpg') }}')
+                    center center / cover no-repeat;
+        opacity: .28;
+    }
+
+    .modal-particular-min .header-overlay {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+            90deg,
+        rgba(126, 87, 194, .95),
+        rgba(126, 87, 194, .72)
+        );
+    }
+
+    .modal-particular-min .header-content {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+    }
+
+    .modal-particular-min .header-icon {
+        width: 42px; height: 42px;
+        min-width: 42px;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        margin-right: 12px;
+        background: rgba(255,255,255,.18);
+        color: #fff;
+    }
+
+    .modal-particular-min .modal-title {
+        color: #fff;
+        font-size: 17px;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .modal-particular-min .modal-subtitle {
+        color: rgba(255,255,255,.85);
+        font-size: 11px;
+        margin-top: 2px;
+    }
+
+    .modal-particular-min .btn-close {
+        position: relative;
+        z-index: 3;
+        filter: brightness(0) invert(1);
+        opacity: .9;
+    }
+
+    /* BODY */
+    .modal-particular-min .modal-body {
+        padding: 22px;
+        background: #fff;
+    }
+
+    .modal-particular-min .form-section {
+        margin-bottom: 20px;
+    }
+
+    .modal-particular-min .section-title {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin-bottom: 12px;
+        color: #343a40;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .modal-particular-min .section-title i {
+        color: #4DA3FF;
+        font-size: 12px;
+    }
+
+    .modal-particular-min .form-label {
+        color: #6c757d;
+        font-size: 11px;
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+
+    .modal-particular-min .form-control,
+    .modal-particular-min .form-select {
+        border-color: #dee2e6;
+        border-radius: 8px;
+        font-size: 13px;
+        box-shadow: none;
+    }
+
+    .modal-particular-min .form-control {
+        min-height: 40px;
+    }
+
+    .modal-particular-min .form-control:focus,
+    .modal-particular-min .form-select:focus {
+        border-color: #4DA3FF;
+        box-shadow: 0 0 0 3px rgba(77,163,255,.10);
+    }
+
+    .modal-particular-min .form-control:disabled,
+    .modal-particular-min .form-control[readonly],
+    .modal-particular-min .form-select:disabled {
+        background-color: #f8f9fa;
+    }
+
+    /* FORM FLOATING */
+    .modal-particular-min .form-floating {
+        position: relative;
+    }
+
+    .modal-particular-min .form-floating > .form-control,
+    .modal-particular-min .form-floating > .form-select {
+        height: 52px;
+        min-height: 52px;
+        padding: 1.25rem .85rem .35rem;
+    }
+
+    .modal-particular-min .form-floating > textarea.form-control {
+        height: auto;
+        min-height: 90px;
+        padding-top: 1.5rem;
+    }
+
+    .modal-particular-min .form-floating > label {
+        padding: .55rem .85rem;
+        font-size: 11px;
+        color: #6c757d;
+    }
+
+    .modal-particular-min .form-floating > .form-control:focus ~ label,
+    .modal-particular-min .form-floating > .form-control:not(:placeholder-shown) ~ label,
+    .modal-particular-min .form-floating > .form-select ~ label {
+        color: #6c757d;
+    }
+
+    /* CANTIDAD DESTACADA */
+    .cantidad-box {
+        height: 90px;
+        border: 2px solid #d9efff;
+        background: #f4faff;
+        border-radius: 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 8px;
+        text-align: center;
+        transition: all .2s;
+    }
+    .cantidad-box:focus-within {
+        border-color: #4DA3FF;
+        box-shadow: 0 0 0 3px rgba(77,163,255,.10);
+    }
+    .cantidad-box .cantidad-label {
+        font-size: 10px;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: .4px;
+        margin-bottom: 2px;
+    }
+    .cantidad-box .cantidad-input {
+        font-size: 26px;
+        font-weight: 700;
+        color: #198754;
+        line-height: 1;
+        background: transparent;
+        border: none;
+        text-align: center;
+        width: 100%;
+        padding: 0;
+        outline: none;
+    }
+    .cantidad-box .cantidad-unit {
+        font-size: 11px;
+        color: #4DA3FF;
+        font-weight: 600;
+    }
+
+    /* FECHAS */
+    .modal-particular-min .fecha-input {
+        font-size: 14px !important;
+        font-weight: 600;
+    }
+
+    /* SUPERIOR */
+    .busqueda-superior .input-group {
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    .busqueda-superior .input-group .form-control {
+        border-right: none;
+    }
+    .busqueda-superior .btn {
+        width: 45px;
+        border-radius: 0;
+    }
+    .superior-selected {
+        background: #f8f9fa !important;
+    }
+    .tabla-superior {
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        overflow: hidden;
+        max-height: 145px;
+        overflow-y: auto;
+        margin-top: 9px;
+    }
+    .tabla-superior table {
+        margin-bottom: 0;
+        font-size: 12px;
+    }
+    .tabla-superior thead th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background: #f8f9fa;
+        color: #6c757d;
+        font-size: 10px;
+        font-weight: 600;
+        border-bottom: 1px solid #e9ecef;
+    }
+    .tabla-superior tbody td {
+        padding: 7px 10px;
+    }
+
+    /* FOOTER */
+    .modal-particular-min .modal-footer {
+        background: #fafafa;
+        border-top: 1px solid #e9ecef;
+        padding: 12px 20px;
+    }
+    .modal-particular-min .modal-footer .btn {
+        border-radius: 7px;
+        font-size: 12px;
+        padding: 7px 15px;
+    }
+    .btn-guardar-particular {
+        background: #4DA3FF;
+        border-color: #4DA3FF;
+        color: #fff;
+    }
+    .btn-guardar-particular:hover {
+        background: #318fe8;
+        border-color: #318fe8;
+        color: #fff;
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 767px) {
+        .modal-particular-min {
+            width: 96%;
+            max-width: 96%;
+        }
+        .modal-particular-min .modal-body {
+            padding: 16px;
+        }
+        .modal-particular-min .modal-header {
+            padding: 15px 17px;
+        }
+        .modal-particular-min .modal-title {
+            font-size: 15px;
+        }
+        .cantidad-box {
+            height: 70px;
+        }
+        .cantidad-box .cantidad-input {
+            font-size: 22px;
+        }
+    }
+</style>
+
+{{-- ==================== MODAL CREAR / EDITAR ==================== --}}
+<div class="modal fade" id="modalParticular" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-particular-min">
+        <div class="modal-content">
+
+            {{-- HEADER --}}
+            <div class="modal-header">
+                <div class="header-bg"></div>
+                <div class="header-overlay"></div>
+                <div class="header-content">
+                    <div class="header-icon"><i class="fas fa-door-open"></i></div>
+                    <div>
+                        <h5 class="modal-title" id="modalTitle">Registrar Salida Particular</h5>
+                        <div class="modal-subtitle">Complete los datos de su permiso</div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+
+            {{-- BODY --}}
+            <div class="modal-body">
                 <form id="formParticular">
                     @csrf
                     <input type="hidden" name="_method" id="methodField" value="POST">
                     <input type="hidden" name="id_editar" id="idEditar" value="">
+                    <input type="hidden" id="idserv" value="{{ $persona->id }}">
 
-                    <div class="modal-header bg-primary text-white">
-                        <h5 class="modal-title" id="modalTitle">Registrar Salida Particular</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-
-                    <div class="modal-body">
-                        <div class="row">
-                            {{-- Columna izquierda: datos del servidor --}}
+                    {{-- INFORMACIÓN --}}
+                    <div class="form-section">
+                        <div class="section-title"><i class="fas fa-user"></i> Información del servidor</div>
+                        <div class="row g-2">
                             <div class="col-md-6">
-                                <h5><span class="text-secondary">Servidor público</span></h5>
-                                <input type="hidden" id="idserv" value="{{ $persona->id }}">
-                                <div class="form-floating mb-2">
-                                    <input type="text" class="form-control" id="nomb"
-                                           value="{{ $persona->nombre ?? '' }} {{ $persona->apellidoPat ?? '' }} {{ $persona->apellidoMat ?? '' }}"
-                                           disabled>
-                                    <label>Nombres y apellidos</label>
+                                <div class="form-floating">
+                                    <input type="text" class="form-control" id="nomb" disabled placeholder=" "
+                                        value="{{ $persona->nombre ?? '' }} {{ $persona->apellidoPat ?? '' }} {{ $persona->apellidoMat ?? '' }}">
+                                    <label>Servidor público</label>
                                 </div>
-                                <div class="form-floating mb-2">
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-floating">
                                     <select class="form-select" id="tipoSal" name="tipoSal">
                                         @foreach ($tiposHijos as $hijo)
                                             <option value="{{ $hijo->id }}">{{ $hijo->descripcion }}</option>
                                         @endforeach
                                     </select>
-                                    <label for="tipoSal">Tipo de salida (*)</label>
+                                    <label>Tipo de salida (*)</label>
                                 </div>
-                                <div class="form-floating mb-2">
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-floating">
                                     <input type="date" class="form-control" id="fechasol" name="fechasol" readonly>
-                                    <label for="fechasol">Fecha de solicitud</label>
-                                </div>
-                                <div class="form-floating mb-2">
-                                    <textarea class="form-control" id="motivo" name="motivo" rows="3"></textarea>
-                                    <label for="motivo">Motivo / Sustento legal (*)</label>
-                                </div>
-                            </div>
-
-                            {{-- Columna derecha: fechas, horas y cantidad --}}
-                            <div class="col-md-6">
-                                <div class="form-floating mb-2">
-                                    <input type="date" class="form-control" id="fsalida" name="fsalida" required>
-                                    <label for="fsalida">Fecha salida (*)</label>
-                                </div>
-                                <div class="form-floating mb-2">
-                                    <input type="time" class="form-control" id="horasal" name="horasal" required>
-                                    <label for="horasal">Hora salida (*)</label>
-                                </div>
-                                <div class="form-floating mb-2">
-                                    <input type="date" class="form-control" id="fretorno" name="fretorno" required>
-                                    <label for="fretorno">Fecha retorno (*)</label>
-                                </div>
-                                <div class="form-floating mb-2">
-                                    <input type="time" class="form-control" id="horaret" name="horaret" required>
-                                    <label for="horaret">Hora retorno (*)</label>
-                                </div>
-                                <div class="form-floating mb-2">
-                                    <input type="text" class="form-control" id="cantidad" name="cantidad" readonly>
-                                    <label for="cantidad">Cantidad (días/horas) *</label>
-                                    <small class="text-muted">Se calcula automáticamente según el tipo</small>
-                                </div>
-                            </div>
-
-                            <hr>
-
-                            {{-- Búsqueda de inmediato superior --}}
-                            <div class="col-md-6">
-                                <h5><span class="text-secondary">Buscar inmediato superior</span></h5>
-                                <div class="row">
-                                    <div class="col-md-8">
-                                        <div class="form-floating">
-                                            <input type="text" class="form-control" id="dato" placeholder="Nombre o apellido">
-                                            <label for="dato">Nombre o apellido</label>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4 mt-2">
-                                        <button type="button" class="btn btn-success" id="btnBuscarSuperior">
-                                            <i class="fa-solid fa-magnifying-glass"></i> Buscar
-                                        </button>
-                                    </div>
-                                </div>
-                                <div class="row mx-1 mt-2" id="resultadosSuperior" style="text-align: left">
-                                    {{-- Resultados dinámicos --}}
-                                </div>
-                            </div>
-
-                            {{-- Datos para aprobar (superior asignado) --}}
-                            <div class="col-md-6">
-                                <h5><span class="text-secondary">Datos para aprobar</span></h5>
-                                <input type="hidden" id="idSup" name="idSup">
-                                <div class="form-floating mb-2">
-                                    <input type="text" class="form-control" id="nombreSup" readonly required>
-                                    <label for="nombreSup">Inmediato superior (*)</label>
+                                    <label>Fecha de solicitud</label>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-primary" id="btnGuardar">
-                            <i class="fa-solid fa-floppy-disk"></i> Guardar
-                        </button>
+                    {{-- PERÍODO --}}
+                    <div class="form-section">
+                        <div class="section-title"><i class="fas fa-clock"></i> Período del permiso</div>
+                        <div class="row g-2">
+                            <div class="col-md-3">
+                                <div class="form-floating">
+                                    <input type="text" class="form-control fecha-input" id="fsalida" name="fsalida" placeholder=" ">
+                                    <label>Fecha de salida (*)</label>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-floating">
+                                    <input type="time" class="form-control" id="horasal" name="horasal" placeholder=" ">
+                                    <label>Hora de salida (*)</label>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-floating">
+                                    <input type="text" class="form-control fecha-input" id="fretorno" name="fretorno" placeholder=" ">
+                                    <label>Fecha de retorno (*)</label>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-floating">
+                                    <input type="time" class="form-control" id="horaret" name="horaret" placeholder=" ">
+                                    <label>Hora de retorno (*)</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- CANTIDAD + MOTIVO --}}
+                    <div class="form-section">
+                        <div class="section-title"><i class="fas fa-calculator"></i> Cantidad y motivo</div>
+                        <div class="row g-2 align-items-start">
+                            {{-- Cantidad destacada --}}
+                            <div class="col-md-3">
+                                <div class="cantidad-box">
+                                    <span class="cantidad-label">Cantidad solicitada</span>
+                                    <input type="text" class="cantidad-input" id="cantidad" name="cantidad" readonly tabindex="-1" value="">
+                                    <span class="cantidad-unit" id="cantidadUnit">días / horas</span>
+                                </div>
+                                <small class="text-muted d-block mt-1" style="font-size: 10px; text-align:center">
+                                    Calculado según fechas, horas y tipo
+                                </small>
+                            </div>
+                            {{-- Motivo --}}
+                            <div class="col-md-9">
+                                <div class="form-floating">
+                                    <textarea class="form-control" id="motivo" name="motivo" style="min-height: 90px; height: 90px;" placeholder=" "></textarea>
+                                    <label>Motivo / Sustento legal (*)</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- SUPERIOR --}}
+                    <div class="form-section mb-0">
+                        <div class="section-title"><i class="fas fa-user-tie"></i> Inmediato superior</div>
+                        <div class="row g-2">
+                            <div class="col-md-7 busqueda-superior">
+                                <label class="form-label">Buscar por nombre o apellido</label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="dato" placeholder="Ej. Juan Pérez...">
+                                    <button class="btn btn-outline-primary" type="button" id="btnBuscarSuperior">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label">Superior seleccionado</label>
+                                <input type="hidden" id="idSup" name="idSup">
+                                <input type="text" class="form-control superior-selected" id="nombreSup" readonly placeholder="Ninguno seleccionado">
+                            </div>
+                        </div>
+                        <div class="tabla-superior">
+                            <div id="resultadosSuperior">
+                                <p class="text-center text-muted py-3 mb-0">
+                                    <i class="fas fa-search me-1"></i> Busque un superior para continuar
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </form>
             </div>
+
+            {{-- FOOTER --}}
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-guardar-particular" id="btnGuardar">
+                    <i class="fa-solid fa-floppy-disk me-1"></i> <span id="btnGuardarText">Guardar</span>
+                </button>
+            </div>
         </div>
     </div>
+</div>
 @endsection
 @push('scripts')
 

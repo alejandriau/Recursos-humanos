@@ -53,7 +53,7 @@ class BeneficioController extends Controller
             'gestion_id' => 'required|exists:gestions,id',
             'beneficios' => 'required|array|min:1',
             'beneficios.*.tiposalida_id' => 'required|exists:tiposalidas,id',
-            'beneficios.*.cantidad' => 'required|numeric|min:0.1',
+            'beneficios.*.cantidad' => 'nullable|numeric|min:0',
         ]);
 
         if ($validator->fails()) {

@@ -80,3 +80,4 @@ return new class extends Migration
         Schema::dropIfExists('cas_historial_bonos');
     }
 };
+

@@ -45,7 +45,8 @@
         <div id="app">
             <!-- Botón para abrir modal de creación -->
             <div class="text-start mb-3">
-                <button class="btn btn-success" id="btnNuevaComision">
+                <button class="btn" id="btnNuevaComision" style="background-color: #E67E22; border-color: #E67E22; color: white;">
+
                     <i class="fa fa-plus"></i> Nueva Solicitud de Comisión
                 </button>
                 <a href="/homeusr" class="btn btn-secondary">
@@ -236,187 +237,546 @@
 </div>
 
 @section('modales')
-<!-- Modal Crear -->
+<style>
+    /* =========================================================
+       MODALES DE COMISIÓN - DISEÑO MINIMALISTA
+       ========================================================= */
+
+    .modal-comision-min {
+        max-width: 880px;
+        width: 95%;
+    }
+
+    .modal-comision-min .modal-content {
+        border: none;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, .16);
+    }
+
+    /* HEADER */
+    .modal-comision-min .modal-header {
+        position: relative;
+        min-height: 78px;
+        padding: 17px 22px;
+        border: none;
+        overflow: hidden;
+        background: #4DA3FF;
+    }
+
+    .modal-comision-min .header-bg {
+        position: absolute;
+        inset: 0;
+        background: url('{{ asset('images/tejido-horizontal.jpg') }}')
+                    center center / cover no-repeat;
+        opacity: .28;
+    }
+
+    .modal-comision-min .header-overlay {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(
+            90deg,
+            rgba(255, 152, 0, .95),
+            rgba(255, 152, 0, .72)
+        );
+    }
+
+    .modal-comision-min .header-content {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+    }
+
+    .modal-comision-min .header-icon {
+        width: 42px; height: 42px;
+        min-width: 42px;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        margin-right: 12px;
+        background: rgba(255,255,255,.18);
+        color: #fff;
+    }
+
+    .modal-comision-min .modal-title {
+        color: #fff;
+        font-size: 17px;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .modal-comision-min .modal-subtitle {
+        color: rgba(255,255,255,.85);
+        font-size: 11px;
+        margin-top: 2px;
+    }
+
+    .modal-comision-min .btn-close {
+        position: relative;
+        z-index: 3;
+        filter: brightness(0) invert(1);
+        opacity: .9;
+    }
+
+    /* BODY */
+    .modal-comision-min .modal-body {
+        padding: 22px;
+        background: #fff;
+    }
+
+    .modal-comision-min .form-section {
+        margin-bottom: 20px;
+    }
+
+    .modal-comision-min .section-title {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin-bottom: 12px;
+        color: #343a40;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .modal-comision-min .section-title i {
+        color: #4DA3FF;
+        font-size: 12px;
+    }
+
+    .modal-comision-min .form-label {
+        color: #6c757d;
+        font-size: 11px;
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+
+    .modal-comision-min .form-control,
+    .modal-comision-min .form-select {
+        border-color: #dee2e6;
+        border-radius: 8px;
+        font-size: 13px;
+        box-shadow: none;
+    }
+
+    .modal-comision-min .form-control {
+        min-height: 40px;
+    }
+
+    .modal-comision-min .form-control:focus,
+    .modal-comision-min .form-select:focus {
+        border-color: #4DA3FF;
+        box-shadow: 0 0 0 3px rgba(77,163,255,.10);
+    }
+
+    .modal-comision-min .form-control:disabled,
+    .modal-comision-min .form-control[readonly],
+    .modal-comision-min .form-select:disabled {
+        background-color: #f8f9fa;
+    }
+
+    /* FORM FLOATING */
+    .modal-comision-min .form-floating {
+        position: relative;
+    }
+
+    .modal-comision-min .form-floating > .form-control,
+    .modal-comision-min .form-floating > .form-select {
+        height: 52px;
+        min-height: 52px;
+        padding: 1.25rem .85rem .35rem;
+    }
+
+    .modal-comision-min .form-floating > textarea.form-control {
+        height: auto;
+        min-height: 80px;
+        padding-top: 1.5rem;
+    }
+
+    .modal-comision-min .form-floating > label {
+        padding: .55rem .85rem;
+        font-size: 11px;
+        color: #6c757d;
+    }
+
+    .modal-comision-min .form-floating > .form-control:focus ~ label,
+    .modal-comision-min .form-floating > .form-control:not(:placeholder-shown) ~ label,
+    .modal-comision-min .form-floating > .form-select ~ label {
+        color: #6c757d;
+    }
+
+    /* FECHAS */
+    .modal-comision-min .fecha-input {
+        font-size: 14px !important;
+        font-weight: 600;
+    }
+
+    /* SUPERIOR */
+    .busqueda-superior .input-group {
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    .busqueda-superior .input-group .form-control {
+        border-right: none;
+    }
+
+    .busqueda-superior .btn {
+        width: 45px;
+        border-radius: 0;
+    }
+
+    .superior-selected {
+        background: #f8f9fa !important;
+    }
+
+    .tabla-superior {
+        border: 1px solid #e9ecef;
+        border-radius: 8px;
+        overflow: hidden;
+        max-height: 145px;
+        overflow-y: auto;
+        margin-top: 9px;
+    }
+
+    .tabla-superior table {
+        margin-bottom: 0;
+        font-size: 12px;
+    }
+
+    .tabla-superior thead th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background: #f8f9fa;
+        color: #6c757d;
+        font-size: 10px;
+        font-weight: 600;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .tabla-superior tbody td {
+        padding: 7px 10px;
+    }
+
+    /* FOOTER */
+    .modal-comision-min .modal-footer {
+        background: #fafafa;
+        border-top: 1px solid #e9ecef;
+        padding: 12px 20px;
+    }
+
+    .modal-comision-min .modal-footer .btn {
+        border-radius: 7px;
+        font-size: 12px;
+        padding: 7px 15px;
+    }
+
+    .btn-guardar-comision {
+        background: #4DA3FF;
+        border-color: #4DA3FF;
+        color: #fff;
+    }
+
+    .btn-guardar-comision:hover {
+        background: #318fe8;
+        border-color: #318fe8;
+        color: #fff;
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 767px) {
+        .modal-comision-min {
+            width: 96%;
+            max-width: 96%;
+        }
+        .modal-comision-min .modal-body {
+            padding: 16px;
+        }
+        .modal-comision-min .modal-header {
+            padding: 15px 17px;
+        }
+        .modal-comision-min .modal-title {
+            font-size: 15px;
+        }
+        .modal-comision-min .row > div {
+            margin-bottom: 5px;
+        }
+    }
+</style>
+
+{{-- ==================== MODAL CREAR ==================== --}}
 <div class="modal fade" id="modalCrear" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-dialog-centered modal-comision-min">
         <div class="modal-content">
+
+            {{-- HEADER --}}
             <div class="modal-header">
-                <h5 class="modal-title">Nueva Solicitud de Comisión</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <div class="header-bg"></div>
+                <div class="header-overlay"></div>
+                <div class="header-content">
+                    <div class="header-icon"><i class="fas fa-briefcase"></i></div>
+                    <div>
+                        <h5 class="modal-title">Nueva solicitud de comisión</h5>
+                        <div class="modal-subtitle">Complete los datos del viaje</div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
+
+            {{-- BODY --}}
             <div class="modal-body">
-                <!-- Datos personales y tipo de salida (solo lectura) -->
-                <div class="row">
-                    <div class="col-md-6">
-                        <input type="text" id="createIdpersona" value="{{ $persona->id }}" hidden>
-                        <div class="form-floating mb-2">
-                            <input type="text" class="form-control" id="createNomb"
-                                   value="{{ $persona->nombre }} {{ $persona->apellidoPat }} {{ $persona->apellidoMat }}" disabled>
-                            <label>Servidor Público:</label>
-                        </div>
-                        <div class="form-floating mb-2">
-                            <select class="form-select" id="createSalida" disabled>
-                                @foreach ($tipoSal as $sal)
-                                    @if ($sal->descripcion == 'COMISION')
-                                        <option value="{{ $sal->id }}">{{ $sal->descripcion }}</option>
-                                    @endif
-                                @endforeach
-                            </select>
-                            <label for="createSalida">Tipo de salida:</label>
-                        </div>
-                        <div class="form-floating mb-2">
-                            <input type="date" id="createFechasol" class="form-control" readonly
-                                   value="{{ now()->toDateString() }}">
-                            <label for="createFechasol">Fecha de solicitud:</label>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-floating mb-2">
-                                    <input type="text" id="createFsalida" class="form-control">
-                                    <label for="createFsalida">Fecha de salida:</label>
-                                </div>
-                                <div class="form-floating mb-2">
-                                    <input type="time" id="createHorasal" class="form-control">
-                                    <label for="createHorasal">Hora de salida:</label>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-floating mb-2">
-                                    <input type="text" id="createFretorno" class="form-control">
-                                    <label for="createFretorno">Fecha de retorno:</label>
-                                </div>
-                                <div class="form-floating mb-2">
-                                    <input type="time" id="createHoraret" class="form-control">
-                                    <label for="createHoraret">Hora de retorno:</label>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-floating mb-2">
-                            <textarea class="form-control" id="createMotivo" rows="3" placeholder="Describa el motivo de la comisión"></textarea>
-                            <label for="createMotivo">Motivo de la comisión:</label>
-                        </div>
-                    </div>
-                </div>
+                <input type="hidden" id="createIdpersona" value="{{ $persona->id }}">
 
-                <hr>
-
-                <!-- Búsqueda del inmediato superior -->
-                <div class="row mt-3">
-                    <div class="col-md-6">
-                        <div class="row mb-3">
-                            <div class="col-md-10">
-                                <div class="form-floating">
-                                    <input type="text" id="createDato" class="form-control" placeholder="Nombre o apellido" required>
-                                    <label for="createDato">Buscar inmediato superior (nombre o apellido):</label>
-                                </div>
-                            </div>
-                            <div class="col-md-2 text-start">
-                                <button class="btn btn-success" id="createBtnBuscarSup"><i class="fa fa-search"></i></button>
+                {{-- INFORMACIÓN --}}
+                <div class="form-section">
+                    <div class="section-title"><i class="fas fa-user"></i> Información</div>
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <input type="text" class="form-control" disabled placeholder=" "
+                                    value="{{ $persona->nombre }} {{ $persona->apellidoPat }} {{ $persona->apellidoMat }}">
+                                <label>Servidor público</label>
                             </div>
                         </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <input type="text" id="createIdSup" hidden>
-                            <div class="form-floating mb-2">
-                                <input type="text" id="createNombreSup" class="form-control" readonly>
-                                <label for="createNombreSup">Inmediato Superior Seleccionado:</label>
+                        <div class="col-md-3">
+                            <div class="form-floating">
+                                <select class="form-select" id="createSalida" disabled>
+                                    @foreach ($tipoSal as $sal)
+                                        @if ($sal->descripcion == 'COMISION')
+                                            <option value="{{ $sal->id }}">{{ $sal->descripcion }}</option>
+                                        @endif
+                                    @endforeach
+                                </select>
+                                <label>Tipo</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-floating">
+                                <input type="date" class="form-control" id="createFechasol" readonly
+                                    value="{{ now()->toDateString() }}">
+                                <label>Fecha de solicitud</label>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="row">
-                    <div class="col-md-12">
-                        <div class="mb-3">
-                            <table class="table" id="createTablaSuperiores">
-                                <thead>
-                                    <tr>
-                                        <th>Nombre</th>
-                                        <th>Acción</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="createTbodySuperiores">
-                                    <!-- Se llena dinámicamente -->
-                                </tbody>
-                            </table>
+                {{-- PERÍODO --}}
+                <div class="form-section">
+                    <div class="section-title"><i class="fas fa-calendar-alt"></i> Período de comisión</div>
+                    <div class="row g-2">
+                        <div class="col-md-3">
+                            <div class="form-floating">
+                                <input type="text" class="form-control fecha-input" id="createFsalida" placeholder=" ">
+                                <label>Fecha de salida</label>
+                            </div>
                         </div>
+                        <div class="col-md-3">
+                            <div class="form-floating">
+                                <input type="time" class="form-control" id="createHorasal" placeholder=" ">
+                                <label>Hora de salida</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-floating">
+                                <input type="text" class="form-control fecha-input" id="createFretorno" placeholder=" ">
+                                <label>Fecha de retorno</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-floating">
+                                <input type="time" class="form-control" id="createHoraret" placeholder=" ">
+                                <label>Hora de retorno</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- MOTIVO --}}
+                <div class="form-section">
+                    <div class="section-title"><i class="fas fa-comment-alt"></i> Motivo</div>
+                    <div class="form-floating">
+                        <textarea class="form-control" id="createMotivo" style="height:80px" placeholder=" "></textarea>
+                        <label>Motivo o detalle de la comisión</label>
+                    </div>
+                </div>
+
+                {{-- SUPERIOR --}}
+                <div class="form-section mb-0">
+                    <div class="section-title"><i class="fas fa-user-tie"></i> Inmediato superior</div>
+                    <div class="row g-2">
+                        <div class="col-md-7 busqueda-superior">
+                            <label class="form-label">Buscar por nombre o apellido</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="createDato" placeholder="Ej. Juan Pérez...">
+                                <button class="btn btn-outline-primary" type="button" id="createBtnBuscarSup">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label">Superior seleccionado</label>
+                            <input type="hidden" id="createIdSup">
+                            <input type="text" class="form-control superior-selected" id="createNombreSup" readonly
+                                placeholder="Ninguno seleccionado">
+                        </div>
+                    </div>
+                    <div class="tabla-superior">
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Nombre completo</th>
+                                    <th class="text-center" style="width:70px;">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="createTbodySuperiores">
+                                <tr>
+                                    <td colspan="2" class="text-center text-muted py-3">
+                                        <i class="fas fa-search me-1"></i> Busque un superior para continuar
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
+
+            {{-- FOOTER --}}
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="createGuardarComision">
-                    <i class="fa fa-save"></i> Registrar Comisión
+                <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-guardar-comision" id="createGuardarComision">
+                    <i class="fas fa-paper-plane me-1"></i> Enviar solicitud
                 </button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Modal Editar (existente) -->
+{{-- ==================== MODAL EDITAR ==================== --}}
 <div class="modal fade" id="modalEditar" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-dialog-centered modal-comision-min">
         <div class="modal-content">
+
+            {{-- HEADER --}}
             <div class="modal-header">
-                <h5 class="modal-title">Editar solicitud de comisión</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <div class="header-bg"></div>
+                <div class="header-overlay"></div>
+                <div class="header-content">
+                    <div class="header-icon"><i class="fas fa-edit"></i></div>
+                    <div>
+                        <h5 class="modal-title">Editar solicitud de comisión</h5>
+                        <div class="modal-subtitle">Modifique los datos del viaje</div>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
+
+            {{-- BODY --}}
             <div class="modal-body">
                 <input type="hidden" id="editId">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-floating mb-2">
-                            <input type="date" id="editFsalida" class="form-control">
-                            <label for="editFsalida">Fecha de salida</label>
+
+                {{-- INFORMACIÓN --}}
+                <div class="form-section">
+                    <div class="section-title"><i class="fas fa-user"></i> Información</div>
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <input type="text" class="form-control" disabled placeholder=" "
+                                    value="{{ $persona->nombre }} {{ $persona->apellidoPat }} {{ $persona->apellidoMat }}">
+                                <label>Servidor público</label>
+                            </div>
                         </div>
-                        <div class="form-floating mb-2">
-                            <input type="time" id="editHorasal" class="form-control">
-                            <label for="editHorasal">Hora de salida</label>
+                        <div class="col-md-3">
+                            <div class="form-floating">
+                                <select class="form-select" disabled>
+                                    @foreach ($tipoSal as $sal)
+                                        @if ($sal->descripcion == 'COMISION')
+                                            <option value="{{ $sal->id }}">{{ $sal->descripcion }}</option>
+                                        @endif
+                                    @endforeach
+                                </select>
+                                <label>Tipo</label>
+                            </div>
                         </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-floating mb-2">
-                            <input type="date" id="editFretorno" class="form-control">
-                            <label for="editFretorno">Fecha de retorno</label>
-                        </div>
-                        <div class="form-floating mb-2">
-                            <input type="time" id="editHoraret" class="form-control">
-                            <label for="editHoraret">Hora de retorno</label>
+                        <div class="col-md-3">
+                            <div class="form-floating">
+                                <input type="date" class="form-control" id="editFechasol" readonly>
+                                <label>Fecha de solicitud</label>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="form-floating mb-2">
-                    <textarea class="form-control" id="editMotivo" rows="3"></textarea>
-                    <label for="editMotivo">Motivo de la comisión</label>
-                </div>
-                <div class="row mt-3">
-                    <div class="col-md-8">
-                        <div class="form-floating">
-                            <input type="text" id="editDato" class="form-control" placeholder="Buscar superior">
-                            <label for="editDato">Buscar inmediato superior</label>
+
+                {{-- PERÍODO --}}
+                <div class="form-section">
+                    <div class="section-title"><i class="fas fa-calendar-alt"></i> Período de comisión</div>
+                    <div class="row g-2">
+                        <div class="col-md-3">
+                            <div class="form-floating">
+                                <input type="text" class="form-control fecha-input" id="editFsalida" placeholder=" ">
+                                <label>Fecha de salida</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-floating">
+                                <input type="time" class="form-control" id="editHorasal" placeholder=" ">
+                                <label>Hora de salida</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-floating">
+                                <input type="text" class="form-control fecha-input" id="editFretorno" placeholder=" ">
+                                <label>Fecha de retorno</label>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-floating">
+                                <input type="time" class="form-control" id="editHoraret" placeholder=" ">
+                                <label>Hora de retorno</label>
+                            </div>
                         </div>
                     </div>
-                    <div class="col-md-4 text-start">
-                        <button class="btn btn-success" id="editBtnBuscarSup"><i class="fa fa-search"></i></button>
+                </div>
+
+                {{-- MOTIVO --}}
+                <div class="form-section">
+                    <div class="section-title"><i class="fas fa-comment-alt"></i> Motivo</div>
+                    <div class="form-floating">
+                        <textarea class="form-control" id="editMotivo" style="height:80px" placeholder=" "></textarea>
+                        <label>Motivo o detalle de la comisión</label>
                     </div>
                 </div>
-                <div class="row mt-2">
-                    <div class="col-md-12">
-                        <input type="text" id="editIdSup" hidden>
-                        <div class="form-floating mb-2">
-                            <input type="text" id="editNombreSup" class="form-control" readonly>
-                            <label for="editNombreSup">Inmediato Superior Seleccionado</label>
+
+                {{-- SUPERIOR --}}
+                <div class="form-section mb-0">
+                    <div class="section-title"><i class="fas fa-user-tie"></i> Inmediato superior</div>
+                    <div class="row g-2">
+                        <div class="col-md-7 busqueda-superior">
+                            <label class="form-label">Buscar por nombre o apellido</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="editDato" placeholder="Ej. Juan Pérez...">
+                                <button class="btn btn-outline-primary" type="button" id="editBtnBuscarSup">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
                         </div>
-                        <div id="editResultadosBusqueda" style="max-height:150px; overflow-y:auto;"></div>
+                        <div class="col-md-5">
+                            <label class="form-label">Superior seleccionado</label>
+                            <input type="hidden" id="editIdSup">
+                            <input type="text" class="form-control superior-selected" id="editNombreSup" readonly
+                                placeholder="Ninguno seleccionado">
+                        </div>
                     </div>
+                    <div id="editResultadosBusqueda" style="max-height:150px; overflow-y:auto; margin-top:9px;"></div>
                 </div>
             </div>
+
+            {{-- FOOTER --}}
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="guardarEdicion"><i class="fa fa-save"></i> Actualizar</button>
+                <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-guardar-comision" id="guardarEdicion">
+                    <i class="fas fa-save me-1"></i> Guardar cambios
+                </button>
             </div>
         </div>
     </div>

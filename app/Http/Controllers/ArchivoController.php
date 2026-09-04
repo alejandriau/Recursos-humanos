@@ -62,8 +62,8 @@ class ArchivoController extends Controller
         $request->validate([
             'titulo' => 'required|string|max:255',
             'archivo' => 'required',
-            'archivo.*' => 'file|max:1024000', // 10MB por cada archivo
-            'tema' => 'required|string|max:100',
+            'archivo.*' => 'file|max:307200', 
+            'tema' => 'required|string|max:300',
             'descripcion' => 'nullable|string'
         ]);
 

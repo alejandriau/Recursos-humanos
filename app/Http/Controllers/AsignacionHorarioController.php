@@ -131,9 +131,15 @@ class AsignacionHorarioController extends Controller
             'fecha_fin' => $request->fecha_fin,
         ]);
 
+        if ($request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Asignación actualizada correctamente.'
+            ]);
+        }
+
         return redirect()->route('asignacion.index')
             ->with('success', 'Asignación actualizada correctamente.');
     }
-
 
 }

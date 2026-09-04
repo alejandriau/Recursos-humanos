@@ -41,7 +41,11 @@
                                         {{ substr($asig->persona->nombre ?? '?', 0, 1) }}
                                     </div>
                                     <div>
-                                        <div class="fw-semibold">{{ $asig->persona->nombre ?? 'Sin nombre' }}</div>
+                                    <div class="fw-semibold">
+                                        {{ $asig->persona->nombre ?? '' }}
+                                        {{ $asig->persona->apellidoPat ?? '' }}
+                                        {{ $asig->persona->apellidoMat ?? '' }}
+                                    </div>
                                         <small class="text-muted">{{ $asig->persona->ci ?? '' }}</small>
                                     </div>
                                 </div>
@@ -74,9 +78,20 @@
                                 @endif
                             </td>
                             <td class="text-end">
+                                @if($asig->activo)
+                                <button class="btn btn-sm btn-outline-warning btn-editar" 
+                                        data-id="{{ $asig->id }}"
+                                        data-persona="{{ trim(($asig->persona->nombre ?? '').' '.($asig->persona->apellidoPat ?? '').' '.($asig->persona->apellidoMat ?? '')) }} (CI: {{ $asig->persona->ci ?? '' }})"
+                                        data-horario-id="{{ $asig->horario_id }}"
+                                        data-fecha-inicio="{{ $asig->fecha_inicio ? $asig->fecha_inicio->format('Y-m-d') : '' }}"
+                                        data-fecha-fin="{{ $asig->fecha_fin ? $asig->fecha_fin->format('Y-m-d') : '' }}"
+                                        title="Editar">
+                                    <i class="bi bi-pencil-square"></i>
+                                </button>
                                 <button class="btn btn-sm btn-outline-danger btn-finalizar" data-id="{{ $asig->id }}" title="Finalizar">
                                     <i class="bi bi-x-circle"></i>
                                 </button>
+                                @endif
                             </td>
                         </tr>
                         @endforeach
@@ -177,6 +192,60 @@
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-primary" id="btnGuardarAsignacion">
                     <i class="bi bi-save"></i> Guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- ========== MODAL EDITAR ========== -->
+<div class="modal fade" id="modalEditarAsignacion" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning">
+                <h5 class="modal-title"><i class="bi bi-pencil-square"></i> Editar Asignación de Horario</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="alertaErroresEditar" class="alert alert-danger d-none">
+                    <ul id="listaErroresEditar" class="mb-0"></ul>
+                </div>
+
+                <form id="formEditarAsignacion">
+                    @csrf
+                    <input type="hidden" name="_method" value="PUT">
+                    <input type="hidden" id="edit_asignacion_id">
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold"><i class="bi bi-person"></i> Persona</label>
+                        <input type="text" id="edit_persona_nombre" class="form-control" readonly>
+                        <small class="text-muted">La persona no se puede cambiar; solo horario y vigencia.</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Horario</label>
+                        <select name="horario_id" id="edit_horario_id" class="form-select" required>
+                            @foreach($horarios as $h)
+                                <option value="{{ $h->id }}">{{ $h->nombre }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Fecha Inicio</label>
+                            <input type="date" name="fecha_inicio" id="edit_fecha_inicio" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Fecha Fin (opcional)</label>
+                            <input type="date" name="fecha_fin" id="edit_fecha_fin" class="form-control">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-warning" id="btnActualizarAsignacion">
+                    <i class="bi bi-save"></i> Actualizar
                 </button>
             </div>
         </div>
@@ -429,5 +498,83 @@
             ocultarErrores();
         });
     });
+
+    // ===== EDITAR =====
+const modalEditarElement = document.getElementById('modalEditarAsignacion');
+const modalEditar = new bootstrap.Modal(modalEditarElement);
+const formEditar = document.getElementById('formEditarAsignacion');
+const btnActualizar = document.getElementById('btnActualizarAsignacion');
+const alertaErroresEditar = document.getElementById('alertaErroresEditar');
+const listaErroresEditar = document.getElementById('listaErroresEditar');
+
+function ocultarErroresEditar() {
+    alertaErroresEditar.classList.add('d-none');
+    listaErroresEditar.innerHTML = '';
+}
+
+function mostrarErroresEditar(errors) {
+    listaErroresEditar.innerHTML = '';
+    for (const campo in errors) {
+        const li = document.createElement('li');
+        li.textContent = errors[campo][0];
+        listaErroresEditar.appendChild(li);
+    }
+    alertaErroresEditar.classList.remove('d-none');
+}
+
+// Abrir modal con los datos de la fila
+document.querySelectorAll('.btn-editar').forEach(btn => {
+    btn.addEventListener('click', function() {
+        ocultarErroresEditar();
+        document.getElementById('edit_asignacion_id').value = this.dataset.id;
+        document.getElementById('edit_persona_nombre').value = this.dataset.persona;
+        document.getElementById('edit_horario_id').value = this.dataset.horarioId;
+        document.getElementById('edit_fecha_inicio').value = this.dataset.fechaInicio;
+        document.getElementById('edit_fecha_fin').value = this.dataset.fechaFin || '';
+        modalEditar.show();
+    });
+});
+
+// Enviar actualización (POST + _method=PUT, igual que el resource route espera)
+btnActualizar.addEventListener('click', function() {
+    const id = document.getElementById('edit_asignacion_id').value;
+    const formData = new FormData(formEditar);
+
+    axios.post(`/asignacion/${id}`, formData)
+        .then(response => {
+            if (response.data.success) {
+                sessionStorage.setItem('flash_success', response.data.message);
+                modalEditar.hide();
+                window.location.reload();
+            } else {
+                if (response.data.errors) {
+                    mostrarErroresEditar(response.data.errors);
+                } else {
+                    alert(response.data.message || 'Error al actualizar.');
+                }
+            }
+        })
+        .catch(error => {
+            if (error.response && error.response.status === 422) {
+                mostrarErroresEditar(error.response.data.errors);
+            } else {
+                alert('Error de red al actualizar.');
+                console.error(error);
+            }
+        });
+});
+
+modalEditarElement.addEventListener('hidden.bs.modal', ocultarErroresEditar);
+
+// ===== MENSAJE FLASH TRAS RECARGA (para store y update por AJAX) =====
+const flash = sessionStorage.getItem('flash_success');
+if (flash) {
+    sessionStorage.removeItem('flash_success');
+    const div = document.createElement('div');
+    div.className = 'alert alert-success alert-dismissible fade show';
+    div.setAttribute('role', 'alert');
+    div.innerHTML = `${flash}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+    document.querySelector('.container-fluid').prepend(div);
+}
 </script>
 @endpush

@@ -134,10 +134,10 @@
                     <div>
                         <span id="selectedCount">0</span> solicitudes seleccionadas
                     </div>
-                    <div>
+                    <!--<div>
                         <button class="btn btn-success" onclick="aprobarMasivo()" id="btnAprobarMasivo" disabled>
                             <i class="fas fa-check-double"></i> Aprobar Seleccionados
-                        </button>
+                        </button>-->
                     </div>
                 </div>
             </div>
