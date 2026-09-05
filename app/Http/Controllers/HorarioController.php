@@ -65,27 +65,39 @@ class HorarioController extends Controller
             $dia = $data['dia_semana'] ?? null;
             if ($dia === null) continue;
 
-            // Intentar encontrar el registro existente por ID o por horario_id + dia_semana
             $registro = null;
+
+            // 1. Buscar por ID si viene
             if (!empty($data['id'])) {
                 $registro = HorarioDia::find($data['id']);
             }
+
+            // 2. Si cambió el día y ya existe OTRO registro con ese día, eliminarlo primero
+            //    (para no tener duplicados: un horario no puede tener 2 veces el mismo día)
+            if ($registro && $registro->dia_semana != $dia) {
+                HorarioDia::where('horario_id', $horario->id)
+                        ->where('dia_semana', $dia)
+                        ->where('id', '!=', $registro->id)
+                        ->delete();
+            }
+
+            // 3. Si no encontró por ID, buscar por horario + día
             if (!$registro) {
                 $registro = HorarioDia::where('horario_id', $horario->id)
                                     ->where('dia_semana', $dia)
                                     ->first();
             }
 
+            // 4. Actualizar o crear
             if ($registro) {
-                // Actualizar
                 $registro->update([
+                    'dia_semana'          => $dia,  // ← AQUÍ ESTÁ EL FIX
                     'hora_entrada'        => $data['hora_entrada'] ?? null,
                     'hora_salida'         => $data['hora_salida'] ?? null,
                     'hora_entrada_tarde'  => !empty($data['hora_entrada_tarde']) ? $data['hora_entrada_tarde'] : null,
                     'hora_salida_tarde'   => !empty($data['hora_salida_tarde']) ? $data['hora_salida_tarde'] : null,
                 ]);
             } else {
-                // Crear
                 HorarioDia::create([
                     'horario_id'          => $horario->id,
                     'dia_semana'          => $dia,

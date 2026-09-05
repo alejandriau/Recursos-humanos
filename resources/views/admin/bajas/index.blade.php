@@ -184,7 +184,7 @@
                                             <button type="button" class="btn btn-sm btn-outline-danger ver-pdf-btn"
                                                     data-bs-toggle="modal"
                                                     data-bs-target="#modalPdf"
-                                                    data-pdf-url="{{ route('bajasaltas.ver-pdf', $baja['id']) }}"
+                                                    data-pdf-url="{{ route('renuncias-agrades.ver', $baja['id']) }}"
                                                     data-download-url="{{ route('bajasaltas.descargar-pdf', $baja['id']) }}"
                                                     data-nombre="{{ $baja['nombre'] }}"
                                                     title="Ver PDF">
@@ -422,6 +422,7 @@
 </div>
 
 <!-- Scripts adicionales -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Inicializar tooltips
@@ -640,14 +641,12 @@
         });
     });
 </script>
-@if(session('success'))
+@if(session('error'))
 <script>
     Swal.fire({
-        position: "top-end",
-        icon: "success",
-        title: "{{ session('success') }}",
-        showConfirmButton: false,
-        timer: 1500
+        icon: "error",
+        title: "Error",
+        text: "{{ session('error') }}"
     });
 </script>
 @endif

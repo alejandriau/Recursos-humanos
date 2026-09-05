@@ -416,6 +416,7 @@ Route::middleware([
         Route::post('/altasbajas/store', [BajasaltasController::class, 'store'])->name('altasbajas.store');
         Route::get('/altasbajas/buscar', [PersonaController::class, 'buscar'])->name('altasbajas.buscar');
         Route::get('bajasaltas/{id}/ver-pdf', [BajasaltasController::class, 'verPdf'])->name('bajasaltas.ver-pdf');
+        Route::get('renuncias-agrades/{id}/ver', [BajasaltasController::class, 'verPdfBaja'])->name('renuncias-agrades.ver');
         Route::get('bajasaltas/{id}/descargar-pdf', [BajasaltasController::class, 'descargarPdf'])->name('bajasaltas.descargar-pdf');
 
         Route::get('/bajasaltas/{id}', [BajasaltasController::class, 'show'])->name('bajasaltas.show');

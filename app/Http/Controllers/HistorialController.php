@@ -847,19 +847,20 @@ private function obtenerDatosPlanilla(Request $request)
                 'dependencia_jerarquica' => $unidad->denominacion,
                 'nombre_cargo'           => $puesto->denominacion,
                 'categoria'              => $this->inferirCategoria($puesto->nivelJerarquico),
-                'nivel_clase'            => $puesto->nivelJerarquico,
+                'nivel_jerarquico'       => $puesto->nivelJerarquico,
+                'nivel_clase'            => $puesto->nivel_clase ?? '',
                 'nivel_salarial'         => $puesto->nivel_salarial ?? '',
                 'clasificacion'          => $puesto->clasificacion ?? 'SUSTANTIVO',
                 'haber'                  => $puesto->haber,
                 'nombre_completo'        => $persona
                     ? trim("{$persona->apellidoPat} {$persona->apellidoMat} {$persona->nombre}")
                     : 'ACEFALIA',
-                'fecha_nacimiento'       => $persona?->fecha_nacimiento
-                    ? \Carbon\Carbon::parse($persona->fecha_nacimiento)->format('d/m/Y')
+                'fecha_nacimiento'       => $persona?->fechaNacimiento
+                    ? \Carbon\Carbon::parse($persona->fechaNacimiento)->format('d/m/Y')
                     : '',
                 'ci'                     => $persona?->ci ?? '',
-                'fecha_ingreso'          => $historial?->fecha_inicio
-                    ? \Carbon\Carbon::parse($historial->fecha_inicio)->format('d/m/Y')
+                'fecha_ingreso'          => $persona?->fechaIngreso
+                    ? \Carbon\Carbon::parse($persona->fechaIngreso)->format('d/m/Y')
                     : '',
                 'observaciones'          => $historial?->observaciones ?? '',
                 'formacion'              => $persona?->formacion ?? '',
@@ -904,112 +905,138 @@ private function obtenerDatosPlanilla(Request $request)
         };
     }
 
-    /**
-     * ============================================================
-     * EXCEL
-     * ============================================================
-     */
-    private function construirExcelPlanilla(array $filas): Spreadsheet
-    {
-        $spreadsheet = new Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
-        $sheet->setTitle('Planilla 2026');
 
-        // Anchos de columna
-        $anchos = [
-            'A'=>6, 'B'=>38, 'C'=>55, 'D'=>14, 'E'=>12, 'F'=>14,
-            'G'=>18, 'H'=>14, 'I'=>35, 'J'=>16, 'K'=>14, 'L'=>16, 'M'=>45, 'N'=>30
-        ];
-        foreach ($anchos as $col => $ancho) {
-            $sheet->getColumnDimension($col)->setWidth($ancho);
-        }
+/**
+ * ============================================================
+ * EXCEL - Orden de columnas corregido
+ * A: ITEM
+ * B: NIVEL JERÁRQUICO
+ * C: NOMBRE DE CARGO (denominación del puesto)
+ * D: CATEGORÍA
+ * E: NIVEL (CLASE)
+ * F: NIVEL SALARIAL
+ * G: SUELDO O HABER MENSUAL
+ * H: NOMBRE COMPLETO (persona asignada / ACEFALIA)
+ * I: FECHA DE NACIMIENTO
+ * J: Nº CARNET
+ * K: FECHA DE INGRESO
+ * L: OBSERVACIONES
+ * M: MOF (formación)
+ * ============================================================
+ */
+private function construirExcelPlanilla(array $filas): Spreadsheet
+{
+    $spreadsheet = new Spreadsheet();
+    $sheet = $spreadsheet->getActiveSheet();
+    $sheet->setTitle('Planilla 2026');
 
-        // --- FILA 1: TÍTULO ---
-        $sheet->mergeCells('A1:N1');
-        $sheet->setCellValue('A1',
-            'PLANILLA PRESUPUESTARIA DE PERSONAL DE PLANTA DEL ÓRGANO EJECUTIVO '.
-            'DEL GOBIERNO AUTÓNOMO DEPARTAMENTAL DE COCHABAMBA - 2026');
-        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(11);
-        $sheet->getStyle('A1')->getAlignment()
-            ->setHorizontal(Alignment::HORIZONTAL_CENTER)
-            ->setVertical(Alignment::VERTICAL_CENTER);
+    // Anchos de columna (A-M)
+    $anchos = [
+        'A' => 6,  'B' => 18, 'C' => 40, 'D' => 14, 'E' => 12,
+        'F' => 14, 'G' => 16, 'H' => 35, 'I' => 16, 'J' => 14,
+        'K' => 16, 'L' => 45, 'M' => 30,
+    ];
+    foreach ($anchos as $col => $ancho) {
+        $sheet->getColumnDimension($col)->setWidth($ancho);
+    }
 
-        // --- FILA 2: ENCABEZADOS ---
-        $headers = [
-            'N°', 'DEPENDENCIA/DENOMINACIÓN JERÁRQUICA', 'NOMBRE DE CARGO', 'CATEGORÍA',
-            'NIVEL (CLASE)', 'NIVEL SALARIAL', 'CLASIFICACIÓN DEL PUESTO', 'SUELDO O HABER MENSUAL',
-            'NOMBRE COMPLETO', 'FECHA DE NACIMIENTO', 'Nº CARNET', 'FECHA DE INGRESO',
-            'OBSERVACIONES', 'MDC 2026'
-        ];
-        $col = 1;
-        foreach ($headers as $h) {
-            $sheet->setCellValueByColumnAndRow($col, 2, $h);
-            $col++;
-        }
+    // --- FILA 1: TÍTULO ---
+    $sheet->mergeCells('A1:M1');
+    $sheet->setCellValue('A1',
+        'PLANILLA PRESUPUESTARIA DE PERSONAL DE PLANTA DEL ÓRGANO EJECUTIVO '.
+        'DEL GOBIERNO AUTÓNOMO DEPARTAMENTAL DE COCHABAMBA - 2026');
+    $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(11);
+    $sheet->getStyle('A1')->getAlignment()
+        ->setHorizontal(Alignment::HORIZONTAL_CENTER)
+        ->setVertical(Alignment::VERTICAL_CENTER);
 
-        $sheet->getStyle('A2:N2')->applyFromArray([
-            'font' => ['bold' => true, 'size' => 10, 'color' => ['rgb' => '000000']],
-            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'D9E1F2']],
-            'alignment' => [
-                'horizontal' => Alignment::HORIZONTAL_CENTER,
-                'vertical'   => Alignment::VERTICAL_CENTER,
-                'wrapText'   => true,
-            ],
-            'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '4F81BD']]],
-        ]);
-        $sheet->getRowDimension(2)->setRowHeight(35);
+    // --- FILA 2: ENCABEZADOS (13 columnas A-M) ---
+    $headers = [
+        'ITEM', 'NIVEL JERÁRQUICO', 'NOMBRE DE CARGO', 'CATEGORÍA',
+        'NIVEL (CLASE)', 'NIVEL SALARIAL', 'SUELDO O HABER MENSUAL',
+        'NOMBRE COMPLETO', 'FECHA DE NACIMIENTO', 'Nº CARNET',
+        'FECHA DE INGRESO', 'OBSERVACIONES', 'MOF',
+    ];
+    $col = 1;
+    foreach ($headers as $h) {
+        $sheet->setCellValueByColumnAndRow($col, 2, $h);
+        $col++;
+    }
 
-        // --- DATOS ---
-        $row = 3;
-        foreach ($filas as $fila) {
-            if ($fila['tipo'] === 'dependencia') {
-                $sheet->mergeCells("A{$row}:N{$row}");
-                $sheet->setCellValue("A{$row}", $fila['nombre']);
-                $sheet->getStyle("A{$row}")->applyFromArray([
-                    'font' => ['bold' => true, 'size' => 10],
-                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'B4C7DC']],
-                    'alignment' => ['horizontal' => Alignment::HORIZONTAL_LEFT, 'vertical' => Alignment::VERTICAL_CENTER],
-                    'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '4F81BD']]],
-                ]);
-                $row++;
-                continue;
-            }
+    $sheet->getStyle('A2:M2')->applyFromArray([
+        'font' => ['bold' => true, 'size' => 10, 'color' => ['rgb' => '000000']],
+        'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'D9E1F2']],
+        'alignment' => [
+            'horizontal' => Alignment::HORIZONTAL_CENTER,
+            'vertical'   => Alignment::VERTICAL_CENTER,
+            'wrapText'   => true,
+        ],
+        'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '4F81BD']]],
+    ]);
+    $sheet->getRowDimension(2)->setRowHeight(35);
 
-            $sheet->setCellValue("A{$row}", $fila['item']);
-            $sheet->setCellValue("B{$row}", $fila['dependencia_jerarquica']);
-            $sheet->setCellValue("C{$row}", $fila['nombre_cargo']);
-            $sheet->setCellValue("D{$row}", $fila['categoria']);
-            $sheet->setCellValue("E{$row}", $fila['nivel_clase']);
-            $sheet->setCellValue("F{$row}", $fila['nivel_salarial']);
-            $sheet->setCellValue("G{$row}", $fila['clasificacion']);
-            $sheet->setCellValue("H{$row}", $fila['haber']);
-            $sheet->setCellValue("I{$row}", $fila['nombre_completo']);
-            $sheet->setCellValue("J{$row}", $fila['fecha_nacimiento']);
-            $sheet->setCellValue("K{$row}", $fila['ci']);
-            $sheet->setCellValue("L{$row}", $fila['fecha_ingreso']);
-            $sheet->setCellValue("M{$row}", $fila['observaciones']);
-            $sheet->setCellValue("N{$row}", $fila['formacion']);
-
-            // Formato moneda
-            $sheet->getStyle("H{$row}")->getNumberFormat()->setFormatCode('#,##0');
-
-            // Bordes y alineación
-            $sheet->getStyle("A{$row}:N{$row}")->applyFromArray([
+    // --- DATOS ---
+    $row = 3;
+    foreach ($filas as $fila) {
+        if ($fila['tipo'] === 'dependencia') {
+            $sheet->mergeCells("A{$row}:M{$row}");
+            $sheet->setCellValue("A{$row}", $fila['nombre']);
+            $sheet->getStyle("A{$row}")->applyFromArray([
+                'font' => ['bold' => true, 'size' => 10],
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'B4C7DC']],
                 'alignment' => [
-                    'vertical' => Alignment::VERTICAL_CENTER,
-                    'wrapText' => true,
+                    'horizontal' => Alignment::HORIZONTAL_CENTER,
+                    'vertical'   => Alignment::VERTICAL_CENTER,
                 ],
                 'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '4F81BD']]],
             ]);
-            $sheet->getStyle("A{$row}:H{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-            $sheet->getStyle("I{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
-            $sheet->getStyle("J{$row}:L{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-
             $row++;
+            continue;
         }
 
-        $sheet->freezePane('A3');
-        return $spreadsheet;
+        $sheet->setCellValue("A{$row}", $fila['item']);
+        $sheet->setCellValue("B{$row}", $fila['nivel_jerarquico']);
+        $sheet->setCellValue("C{$row}", $fila['nombre_cargo']);
+        $sheet->setCellValue("D{$row}", $fila['categoria']);
+        $sheet->setCellValue("E{$row}", $fila['nivel_clase']);
+        $sheet->setCellValue("F{$row}", $fila['nivel_salarial']);
+        $sheet->setCellValue("G{$row}", $fila['haber']);
+        $sheet->setCellValue("H{$row}", $fila['nombre_completo']);
+        $sheet->setCellValue("I{$row}", $fila['fecha_nacimiento']);
+        $sheet->setCellValue("J{$row}", $fila['ci']);
+        $sheet->setCellValue("K{$row}", $fila['fecha_ingreso']);
+        $sheet->setCellValue("L{$row}", $fila['observaciones']);
+        $sheet->setCellValue("M{$row}", $fila['formacion']);
+
+        // Formato moneda para HABER
+        $sheet->getStyle("G{$row}")->getNumberFormat()->setFormatCode('#,##0');
+
+        $sheet->getStyle("A{$row}:M{$row}")->applyFromArray([
+            'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '4F81BD']]],
+        ]);
+
+        // Vertical centrado y wrap para toda la fila
+        $sheet->getStyle("A{$row}:M{$row}")->getAlignment()
+            ->setVertical(Alignment::VERTICAL_CENTER)
+            ->setWrapText(true);
+
+        // Centradas: ITEM, CATEGORÍA, NIVEL CLASE, NIVEL SALARIAL, HABER, FECHA NAC., CARNET, FECHA INGRESO
+        foreach (['A', 'D', 'E', 'F', 'G', 'I', 'J', 'K'] as $colCentrada) {
+            $sheet->getStyle("{$colCentrada}{$row}")->getAlignment()
+                ->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        }
+
+        // Alineadas a la izquierda: NIVEL JERÁRQUICO, NOMBRE DE CARGO, NOMBRE COMPLETO, OBSERVACIONES, MOF
+        foreach (['B', 'C', 'H', 'L', 'M'] as $colIzquierda) {
+            $sheet->getStyle("{$colIzquierda}{$row}")->getAlignment()
+                ->setHorizontal(Alignment::HORIZONTAL_LEFT);
+        }
+
+        $row++;
     }
+
+    $sheet->freezePane('A3');
+    return $spreadsheet;
+}
 
 }
