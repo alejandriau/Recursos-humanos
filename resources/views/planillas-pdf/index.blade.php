@@ -185,13 +185,13 @@
                                     </div>
                                 </td>
                                 <td>
-                                    <span class="badge bg-info bg-opacity-10 text-white">
+                                    <span class="badge bg-info">
                                         <i class="fas fa-calendar-alt me-1"></i>
                                         {{ $planilla->periodo_pago }}
                                     </span>
                                 </td>
                                 <td>
-                                    <span class="badge bg-warning bg-opacity-10 text-yellow-800">
+                                    <span class="badge bg-warning text-dark">
                                         <i class="fas fa-calendar me-1"></i>
                                         {{ $planilla->anio }}
                                     </span>
