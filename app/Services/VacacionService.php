@@ -59,13 +59,13 @@ class VacacionService
             $diasAsignados = $this->getDiasPorAntiguedad($aniosAntiguedad);
 
             // Arrastre del período anterior
-            $periodoAnterior = VacacionPeriodo::where('persona_id', $personal->id)
-                ->where('numero_periodo', $numeroPeriodo - 1)
-                ->first();
-            $arrastre = 0;
-            if ($periodoAnterior && $periodoAnterior->saldo_disponible > 0) {
-                $arrastre = $periodoAnterior->saldo_disponible;
-            }
+            //$periodoAnterior = VacacionPeriodo::where('persona_id', $personal->id)
+            //    ->where('numero_periodo', $numeroPeriodo - 1)
+            //    ->first();
+            //$arrastre = 0;
+            //if ($periodoAnterior && $periodoAnterior->saldo_disponible > 0) {
+            //    $arrastre = $periodoAnterior->saldo_disponible;
+            //}
 
             $casId = $personal->ultimoCas?->id ?? null;
 
@@ -80,8 +80,8 @@ class VacacionService
                 'dias_asignados' => $diasAsignados,
                 'dias_usados' => 0,
                 'dias_vencidos' => 0,
-                'saldo_disponible' => $diasAsignados + $arrastre,
-                'dias_arrastre' => $arrastre,
+                'saldo_disponible' => $diasAsignados,
+                'dias_arrastre' => 0,
                 'periodo_vencido' => false,
                 'estado' => 'activo',
                 'observacion' => null,
@@ -98,17 +98,17 @@ class VacacionService
                 'Asignación anual por antigüedad'
             );
 
-            if ($arrastre > 0) {
-                $this->registrarMovimiento(
-                    $periodo,
-                    'arrastre',
-                    $arrastre,
-                    $diasAsignados,
-                    $diasAsignados + $arrastre,
-                    null,
-                    'Arrastre del período anterior'
-                );
-            }
+            //if ($arrastre > 0) {
+            //    $this->registrarMovimiento(
+            //        $periodo,
+            //        'arrastre',
+            //        $arrastre,
+            //        $diasAsignados,
+            //        $diasAsignados + $arrastre,
+            //        null,
+            //        'Arrastre del período anterior'
+            //    );
+            //}
 
             $generados++;
 
@@ -139,9 +139,9 @@ class VacacionService
         $periodoAVencer = $periodosActivos->first();
 
         // Evitar vencer el período inmediato anterior (para arrastre)
-        if ($periodoAVencer->numero_periodo == $numeroPeriodoActual - 1) {
-            $periodoAVencer = $periodosActivos->skip(1)->first();
-        }
+        //if ($periodoAVencer->numero_periodo == $numeroPeriodoActual - 1) {
+        //    $periodoAVencer = $periodosActivos->skip(1)->first();
+        //}
 
         if (!$periodoAVencer || $periodoAVencer->saldo_disponible <= 0) {
             return null;

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\AsistenciaDiaria;
 use App\Models\AsistenciaMarca;
+use App\Models\Feriado;
 use App\Models\HorarioDia;
 use App\Models\MarcacionBiometrica;
 use App\Models\Persona;
@@ -25,13 +26,17 @@ class GenerarAsistenciaService
         $fecha = Carbon::parse($fecha)->startOfDay();
         $personas = Persona::where('estado', true)->get();
 
+        // Se busca el feriado una sola vez por fecha, no por cada persona.
+        $feriado = $this->getFeriado($fecha);
+
         $procesadas = 0;
+        $omitidas = 0;
         $errores = 0;
 
         foreach ($personas as $persona) {
             try {
-                $this->procesarPersonaFecha($persona, $fecha->copy());
-                $procesadas++;
+                $asistencia = $this->procesarPersonaFecha($persona, $fecha->copy(), $feriado);
+                $asistencia ? $procesadas++ : $omitidas++;
             } catch (\Exception $e) {
                 $errores++;
                 Log::error("Error generando asistencia persona {$persona->id} fecha {$fecha->toDateString()}: " . $e->getMessage());
@@ -41,6 +46,7 @@ class GenerarAsistenciaService
         return [
             'fecha' => $fecha->toDateString(),
             'procesadas' => $procesadas,
+            'omitidas' => $omitidas, // días fuera del horario de la persona: no se genera registro
             'errores' => $errores,
         ];
     }
@@ -64,56 +70,56 @@ class GenerarAsistenciaService
 
     /**
      * Procesa un solo día de una sola persona. Es idempotente.
+     *
+     * Si la persona no tiene horario vigente para la fecha, o el horario no
+     * define checkpoints para ese día de la semana (día no laborable según
+     * su horario), NO se genera ningún registro de asistencia (y se borra
+     * uno previo si existiera, por si el horario cambió).
      */
-    public function procesarPersonaFecha(Persona $persona, Carbon $fecha): ?AsistenciaDiaria
+    public function procesarPersonaFecha(Persona $persona, Carbon $fecha, ?Feriado $feriado = null): ?AsistenciaDiaria
     {
         $horario = $this->getHorarioVigente($persona, $fecha);
+        $feriado ??= $this->getFeriado($fecha);
 
-        if (!$horario) {
-            // Sin horario asignado: no generar registro de asistencia
+        // ============================================================
+        // FERIADO: SIEMPRE se genera asistencia, con o sin horario.
+        // ============================================================
+        if ($feriado) {
+            return $this->procesarFeriado($persona, $fecha, $horario, $feriado);
+        }
+
+        // ----- Día normal -----
+        $horarioDia = $horario?->dias->firstWhere('dia_semana', $fecha->dayOfWeek);
+        $checkpoints = ($horarioDia && !empty($horarioDia->checkpoints()))
+            ? $horarioDia->checkpoints()
+            : [];
+
+        if (empty($checkpoints)) {
+            // Día no laborable normal: no se genera registro.
+            $this->eliminarAsistenciaSiExiste($persona->id, $fecha);
             return null;
         }
 
-        /** @var HorarioDia|null $horarioDia */
-        $horarioDia = $horario->dias->firstWhere('dia_semana', $fecha->dayOfWeek);
-
-        return DB::transaction(function () use ($persona, $fecha, $horario, $horarioDia) {
+        return DB::transaction(function () use ($persona, $fecha, $horario, $checkpoints) {
 
             $asistencia = AsistenciaDiaria::updateOrCreate(
                 ['persona_id' => $persona->id, 'fecha' => $fecha->toDateString()],
-                ['horario_id' => $horario->id]
+                ['horario_id' => $horario?->id]
             );
 
-            // Borrar marcas anteriores para recalcular desde cero (idempotente)
             $asistencia->marcas()->delete();
-
-            if (!$horarioDia || empty($horarioDia->checkpoints())) {
-                $asistencia->update([
-                    'estado' => 'no_laborable',
-                    'minutos_tardanza' => 0,
-                    'total_marcas_esperadas' => 0,
-                    'total_marcas_cumplidas' => 0,
-                    'total_marcas_justificadas' => 0,
-                    'total_marcas_injustificadas' => 0,
-                    'procesado_en' => now(),
-                ]);
-                return $asistencia;
-            }
-
-            $checkpoints = $horarioDia->checkpoints();
 
             // ============================================================
             // DESCARGA DE MARCACIONES DEL DÍA
             // ============================================================
             $inicioDia = $fecha->copy()->startOfDay();
-            $finDia = $fecha->copy()->endOfDay();
+            $finDia    = $fecha->copy()->endOfDay();
 
             $marcasRaw = MarcacionBiometrica::where('persona_id', $persona->id)
                 ->whereBetween('fecha_hora', [$inicioDia, $finDia])
                 ->orderBy('fecha_hora')
                 ->get();
 
-            // Convertir a stdClass mutables
             $marcasDisponibles = $marcasRaw->map(function ($m) {
                 $obj = new \stdClass();
                 $obj->modelo = $m;
@@ -121,17 +127,12 @@ class GenerarAsistenciaService
                 return $obj;
             })->values();
 
-            // ============================================================
-            // LÓGICA DE CIERRE: ¿El día ya terminó o aún pueden llegar marcas?
-            // ============================================================
             $esDiaEnCurso = $fecha->isToday();
-            
-            // Última hora esperada del día + ventana máxima (4h) + 1h de tolerancia por corte
-            $ultimaHoraEsperada = collect($checkpoints)->last(); // ej. "16:00:00"
+            $ultimaHoraEsperada = collect($checkpoints)->last();
             $horaCierreCalculada = Carbon::parse(
                 $fecha->toDateString() . ' ' . $ultimaHoraEsperada,
                 'America/La_Paz'
-            )->addMinutes($this->ventanaMaximaMinutos + 60); // +5h total
+            )->addMinutes($this->ventanaMaximaMinutos + 60);
 
             $diaYaCerrado = !$esDiaEnCurso || now()->gte($horaCierreCalculada);
 
@@ -142,6 +143,7 @@ class GenerarAsistenciaService
             $pendientes = 0;
 
             foreach ($checkpoints as $tipoMarca => $horaEsperada) {
+
                 $esperadaDT = Carbon::parse(
                     $fecha->toDateString() . ' ' . $horaEsperada,
                     'America/La_Paz'
@@ -152,7 +154,6 @@ class GenerarAsistenciaService
 
                 foreach ($marcasDisponibles as $idx => $item) {
                     if ($item->usada) continue;
-
                     $diff = abs($item->modelo->fecha_hora->diffInMinutes($esperadaDT));
                     if ($mejorDiff === null || $diff < $mejorDiff) {
                         $mejorDiff = $diff;
@@ -160,29 +161,33 @@ class GenerarAsistenciaService
                     }
                 }
 
-                // Marcación encontrada dentro de la ventana
                 if ($indexMejor !== null && $mejorDiff <= $this->ventanaMaximaMinutos) {
                     $marcasDisponibles[$indexMejor]->usada = true;
                     $marcacion = $marcasDisponibles[$indexMejor]->modelo;
 
-                    $esEntrada = str_starts_with($tipoMarca, 'entrada');
-                    $tolerancia = $esEntrada
-                        ? ($horario->tolerancia_entrada_minutos ?? 0)
-                        : ($horario->tolerancia_salida_minutos ?? 0);
+                    $esEntrada  = str_starts_with($tipoMarca, 'entrada');
+                    $tolerancia = $this->getTolerancia($horario, $tipoMarca);
 
                     $diferenciaReal = $esperadaDT->diffInMinutes($marcacion->fecha_hora, false);
 
                     $esTardanza = false;
+                    $diferenciaEfectiva = 0;
 
                     if ($esEntrada) {
-                        $esTardanza = $diferenciaReal > $tolerancia;
-                        if ($esTardanza) {
-                            $minutosTardanzaTotal += $diferenciaReal;
+                        $exceso = $diferenciaReal - $tolerancia;
+                        if ($exceso > 0) {
+                            $esTardanza = true;
+                            $minutosTardanzaTotal += $exceso;
+                            $diferenciaEfectiva = $exceso;
                         }
                     } else {
-                        $esTardanza = $diferenciaReal < -$tolerancia;
-                        if ($esTardanza) {
-                            $minutosTardanzaTotal += abs($diferenciaReal);
+                        if ($diferenciaReal < 0) {
+                            $exceso = abs($diferenciaReal) - $tolerancia;
+                            if ($exceso > 0) {
+                                $esTardanza = true;
+                                $minutosTardanzaTotal += $exceso;
+                                $diferenciaEfectiva = -$exceso;
+                            }
                         }
                     }
 
@@ -193,18 +198,14 @@ class GenerarAsistenciaService
                         'hora_real' => $marcacion->fecha_hora->format('H:i:s'),
                         'marcacion_id' => $marcacion->id,
                         'estado' => $esTardanza ? 'tardanza' : 'puntual',
-                        'diferencia_minutos' => $diferenciaReal,
+                        'diferencia_minutos' => $diferenciaEfectiva,
                     ]);
 
                     $cumplidas++;
                     continue;
                 }
 
-                // ============================================================
-                // NO HAY MARCACIÓN: ¿Falta definitiva o aún puede llegar?
-                // ============================================================
                 if (!$diaYaCerrado && $esDiaEnCurso) {
-                    // Día en curso y checkpoint futuro o próximo: marcar como pendiente
                     AsistenciaMarca::create([
                         'asistencia_diaria_id' => $asistencia->id,
                         'tipo_marca' => $tipoMarca,
@@ -217,7 +218,6 @@ class GenerarAsistenciaService
                     ]);
                     $pendientes++;
                 } else {
-                    // Día cerrado: buscar justificación o marcar falta
                     $salidaQueCubre = $this->buscarSalidaQueCubre($persona->id, $esperadaDT);
 
                     AsistenciaMarca::create([
@@ -231,17 +231,11 @@ class GenerarAsistenciaService
                         'salida_id' => $salidaQueCubre?->id,
                     ]);
 
-                    if ($salidaQueCubre) {
-                        $justificadas++;
-                    } else {
-                        $injustificadas++;
-                    }
+                    if ($salidaQueCubre) $justificadas++;
+                    else $injustificadas++;
                 }
             }
 
-            // ============================================================
-            // ESTADO FINAL DEL DÍA
-            // ============================================================
             $estadoFinal = match (true) {
                 $pendientes > 0 => 'pendiente',
                 $injustificadas > 0 && $justificadas > 0 => 'incompleto',
@@ -263,6 +257,150 @@ class GenerarAsistenciaService
 
             return $asistencia;
         });
+    }
+    /**
+     * Procesa un día feriado para una persona. SIEMPRE genera AsistenciaDiaria.
+     *
+     * Orden de resolución de checkpoints (2 o 4 marcas):
+     *   1) Los del día exacto según su horario vigente.
+     *   2) Los de cualquier otro día del mismo horario.
+     *   3) Fallback mínimo: 2 marcas genéricas de feriado (sin hora).
+     */
+    protected function procesarFeriado(
+            Persona $persona,
+            Carbon $fecha,
+            ?\App\Models\Horario $horario,
+            Feriado $feriado
+        ): AsistenciaDiaria {
+
+        $horarioDia = $horario?->dias->firstWhere('dia_semana', $fecha->dayOfWeek);
+        $checkpoints = ($horarioDia && !empty($horarioDia->checkpoints()))
+            ? $horarioDia->checkpoints()
+            : $this->resolverCheckpointsFeriado($horario);
+
+        if (empty($checkpoints)) {
+            // Fallback: no hay horario o no tiene días con checkpoints.
+            // Igual se generan 2 marcas genéricas para que la asistencia quede
+            // registrada como feriado y sume en justificaciones.
+            $checkpoints = [
+                'feriado_entrada' => null,
+                'feriado_salida'  => null,
+            ];
+
+            Log::warning("Feriado sin checkpoints resolubles, usando fallback genérico", [
+                'persona_id' => $persona->id,
+                'fecha'      => $fecha->toDateString(),
+                'feriado_id' => $feriado->id,
+                'horario_id' => $horario?->id,
+            ]);
+        }
+
+        return DB::transaction(function () use ($persona, $fecha, $horario, $checkpoints, $feriado) {
+
+            $asistencia = AsistenciaDiaria::updateOrCreate(
+                ['persona_id' => $persona->id, 'fecha' => $fecha->toDateString()],
+                ['horario_id' => $horario?->id]
+            );
+
+            $asistencia->marcas()->delete();
+
+            return $this->registrarFeriado($asistencia, $checkpoints, $feriado);
+        });
+    }
+    /**
+     * Cuando es feriado pero el día concreto no tiene checkpoints en el horario
+     * (porque no es día laborable para esa persona), busca en el mismo horario
+     * algún otro día que sí tenga checkpoints y usa esos.
+     *
+     * Así respeta el horario real vigente: continuo (2 marcas) o partido (4),
+     * y si mañana cambia, cambia solo, sin tocar código.
+     *
+     * Devuelve [] si no hay horario o el horario no define ningún checkpoint.
+     */
+    protected function resolverCheckpointsFeriado(?\App\Models\Horario $horario): array
+    {
+        if (!$horario) return [];
+
+        foreach ($horario->dias as $dia) {
+            $cp = $dia->checkpoints();
+            if (!empty($cp)) return $cp;
+        }
+
+        return [];
+    }
+
+    /**
+     * Marca todos los checkpoints del día como justificados por feriado,
+     * sin cruzar contra marcaciones biométricas.
+     */
+    protected function registrarFeriado(AsistenciaDiaria $asistencia, array $checkpoints, Feriado $feriado): AsistenciaDiaria
+    {
+        foreach ($checkpoints as $tipoMarca => $horaEsperada) {
+            AsistenciaMarca::create([
+                'asistencia_diaria_id' => $asistencia->id,
+                'tipo_marca' => $tipoMarca,
+                'hora_esperada' => $horaEsperada,
+                'hora_real' => null,
+                'marcacion_id' => null,
+                'estado' => 'feriado',
+                'diferencia_minutos' => null,
+                'salida_id' => null,
+                'feriado_id' => $feriado->id,
+            ]);
+        }
+
+        $asistencia->update([
+            'estado' => 'feriado',
+            'minutos_tardanza' => 0,
+            'total_marcas_esperadas' => count($checkpoints),
+            'total_marcas_cumplidas' => 0,
+            'total_marcas_justificadas' => count($checkpoints),
+            'total_marcas_injustificadas' => 0,
+            'procesado_en' => now(),
+        ]);
+
+        return $asistencia;
+    }
+
+    /**
+     * Elimina un registro de asistencia (y sus marcas) si existiera, para
+     * los casos en que el día ya no corresponde generar asistencia (p. ej.
+     * cambió el horario y ese día dejó de ser laborable).
+     */
+    protected function eliminarAsistenciaSiExiste(int $personaId, Carbon $fecha): void
+    {
+        $asistencia = AsistenciaDiaria::where('persona_id', $personaId)
+            ->where('fecha', $fecha->toDateString())
+            ->first();
+
+        if ($asistencia) {
+            $asistencia->marcas()->delete();
+            $asistencia->delete();
+        }
+    }
+
+    /**
+     * Resuelve la tolerancia (en minutos) a aplicar según el checkpoint
+     * exacto del día, no solo si es "entrada" o "salida" en general.
+     * Así, si mañana se activa tolerancia en la tarde, solo se configura
+     * en el horario (tolerancia_entrada_tarde_minutos /
+     * tolerancia_salida_tarde_minutos) y este método ya la toma en cuenta,
+     * sin tocar código.
+     */
+    protected function getTolerancia(\App\Models\Horario $horario, string $tipoMarca): int
+    {
+        return match ($tipoMarca) {
+            'entrada_manana', 'entrada' => $horario->tolerancia_entrada_manana_minutos ?? 0,
+            'salida_manana' => $horario->tolerancia_salida_manana_minutos ?? 0,
+            'entrada_tarde' => $horario->tolerancia_entrada_tarde_minutos ?? 0,
+            'salida_tarde', 'salida' => $horario->tolerancia_salida_tarde_minutos ?? 0,
+            default => 0,
+        };
+    }
+
+    protected function getFeriado(Carbon $fecha): ?Feriado
+    {
+        return Feriado::whereDate('fechaf', $fecha->toDateString())->first();
     }
 
     protected function buscarSalidaQueCubre(int $personaId, Carbon $momentoEsperado): ?Salida

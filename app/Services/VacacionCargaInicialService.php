@@ -13,22 +13,16 @@ use Illuminate\Support\Facades\Log;
 class VacacionCargaInicialService
 {
     /**
-     * Genera los períodos de las 2 últimas gestiones para todos los empleados activos.
-     * Procesa de la gestión más antigua a la más nueva para que el arrastre
-     * y los vencimientos por acumulación (>2 períodos) queden bien calculados.
+     * Carga inicial: genera los últimos 2 períodos de vacación de cada empleado
+     * (según sus años cumplidos), sin depender de cuántas gestiones existan en la tabla.
      */
     public function generarHistoricoInicial(): array
     {
-        // Tomar las 2 últimas gestiones (mayor año) y ordenarlas asc para procesar
-        $ultimasDos = Gestion::orderBy('anio', 'desc')
-            ->limit(2)
-            ->get()
-            ->sortBy('anio')
-            ->values();
-
-        if ($ultimasDos->isEmpty()) {
-            throw new \Exception('No hay gestiones registradas en el sistema.');
+        $gestiones = Gestion::orderBy('anio')->get();
+        if ($gestiones->isEmpty()) {
+            throw new \Exception('No hay gestiones registradas. Registra al menos la gestión actual.');
         }
+        $gestionActual = $gestiones->last(); // gestión de mayor año
 
         $generados = 0;
         $vencidos = 0;
@@ -37,9 +31,19 @@ class VacacionCargaInicialService
 
         $personales = Persona::where('estado', true)->get();
 
-        foreach ($ultimasDos as $gestion) {
-            foreach ($personales as $personal) {
-                $resultado = $this->generarPeriodoParaGestion($personal, $gestion, $hoy);
+        foreach ($personales as $personal) {
+            $fechaIngreso = Carbon::parse($personal->fechaIngreso);
+            $aniosCumplidos = (int) floor($fechaIngreso->diffInYears($hoy));
+
+            // Los últimos 2 años cumplidos => 2 períodos
+            // Ej: 11 años cumplidos => períodos 10 y 11
+            $candidatos = array_unique([
+                $aniosCumplidos - 1, // período de la gestión anterior
+                $aniosCumplidos,     // período de la gestión actual
+            ]);
+
+            foreach ($candidatos as $numeroPeriodo) {
+                $resultado = $this->generarPeriodo($personal, $numeroPeriodo, $hoy, $gestiones, $gestionActual);
 
                 if ($resultado === 'generado') {
                     $generados++;
@@ -60,32 +64,28 @@ class VacacionCargaInicialService
     }
 
     /**
-     * Genera UN período de vacación para un empleado en una gestión específica.
-     *
-     * @return string 'generado' | 'generado_con_vencimiento' | 'omitido'
+     * Genera UN período para un empleado.
      */
-    protected function generarPeriodoParaGestion(Persona $personal, Gestion $gestion, Carbon $hoy): string
-    {
-        $fechaIngreso = Carbon::parse($personal->fechaIngreso);
-        $anioIngreso = $fechaIngreso->year;
-
-        // El período N se habilita en el año: ingreso + N años
-        // => N = año de la gestión - año de ingreso
-        $numeroPeriodo = $gestion->anio - $anioIngreso;
-
-        // Si aún no cumplía 1 año en esa gestión, no le corresponde período
+    protected function generarPeriodo(
+        Persona $personal,
+        int $numeroPeriodo,
+        Carbon $hoy,
+        $gestiones,
+        Gestion $gestionActual
+    ): string {
         if ($numeroPeriodo < 1) {
             return 'omitido';
         }
 
+        $fechaIngreso = Carbon::parse($personal->fechaIngreso);
         $fechaHabilitacion = $fechaIngreso->copy()->addYears($numeroPeriodo)->addDay();
 
-        // Si la fecha de habilitación aún no llegó, no generar
+        // La fecha de habilitación debe haber llegado
         if ($fechaHabilitacion->gt($hoy)) {
             return 'omitido';
         }
 
-        // No duplicar si ya existe
+        // No duplicar
         $existe = VacacionPeriodo::where('persona_id', $personal->id)
             ->where('numero_periodo', $numeroPeriodo)
             ->exists();
@@ -93,20 +93,16 @@ class VacacionCargaInicialService
             return 'omitido';
         }
 
-        // Vencimientos (máximo 2 períodos con saldo) — misma regla que el servicio normal
-        $periodoVencido = $this->procesarVencimientos($personal, $numeroPeriodo);
+        // Vencimientos (máximo 2 períodos con saldo)
+        $huboVencimiento = $this->procesarVencimientos($personal, $numeroPeriodo);
 
-        // Antigüedad a la fecha de habilitación (CAS o fecha de ingreso)
+        // Antigüedad A LA FECHA DE HABILITACIÓN (por eso cada período puede tener días distintos)
         $aniosAntiguedad = $this->getAntiguedadTotal($personal, $fechaHabilitacion);
         $diasAsignados = $this->getDiasPorAntiguedad($aniosAntiguedad);
 
-        // Arrastre del período anterior
-        $periodoAnterior = VacacionPeriodo::where('persona_id', $personal->id)
-            ->where('numero_periodo', $numeroPeriodo - 1)
-            ->first();
-        $arrastre = ($periodoAnterior && $periodoAnterior->saldo_disponible > 0)
-            ? $periodoAnterior->saldo_disponible
-            : 0;
+        // La gestión es la del año en que se habilitó el período
+        // (si no existe esa gestión en la tabla, se usa la actual)
+        $gestion = $gestiones->firstWhere('anio', $fechaHabilitacion->year) ?? $gestionActual;
 
         $casId = $personal->ultimoCas?->id ?? null;
 
@@ -120,29 +116,22 @@ class VacacionCargaInicialService
             'dias_asignados' => $diasAsignados,
             'dias_usados' => 0,
             'dias_vencidos' => 0,
-            'saldo_disponible' => $diasAsignados + $arrastre,
-            'dias_arrastre' => $arrastre,
+            'saldo_disponible' => $diasAsignados,
+            'dias_arrastre' => 0,
             'periodo_vencido' => false,
             'estado' => 'activo',
             'observacion' => 'Carga inicial',
         ]);
 
-        // Movimientos en el kardex
         $this->registrarMovimiento(
             $periodo, 'credito', $diasAsignados, 0, $diasAsignados,
-            'Asignación anual por antigüedad (carga inicial)'
+            "Asignación anual por antigüedad ({$aniosAntiguedad} años) - carga inicial"
         );
 
-        if ($arrastre > 0) {
-            $this->registrarMovimiento(
-                $periodo, 'arrastre', $arrastre, $diasAsignados, $diasAsignados + $arrastre,
-                'Arrastre del período anterior'
-            );
-        }
 
-        Log::info("Carga inicial: período {$numeroPeriodo} generado para persona_id={$personal->id} (gestión {$gestion->anio})");
+        Log::info("Carga inicial: período {$numeroPeriodo} ({$diasAsignados} días, hab. {$fechaHabilitacion->toDateString()}) para persona_id={$personal->id}");
 
-        return $periodoVencido ? 'generado_con_vencimiento' : 'generado';
+        return $huboVencimiento ? 'generado_con_vencimiento' : 'generado';
     }
 
     /**
@@ -162,10 +151,7 @@ class VacacionCargaInicialService
 
         $periodoAVencer = $periodosActivos->first();
 
-        // No vencer el inmediato anterior (necesario para el arrastre)
-        if ($periodoAVencer->numero_periodo == $numeroPeriodoActual - 1) {
-            $periodoAVencer = $periodosActivos->skip(1)->first();
-        }
+
 
         if (!$periodoAVencer || $periodoAVencer->saldo_disponible <= 0) {
             return false;
@@ -189,36 +175,46 @@ class VacacionCargaInicialService
     }
 
     /**
-     * Antigüedad total en años (parte entera) usando CAS o fecha de ingreso.
+     * Antigüedad total en años a una fecha de referencia.
+     * CORREGIDO: si la fecha de referencia es ANTERIOR a la fecha de cálculo del CAS,
+     * se RESTAN años (no se suman). Esto es clave para la carga inicial:
+     * el CAS se calculó hoy, pero el período antiguo se habilitó antes.
      */
     protected function getAntiguedadTotal(Persona $persona, ?Carbon $fechaReferencia = null): int
     {
         $cas = $persona->ultimoCas;
+
+        if (!$fechaReferencia) {
+            $fechaReferencia = Carbon::now();
+        }
 
         if ($cas) {
             $anios = $cas->anios_servicio ?? 0;
             $meses = $cas->meses_servicio ?? 0;
             $dias = $cas->dias_servicio ?? 0;
 
-            $totalAniosDecimal = $anios + ($meses / 12) + ($dias / 365);
+            $total = $anios + ($meses / 12) + ($dias / 365);
 
-            if ($fechaReferencia && $cas->fecha_calculo_antiguedad) {
+            if ($cas->fecha_calculo_antiguedad) {
                 $fechaBase = Carbon::parse($cas->fecha_calculo_antiguedad);
-                $totalAniosDecimal += (int) floor($fechaBase->diffInYears($fechaReferencia));
+
+                // diff() respeta el signo vía el flag "invert"
+                $intervalo = $fechaBase->diff($fechaReferencia);
+                $aniosAdicionales = $intervalo->y * ($intervalo->invert ? -1 : 1);
+
+                $total += $aniosAdicionales;
             }
 
-            return (int) floor($totalAniosDecimal);
+            // Nunca devolver antigüedad negativa
+            return max(0, (int) floor($total));
         }
 
-        if (!$fechaReferencia) {
-            $fechaReferencia = Carbon::now();
-        }
-
+        // Sin CAS: usar fecha de ingreso
         return (int) floor(Carbon::parse($persona->fechaIngreso)->diffInYears($fechaReferencia));
     }
 
     /**
-     * Días de vacación según años de antigüedad (tabla de configuración).
+     * Días de vacación según años de antigüedad.
      */
     protected function getDiasPorAntiguedad(int $anios): int
     {
@@ -233,7 +229,7 @@ class VacacionCargaInicialService
     }
 
     /**
-     * Registra un movimiento en el kardex (sin notificaciones, es carga inicial).
+     * Registra un movimiento en el kardex.
      */
     protected function registrarMovimiento(
         VacacionPeriodo $periodo,
