@@ -10,7 +10,7 @@ class Gestion extends Model
     use HasFactory;
     public function beneficios()
     {
-        return $this->hasMany(Beneficio::class);
+        return $this->hasMany(BeneficioPeriodo::class);
     }
     public function feriados(){
         return $this->hasMany(Feriado::class);
