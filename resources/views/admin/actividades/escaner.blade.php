@@ -5,61 +5,92 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="theme-color" content="#0284c7">
-    <title>Escáner - {{ $actividad->nombre }}</title>
+    <title>Escáner · {{ $actividad->nombre }}</title>
 
-    @vite(['resources/css/app.css'])
+    {{-- Tailwind por CDN (no depende de vite) --}}
+    <script src="https://cdn.tailwindcss.com"></script>
 
-    {{-- html5-qrcode vía CDN (o cámbialo a npm si lo prefieres) --}}
+    {{-- Librería de escaneo QR --}}
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 
     <style>
-        /* Prevenir zoom accidental en móvil */
         * { -webkit-tap-highlight-color: transparent; }
-        body {
-            overscroll-behavior: none;
-            background: #0f172a;
+        html, body { overscroll-behavior: none; }
+
+        /* ======== VISOR DE CÁMARA ======== */
+        .scanner-viewport {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1 / 1;      /* cuadrado, ideal para QR */
+            background: #000;
+            border-radius: 14px;
+            overflow: hidden;
         }
-        /* El video del escáner siempre cuadrado y adaptado */
-        #reader video {
-            border-radius: 12px;
+
+        .scanner-viewport #reader {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            border: none !important;
+        }
+
+        /* Fuerza al video a llenar el contenedor */
+        .scanner-viewport #reader video {
+            position: absolute !important;
+            inset: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
             object-fit: cover !important;
+            display: block !important;
+            border-radius: 0 !important;
         }
-        #reader {
-            border: none !important;
-        }
-        /* Ocultar botones feos por defecto de html5-qrcode */
-        #reader__dashboard_section_csr button {
-            background: #0284c7 !important;
-            color: white !important;
-            border: none !important;
-            padding: 10px 16px !important;
-            border-radius: 8px !important;
-            font-weight: 600 !important;
-            font-size: 14px !important;
-        }
-        #reader__dashboard_section_csr select {
-            padding: 8px !important;
-            border-radius: 6px !important;
-            border: 1px solid #cbd5e1 !important;
-        }
-        #reader__scan_region img {
+
+        /* Oculta los elementos feos que inyecta la librería */
+        #reader__dashboard,
+        #reader__dashboard_section,
+        #reader__dashboard_section_csr,
+        #reader__dashboard_section_swaplink,
+        #reader__header_message,
+        #reader__scan_region > img {
             display: none !important;
         }
-        /* Animación del resultado */
+        #reader__scan_region {
+            background: transparent !important;
+            padding: 0 !important;
+        }
+
+        /* ======== ANIMACIONES ======== */
+        @keyframes pulseBorder {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.7); }
+            50%      { box-shadow: 0 0 0 14px rgba(56, 189, 248, 0); }
+        }
+        .pulse-border { animation: pulseBorder 2s infinite; }
+
         @keyframes slideDown {
             from { opacity: 0; transform: translateY(-8px); }
             to   { opacity: 1; transform: translateY(0); }
         }
         .animate-in { animation: slideDown 0.25s ease-out; }
-        /* Pulso para "escaneando" */
-        @keyframes pulseBorder {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.7); }
-            50%      { box-shadow: 0 0 0 12px rgba(56, 189, 248, 0); }
+
+        /* ======== LÍNEA DE ESCANEO (efecto visual) ======== */
+        @keyframes scanLine {
+            0%   { top: 10%; }
+            50%  { top: 90%; }
+            100% { top: 10%; }
         }
-        .pulse-border { animation: pulseBorder 2s infinite; }
+        .scan-line {
+            position: absolute;
+            left: 15%;
+            right: 15%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #38bdf8, transparent);
+            animation: scanLine 2.2s ease-in-out infinite;
+            pointer-events: none;
+        }
     </style>
 </head>
-<body class="min-h-screen text-white">
+<body class="min-h-screen bg-slate-950 text-white">
 
     {{-- ═══════════ HEADER ═══════════ --}}
     <header class="sticky top-0 z-30 bg-sky-700 shadow-lg">
@@ -72,30 +103,27 @@
                     {{ $actividad->lugar ?? 'Sin lugar' }} · {{ $actividad->fecha->format('d/m/Y') }}
                 </p>
             </div>
-
             <div class="flex-shrink-0 text-right">
                 <p class="text-[10px] text-sky-200 uppercase tracking-wide">Asistencias</p>
                 <p id="contador" class="text-2xl font-bold leading-none">{{ $totalAsistencias }}</p>
             </div>
         </div>
-
-        {{-- Barra de progreso superior (indicador de cámara activa) --}}
-        <div id="cameraBar" class="h-1 bg-sky-800 overflow-hidden">
+        <div class="h-1 bg-sky-800 overflow-hidden">
             <div id="cameraBarFill" class="h-full bg-green-400 transition-all duration-500 w-0"></div>
         </div>
     </header>
 
-    {{-- ═══════════ CONTENIDO PRINCIPAL ═══════════ --}}
+    {{-- ═══════════ CONTENIDO ═══════════ --}}
     <main class="p-3 pb-32">
 
-        {{-- Estado: Cargando cámara --}}
+        {{-- Cargando --}}
         <div id="loadingBox" class="bg-slate-800 rounded-xl p-8 text-center">
             <div class="inline-block w-10 h-10 border-4 border-sky-500 border-t-transparent rounded-full animate-spin mb-3"></div>
             <p class="text-sm text-slate-300">Iniciando cámara…</p>
             <p class="text-xs text-slate-500 mt-1">Concede permisos si te los pide</p>
         </div>
 
-        {{-- Estado: Error de cámara --}}
+        {{-- Error de cámara --}}
         <div id="errorBox" class="hidden bg-red-900/50 border border-red-500 rounded-xl p-5 text-center">
             <p class="text-3xl mb-2">📵</p>
             <h2 class="font-bold text-red-200 mb-1">No se pudo acceder a la cámara</h2>
@@ -106,19 +134,23 @@
             </button>
         </div>
 
-        {{-- Contenedor del escáner --}}
+        {{-- Escáner --}}
         <div id="scannerWrapper" class="hidden">
-            {{-- Visor --}}
-            <div class="relative rounded-xl overflow-hidden bg-black mb-3">
-                <div id="reader" class="w-full"></div>
 
-                {{-- Overlay de mira --}}
-                <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
-                    <div class="w-56 h-56 border-4 border-sky-400 rounded-2xl pulse-border opacity-80"></div>
+            {{-- Visor --}}
+            <div class="scanner-viewport mb-3">
+                <div id="reader"></div>
+
+                {{-- Mira + línea de escaneo --}}
+                <div class="absolute inset-0 z-10 pointer-events-none flex items-center justify-center">
+                    <div class="relative w-56 h-56">
+                        <div class="absolute inset-0 border-4 border-sky-400 rounded-2xl pulse-border opacity-80"></div>
+                        <div class="scan-line"></div>
+                    </div>
                 </div>
             </div>
 
-            {{-- Controles de cámara --}}
+            {{-- Controles --}}
             <div class="grid grid-cols-3 gap-2 mb-3">
                 <button id="switchCameraBtn"
                         class="flex flex-col items-center justify-center gap-0.5 bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-white text-[11px] font-semibold py-2.5 rounded-lg transition disabled:opacity-40">
@@ -137,13 +169,13 @@
                 </button>
             </div>
 
-            {{-- Caja de resultado --}}
+            {{-- Resultado --}}
             <div id="result"
                  class="rounded-xl p-4 text-center font-semibold text-sm min-h-[68px] flex flex-col items-center justify-center gap-1 bg-slate-800 text-slate-300 transition-all">
                 Apunta la cámara al código QR…
             </div>
 
-            {{-- Lista de escaneos recientes --}}
+            {{-- Historial --}}
             <div class="mt-4 bg-slate-800 rounded-xl overflow-hidden">
                 <div class="px-3 py-2 border-b border-slate-700 flex items-center justify-between">
                     <h3 class="text-xs font-semibold text-slate-300 uppercase tracking-wide">
@@ -158,7 +190,7 @@
                 </ul>
             </div>
 
-            {{-- Registro manual (si está permitido) --}}
+            {{-- Registro manual --}}
             @if($actividad->permite_manual)
                 <details class="mt-4 bg-slate-800 rounded-xl overflow-hidden">
                     <summary class="px-3 py-3 cursor-pointer text-sm font-semibold text-slate-300 flex items-center justify-between">
@@ -184,11 +216,11 @@
         </div>
     </main>
 
-    {{-- ═══════════ FOOTER DE ESTADO ═══════════ --}}
+    {{-- ═══════════ FOOTER ═══════════ --}}
     <footer class="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 px-4 py-2 z-20">
         <div class="flex items-center justify-between text-[11px] text-slate-400">
             <span id="statusText">⚪ Iniciando…</span>
-            <span id="clockText">{{ now()->format('H:i') }}</span>
+            <span id="clockText">--:--</span>
         </div>
     </footer>
 
@@ -196,67 +228,62 @@
     // ═══════════════════════════════════════════════════════════════
     //  CONFIGURACIÓN
     // ═══════════════════════════════════════════════════════════════
-    const URL_REGISTRO   = "{{ route('actividades.asistencia.registrar', $actividad) }}";
-    const URL_MANUAL     = "{{ route('actividades.asistencia.manual', $actividad) }}";
-    const CSRF           = document.querySelector('meta[name="csrf-token"]').content;
-    const ACTIVIDAD_ID   = {{ $actividad->id }};
-    const DEBOUNCE_MS    = 3000;   // Ignorar el mismo QR durante 3 s
-    const MAX_RECIENTES  = 10;     // Cuántos escaneos mostrar
+    const URL_REGISTRO = "{{ route('actividades.asistencia.registrar', $actividad) }}";
+    const URL_MANUAL   = "{{ route('actividades.asistencia.manual', $actividad) }}";
+    const CSRF         = document.querySelector('meta[name="csrf-token"]').content;
+    const DEBOUNCE_MS  = 3000;
+    const MAX_RECIENTES = 10;
 
     // ═══════════════════════════════════════════════════════════════
     //  DOM
     // ═══════════════════════════════════════════════════════════════
-    const loadingBox    = document.getElementById('loadingBox');
-    const errorBox      = document.getElementById('errorBox');
-    const errorMessage  = document.getElementById('errorMessage');
-    const scannerWrapper= document.getElementById('scannerWrapper');
-    const resultBox     = document.getElementById('result');
-    const contadorEl    = document.getElementById('contador');
-    const recentList    = document.getElementById('recentList');
-    const sessionCount  = document.getElementById('sessionCount');
-    const statusText    = document.getElementById('statusText');
-    const clockText     = document.getElementById('clockText');
-    const cameraBarFill = document.getElementById('cameraBarFill');
+    const loadingBox     = document.getElementById('loadingBox');
+    const errorBox       = document.getElementById('errorBox');
+    const errorMessage   = document.getElementById('errorMessage');
+    const scannerWrapper = document.getElementById('scannerWrapper');
+    const resultBox      = document.getElementById('result');
+    const contadorEl     = document.getElementById('contador');
+    const recentList     = document.getElementById('recentList');
+    const sessionCount   = document.getElementById('sessionCount');
+    const statusText     = document.getElementById('statusText');
+    const clockText      = document.getElementById('clockText');
+    const cameraBarFill  = document.getElementById('cameraBarFill');
 
     // ═══════════════════════════════════════════════════════════════
-    //  ESTADO GLOBAL
+    //  ESTADO
     // ═══════════════════════════════════════════════════════════════
-    let scanner          = null;
+    let scanner           = null;
     let camarasDisponibles = [];
-    let camaraActualIdx  = 0;
-    let scannerPausado   = false;
-    let torchEncendido   = false;
-    let wakeLock         = null;
-    let ultimoQr         = null;
-    let ultimoTimestamp  = 0;
-    let totalSesion      = 0;
+    let camaraActualIdx   = 0;
+    let scannerPausado    = false;
+    let torchEncendido    = false;
+    let wakeLock          = null;
+    let ultimoQr          = null;
+    let ultimoTimestamp   = 0;
+    let totalSesion       = 0;
 
     // ═══════════════════════════════════════════════════════════════
     //  UTILIDADES
     // ═══════════════════════════════════════════════════════════════
-
-    // Actualiza el reloj del footer cada minuto
     function actualizarReloj() {
         const d = new Date();
-        clockText.textContent = String(d.getHours()).padStart(2, '0') + ':' +
-                                String(d.getMinutes()).padStart(2, '0');
+        clockText.textContent = String(d.getHours()).padStart(2,'0') + ':' +
+                                String(d.getMinutes()).padStart(2,'0');
     }
     setInterval(actualizarReloj, 30000);
     actualizarReloj();
 
-    // Actualiza el texto de estado
     function setStatus(texto, color = 'text-slate-400') {
         statusText.className = color;
         statusText.textContent = texto;
     }
 
-    // Pinta la caja de resultado
     function pintarResultado(clase, mensaje, info = '') {
         const clases = {
             'ok':       'bg-green-900/60 text-green-100 border border-green-500',
             'tardanza': 'bg-yellow-900/60 text-yellow-100 border border-yellow-500',
             'error':    'bg-red-900/60 text-red-100 border border-red-500',
-            'info':     'bg-slate-800 text-slate-300',
+            'info':     'bg-slate-800 text-slate-300 border border-slate-700',
         };
         resultBox.className = `rounded-xl p-4 text-center font-semibold text-sm min-h-[68px] flex flex-col items-center justify-center gap-1 transition-all animate-in ${clases[clase] || clases.info}`;
         resultBox.innerHTML = `
@@ -265,7 +292,6 @@
         `;
     }
 
-    // Sonido con Web Audio API
     function beep(tipo) {
         try {
             const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -274,21 +300,14 @@
             const osc  = ctx.createOscillator();
             const gain = ctx.createGain();
 
-            if (tipo === 'ok') {
-                osc.frequency.value = 880;
-                gain.gain.setValueAtTime(0.15, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
-            } else if (tipo === 'tardanza') {
-                osc.frequency.value = 660;
-                gain.gain.setValueAtTime(0.15, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-            } else {
-                osc.frequency.value = 220;
-                gain.gain.setValueAtTime(0.15, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
-            }
+            if (tipo === 'ok')        osc.frequency.value = 880;
+            else if (tipo === 'tardanza') osc.frequency.value = 660;
+            else                      osc.frequency.value = 220;
 
             osc.type = 'sine';
+            gain.gain.setValueAtTime(0.15, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
+
             osc.connect(gain);
             gain.connect(ctx.destination);
             osc.start();
@@ -296,14 +315,11 @@
         } catch (e) { /* silencio */ }
     }
 
-    // Vibración
     function vibrar(patron) {
         if (navigator.vibrate) navigator.vibrate(patron);
     }
 
-    // Añadir escaneo a la lista de recientes
     function agregarReciente({ nombre, ci, hora, estado, exito }) {
-        // Quita el placeholder
         const placeholder = recentList.querySelector('li.text-slate-500');
         if (placeholder) placeholder.remove();
 
@@ -329,7 +345,6 @@
         `;
         recentList.prepend(li);
 
-        // Limita la lista
         while (recentList.children.length > MAX_RECIENTES) {
             recentList.lastChild.remove();
         }
@@ -339,50 +354,48 @@
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  MANEJO DE CÁMARA
+    //  CÁMARA
     // ═══════════════════════════════════════════════════════════════
-
     async function iniciarEscaner() {
         loadingBox.classList.remove('hidden');
         errorBox.classList.add('hidden');
         scannerWrapper.classList.add('hidden');
+        cameraBarFill.style.width = '10%';
 
         try {
-            // Verifica contexto seguro (HTTPS o localhost)
             if (!window.isSecureContext && location.hostname !== 'localhost') {
                 throw new Error('La cámara requiere HTTPS. Abre la app con https://');
             }
 
-            // Carga las cámaras disponibles
             camarasDisponibles = await Html5Qrcode.getCameras();
-
             if (!camarasDisponibles || camarasDisponibles.length === 0) {
                 throw new Error('No se detectaron cámaras en este dispositivo.');
             }
 
-            // Prioriza cámara trasera
             camaraActualIdx = camarasDisponibles.findIndex(c =>
-                /back|rear|environment/i.test(c.label)
+                /back|rear|environment|trasera/i.test(c.label)
             );
             if (camaraActualIdx === -1) camaraActualIdx = 0;
 
             await arrancarCamara(camaraActualIdx);
-
         } catch (err) {
             console.error('Error al iniciar escáner:', err);
             loadingBox.classList.add('hidden');
             errorBox.classList.remove('hidden');
             errorMessage.textContent = traducirError(err);
             setStatus('🔴 Cámara no disponible', 'text-red-400');
+            cameraBarFill.style.width = '0%';
         }
     }
 
     async function arrancarCamara(idx) {
-        // Limpia contenedor
+        // Limpia cualquier instancia previa
+        await detenerCamara();
+
         const readerEl = document.getElementById('reader');
         readerEl.innerHTML = '';
 
-        scanner = new Html5Qrcode('reader');
+        scanner = new Html5Qrcode('reader', { verbose: false });
 
         const config = {
             fps: 10,
@@ -393,42 +406,41 @@
             },
             aspectRatio: 1.0,
             disableFlip: false,
+            useBarCodeDetectorIfSupported: true,  // detector nativo (más rápido)
         };
 
         await scanner.start(
             camarasDisponibles[idx].id,
             config,
             onScanSuccess,
-            onScanError // ignorar errores de lectura (normales)
+            onScanError
         );
 
-        // UI lista
         loadingBox.classList.add('hidden');
         errorBox.classList.add('hidden');
         scannerWrapper.classList.remove('hidden');
         cameraBarFill.style.width = '100%';
         setStatus('🟢 Escáner activo', 'text-green-400');
 
-        // Intenta mantener la pantalla encendida
+        // Actualiza el estado del botón "Cambiar"
+        document.getElementById('switchCameraBtn').disabled = camarasDisponibles.length < 2;
+
         solicitarWakeLock();
     }
 
     async function detenerCamara() {
         if (!scanner) return;
         try {
-            const estado = scanner.getState();
-            if (estado === Html5QrcodeScannerState.SCANNING ||
-                estado === Html5QrcodeScannerState.PAUSED) {
-                await scanner.stop();
-                scanner.clear();
-            }
-        } catch (e) { /* ignorar */ }
+            await scanner.stop();
+            scanner.clear();
+        } catch (e) {
+            // estaba detenido o nunca arrancó: ignorar
+        }
         scanner = null;
     }
 
     async function cambiarCamara() {
         if (camarasDisponibles.length < 2) return;
-
         await detenerCamara();
         camaraActualIdx = (camaraActualIdx + 1) % camarasDisponibles.length;
         torchEncendido = false;
@@ -436,7 +448,8 @@
 
         try {
             await arrancarCamara(camaraActualIdx);
-            pintarResultado('info', `📷 Cámara: ${camarasDisponibles[camaraActualIdx].label || '#' + (camaraActualIdx + 1)}`);
+            pintarResultado('info',
+                `📷 Cámara: ${camarasDisponibles[camaraActualIdx].label || '#' + (camaraActualIdx + 1)}`);
         } catch (err) {
             pintarResultado('error', 'No se pudo cambiar la cámara');
             beep('error');
@@ -463,20 +476,18 @@
                 setStatus('⏸ Pausado', 'text-yellow-400');
                 pintarResultado('info', '⏸ Escáner pausado');
             }
-        } catch (e) {
-            console.error(e);
-        }
+        } catch (e) { console.error(e); }
     }
 
     async function alternarTorch() {
         if (!scanner) return;
         try {
-            const track = scanner.getRunningTrackCameraCapabilities();
-            if (!track || typeof track.torchFeature !== 'function') {
+            const caps = scanner.getRunningTrackCameraCapabilities();
+            if (!caps || typeof caps.torchFeature !== 'function') {
                 pintarResultado('info', '🔦 Linterna no soportada');
                 return;
             }
-            const torch = track.torchFeature();
+            const torch = caps.torchFeature();
             torchEncendido = !torchEncendido;
             await torch.apply(torchEncendido);
             actualizarBotonTorch(torchEncendido);
@@ -498,13 +509,12 @@
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  WAKE LOCK (evita que la pantalla se apague)
+    //  WAKE LOCK
     // ═══════════════════════════════════════════════════════════════
     async function solicitarWakeLock() {
         if (!('wakeLock' in navigator)) return;
-        try {
-            wakeLock = await navigator.wakeLock.request('screen');
-        } catch (e) { /* ignorar */ }
+        try { wakeLock = await navigator.wakeLock.request('screen'); }
+        catch (e) { /* ignorar */ }
     }
     document.addEventListener('visibilitychange', async () => {
         if (document.visibilityState === 'visible' && !wakeLock) {
@@ -513,18 +523,16 @@
     });
 
     // ═══════════════════════════════════════════════════════════════
-    //  MANEJO DE ESCANEO
+    //  ESCANEO
     // ═══════════════════════════════════════════════════════════════
-
     function onScanSuccess(decodedText) {
         const ahora = Date.now();
-
-        // Ignora el mismo QR en menos de DEBOUNCE_MS
         if (decodedText === ultimoQr && (ahora - ultimoTimestamp) < DEBOUNCE_MS) return;
         ultimoQr = decodedText;
         ultimoTimestamp = ahora;
 
         pintarResultado('info', '⏳ Procesando…');
+        vibrar(30);
 
         fetch(URL_REGISTRO, {
             method: 'POST',
@@ -545,11 +553,8 @@
 
             if (data.success) {
                 const clase = data.tipo === 'tardanza' ? 'tardanza' : 'ok';
-                pintarResultado(
-                    clase,
-                    data.message,
-                    `Hora: ${hora} · CI: ${data.persona?.ci ?? '—'}`
-                );
+                pintarResultado(clase, data.message,
+                    `Hora: ${hora} · CI: ${data.persona?.ci ?? '—'}`);
                 if (data.total !== undefined) contadorEl.textContent = data.total;
 
                 beep(clase);
@@ -557,10 +562,10 @@
 
                 agregarReciente({
                     nombre: data.persona?.nombre ?? 'Empleado',
-                    ci: data.persona?.ci ?? '—',
+                    ci:     data.persona?.ci ?? '—',
                     hora,
                     estado: clase,
-                    exito: true,
+                    exito:  true,
                 });
             } else {
                 pintarResultado('error', data.message || 'No reconocido', '');
@@ -569,10 +574,10 @@
 
                 agregarReciente({
                     nombre: data.persona?.nombre ?? 'QR no reconocido',
-                    ci: data.persona?.ci ?? '—',
+                    ci:     data.persona?.ci ?? '—',
                     hora,
                     estado: 'error',
-                    exito: false,
+                    exito:  false,
                 });
             }
         })
@@ -584,12 +589,10 @@
         });
     }
 
-    function onScanError(err) {
-        // Silencioso: errores de "no QR detectado" son constantes y normales
-    }
+    function onScanError() { /* silencioso: es normal */ }
 
     // ═══════════════════════════════════════════════════════════════
-    //  REGISTRO MANUAL (fallback sin QR)
+    //  REGISTRO MANUAL
     // ═══════════════════════════════════════════════════════════════
     const manualForm = document.getElementById('manualForm');
     if (manualForm) {
@@ -606,7 +609,7 @@
                         'X-CSRF-TOKEN': CSRF,
                         'Accept': 'application/json',
                     },
-                    body: JSON.stringify({ ci, qr_texto: `CI: ${ci}` })
+                    body: JSON.stringify({ ci })
                 });
                 const data = await res.json();
 
@@ -617,7 +620,7 @@
                     vibrar(80);
                     document.getElementById('manualCi').value = '';
                 } else {
-                    pintarResultado('error', data.message || 'No se pudo registrar', '');
+                    pintarResultado('error', data.message || 'No se pudo registrar');
                     beep('error');
                 }
             } catch (err) {
@@ -628,22 +631,18 @@
     }
 
     // ═══════════════════════════════════════════════════════════════
-    //  TRADUCCIÓN DE ERRORES DE CÁMARA
+    //  ERRORES LEGIBLES
     // ═══════════════════════════════════════════════════════════════
     function traducirError(err) {
         const msg = String(err?.message || err || '').toLowerCase();
-        if (msg.includes('permission') || msg.includes('denied') || msg.includes('notallowed')) {
+        if (msg.includes('permission') || msg.includes('denied') || msg.includes('notallowed'))
             return 'Permiso de cámara denegado. Habilítalo en los ajustes del navegador y vuelve a intentar.';
-        }
-        if (msg.includes('notfound') || msg.includes('no camera') || msg.includes('not detected')) {
+        if (msg.includes('notfound') || msg.includes('no camera') || msg.includes('not detected'))
             return 'No se encontró ninguna cámara en este dispositivo.';
-        }
-        if (msg.includes('notreadable') || msg.includes('in use')) {
+        if (msg.includes('notreadable') || msg.includes('in use'))
             return 'La cámara está siendo usada por otra aplicación. Ciérrala y vuelve a intentar.';
-        }
-        if (msg.includes('https') || msg.includes('secure')) {
+        if (msg.includes('https') || msg.includes('secure'))
             return 'La cámara solo funciona con HTTPS. Abre la app con https:// o usa localhost.';
-        }
         return err?.message || 'Error desconocido al acceder a la cámara.';
     }
 
@@ -654,8 +653,6 @@
     document.getElementById('pauseBtn').addEventListener('click', alternarPausa);
     document.getElementById('torchBtn').addEventListener('click', alternarTorch);
     document.getElementById('reintentarBtn').addEventListener('click', iniciarEscaner);
-
-    // Botón "atrás" del navegador → detener cámara correctamente
     window.addEventListener('beforeunload', () => { detenerCamara(); });
 
     // ═══════════════════════════════════════════════════════════════
