@@ -1026,6 +1026,14 @@
                 <span class="nav-badge" id="salidasBadge">0</span>
             </a>
         </div>
+        @role('admin')
+            <div class="nav-item">
+                <a href="{{ route('actividades.index') }}" class="nav-link" data-tooltip="Actividades">
+                    <i class="fas fa-calendar-check nav-icon"></i>
+                    <span class="label">Actividades</span>
+                </a>
+            </div>
+        @endrole
 
     </nav>
 </aside>

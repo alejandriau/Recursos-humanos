@@ -191,6 +191,6 @@ class ActividadAsistenciaController extends Controller
             'anulados'    => $asistencias->where('estado', 0)->count(),
         ];
 
-        return view('actividades.reporte', compact('actividad', 'asistencias', 'resumen'));
+        return view('admin.actividades.reporte', compact('actividad', 'asistencias', 'resumen'));
     }
 }

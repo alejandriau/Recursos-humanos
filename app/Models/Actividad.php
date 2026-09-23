@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Actividad extends Model
 {
-    protected $table = 'actividad';
+    protected $table = 'actividades';
     protected $primaryKey = 'id';
     public $timestamps = false;
 
@@ -20,8 +20,8 @@ class Actividad extends Model
         'fecha'    => 'date',
         'estado'   => 'integer',
         'permite_manual' => 'integer',
-        'fechaRegistro' => 'datetime',
-        'fechaActualizacion' => 'datetime',
+        'created_at'     => 'datetime',
+        'updated_at'     => 'datetime',
     ];
 
     /* ---------- Relaciones ---------- */

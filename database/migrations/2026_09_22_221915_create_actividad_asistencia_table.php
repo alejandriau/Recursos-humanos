@@ -15,7 +15,7 @@ return new class extends Migration
             // FK a la actividad
             $table->integer('actividad_id');
             $table->foreign('actividad_id')
-                  ->references('id')->on('actividad')
+                  ->references('id')->on('actividades')
                   ->onDelete('cascade');
 
             // FK a la persona (usa tu tabla persona)
@@ -46,8 +46,7 @@ return new class extends Migration
 
             $table->longText('observaciones')->nullable();
 
-            $table->timestamp('fechaRegistro')->useCurrent();
-            $table->timestamp('fechaActualizacion')->useCurrentOnUpdate()->nullable()->useCurrent();
+            $table->timestamps();
 
             // ⛔ Un empleado solo puede tener UNA asistencia por actividad
             $table->unique(['actividad_id', 'persona_id'], 'asistencia_unica_por_actividad');

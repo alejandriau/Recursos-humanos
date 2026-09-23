@@ -15,12 +15,12 @@ class ActividadController extends Controller
             ->orderByDesc('fecha')
             ->paginate(15);
 
-        return view('actividades.index', compact('actividades'));
+        return view('admin.actividades.index', compact('actividades'));
     }
 
     public function create()
     {
-        return view('actividades.create');
+        return view('admin.actividades.create');
     }
 
     public function store(Request $request)
@@ -50,16 +50,17 @@ class ActividadController extends Controller
             ->with('success', 'Actividad creada correctamente.');
     }
 
-    public function show(Actividad $actividad)
+    public function show($id)
     {
+        $actividad = Actividad::find($id);
         $actividad->load(['asistencias.persona', 'asistencias.registrador']);
 
-        return view('actividades.show', compact('actividad'));
+        return view('admin.actividades.show', compact('actividad'));
     }
 
     public function edit(Actividad $actividad)
     {
-        return view('actividades.edit', compact('actividad'));
+        return view('admin.actividades.edit', compact('actividad'));
     }
 
     public function update(Request $request, Actividad $actividad)

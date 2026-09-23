@@ -20,8 +20,8 @@ class ActividadAsistencia extends Model
         'hora_registro' => 'datetime',
         'estado' => 'integer',
         'metodo_registro' => 'integer',
-        'fechaRegistro' => 'datetime',
-        'fechaActualizacion' => 'datetime',
+        'created_at'     => 'datetime',
+        'updated_at'     => 'datetime',
     ];
 
     /* ---------- Constantes de estado ---------- */

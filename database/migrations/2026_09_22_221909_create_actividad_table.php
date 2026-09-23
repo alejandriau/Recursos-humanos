@@ -9,7 +9,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('actividad', function (Blueprint $table) {
+        Schema::create('actividades', function (Blueprint $table) {
             $table->integer('id', true);
 
             $table->string('nombre', 150);                  // "Actividad en Plaza Principal"
@@ -38,8 +38,7 @@ return new class extends Migration
                   ->constrained('users')
                   ->onDelete('set null');
 
-            $table->timestamp('fechaRegistro')->useCurrent();
-            $table->timestamp('fechaActualizacion')->useCurrentOnUpdate()->nullable()->useCurrent();
+            $table->timestamps();
 
             // Índice para búsquedas por fecha y estado
             $table->index(['fecha', 'estado'], 'actividad_fecha_estado_index');
