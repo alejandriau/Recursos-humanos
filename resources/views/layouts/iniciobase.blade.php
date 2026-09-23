@@ -9,6 +9,12 @@
     <link href="{{ asset('css/bootstrap.min.css') }}" rel="stylesheet">
     <script src="{{ asset('js/fontawesome.js') }}"></script>
     <script src="{{ asset('/public/js/toastr.min.js') }}"></script>
+        <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.bunny.net">
+    <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+
+    <!-- Scripts -->
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 
 <body>
@@ -35,7 +41,7 @@
         </div>
     </div>
     <nav class="navbar fixed-bottom navbar-expand-lg navbar-dark bg-dark ">
-        <div class="container text-white d-flex justify-content-center ">Desarrollado por UGE © 2024 - GADC</div>
+        <div class="container text-white d-flex justify-content-center ">Desarrollado por UGRH © 2026 - GADC</div>
     </nav>
 </body>
 

@@ -80,6 +80,8 @@ use App\Http\Controllers\AsistenciaController;
 use App\Http\Controllers\AsignacionHorarioController;
 use App\Http\Controllers\AsistenciaGeneracionController;
 use App\Http\Controllers\EventoController;
+use App\Http\Controllers\ActividadController;
+use App\Http\Controllers\ActividadAsistenciaController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -110,6 +112,18 @@ Route::middleware([
     'verified',
 ])->group(function () {
 
+
+    Route::resource('actividades', ActividadController::class);
+    Route::post('actividades/{actividad}/cerrar', [ActividadController::class, 'cerrar'])->name('actividades.cerrar');
+    Route::post('actividades/{actividad}/abrir', [ActividadController::class, 'abrir'])->name('actividades.abrir');
+
+    // Escáner y asistencias
+    Route::get('actividades/{actividad}/escaner',[ActividadAsistenciaController::class, 'escaner'])->name('actividades.escaner');
+    Route::post('actividades/{actividad}/asistencia',[ActividadAsistenciaController::class, 'registrar'])->name('actividades.asistencia.registrar');
+    Route::post('actividades/{actividad}/asistencia-manual',[ActividadAsistenciaController::class, 'registrarManual'])->name('actividades.asistencia.manual');
+    Route::delete('asistencias/{asistencia}',[ActividadAsistenciaController::class, 'anular'])->name('asistencias.anular');
+    Route::get('actividades/{actividad}/reporte',[ActividadAsistenciaController::class, 'reporte'])->name('actividades.reporte');
+
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/persona/foto/{id}', [PersonaController::class, 'mostrarFoto'])->name('persona.foto');
     Route::get('/usuario/foto/{id}', [PersonaController::class, 'usuarioMostrarFoto'])->name('usuario.foto');
@@ -130,7 +144,7 @@ Route::middleware([
             return view('chatbot.chatbot');
         });
 
-        
+
 
 
             Route::prefix('zk')->group(function () {
@@ -289,7 +303,7 @@ Route::middleware([
 
         // Reactivar unidad
         Route::post('/unidades/{unidad}/reactivar', [UnidadOrganizacionalController::class, 'reactivar'])->name('unidades.reactivar');
-        
+
         Route::post('unidades/bulk-desactivar', [UnidadOrganizacionalController::class, 'bulkDesactivar'])->name('unidades.bulk-desactivar');
         Route::post('unidades/bulk-reactivar', [UnidadOrganizacionalController::class, 'bulkReactivar'])->name('unidades.bulk-reactivar');
         Route::post('unidades/importar', [UnidadOrganizacionalController::class, 'importarEstructura'])->name('unidades.importar');
@@ -1128,7 +1142,7 @@ Route::middleware([
         Route::get('/comision/mis-solicitudes', [SalidaController::class, 'misSolicitudes'])->name('comision.mis-solicitudes');
         Route::get('/salud/usuario', [SalidaController::class, "funcSalud"])->name('salud.usuario');
         Route::get('/salud/boleta/{id}', [SalidaController::class, "pdfSalud"])->name('salud.boleta');
-        
+
         Route::get('/empleado/salida-particular', [SalidaController::class, "indexParticular"])->name('empleado.salida-particular');
         Route::get('/salidas/particulares/{id}/pdf', [SalidaController::class, 'pdfParticular'])->name('salidas.particular.pdf');
         //  *************************** USUARIO ****************************************
