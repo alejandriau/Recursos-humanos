@@ -31,26 +31,44 @@ class GenerarAsistenciaJob implements ShouldQueue
         $inicio = Carbon::parse($this->fechaInicio)->startOfDay();
         $fin = Carbon::parse($this->fechaFin)->startOfDay();
 
-        $personas = $this->personaId
-            ? Persona::where('id', $this->personaId)->get()
-            : Persona::where('estado', true)->get();
-
         $totalProcesadas = 0;
+        $totalOmitidas = 0;
         $totalErrores = 0;
 
         while ($inicio->lte($fin)) {
-            foreach ($personas as $persona) {
-                try {
-                    $service->procesarPersonaFecha($persona, $inicio->copy());
-                    $totalProcesadas++;
-                } catch (\Exception $e) {
-                    $totalErrores++;
-                    Log::error("GenerarAsistenciaJob: error persona {$persona->id} fecha {$inicio->toDateString()}: " . $e->getMessage());
+            if ($this->personaId) {
+                // Una sola persona: se procesa directo, sin pasar por
+                // generarParaFecha (que trae a todas las personas activas).
+                $persona = Persona::find($this->personaId);
+
+                if ($persona) {
+                    try {
+                        $asistencia = $service->procesarPersonaFecha($persona, $inicio->copy());
+                        $asistencia ? $totalProcesadas++ : $totalOmitidas++;
+                    } catch (\Exception $e) {
+                        $totalErrores++;
+                        Log::error("GenerarAsistenciaJob: error persona {$persona->id} fecha {$inicio->toDateString()}: " . $e->getMessage());
+                    }
+                } else {
+                    Log::warning("GenerarAsistenciaJob: persona {$this->personaId} no encontrada, se omite fecha {$inicio->toDateString()}");
                 }
+            } else {
+                // Todas las personas activas: se reutiliza generarParaFecha,
+                // que ya busca el feriado UNA vez por fecha (no por persona)
+                // y devuelve el resumen correcto (procesadas/omitidas/errores).
+                $resumen = $service->generarParaFecha($inicio->toDateString());
+
+                $totalProcesadas += $resumen['procesadas'];
+                $totalOmitidas += $resumen['omitidas'];
+                $totalErrores += $resumen['errores'];
             }
+
             $inicio->addDay();
         }
 
-        Log::info("GenerarAsistenciaJob completado: {$totalProcesadas} procesadas, {$totalErrores} errores. Rango: {$this->fechaInicio} a {$this->fechaFin}" . ($this->personaId ? " (persona {$this->personaId})" : ''));
+        Log::info(
+            "GenerarAsistenciaJob completado: {$totalProcesadas} procesadas, {$totalOmitidas} omitidas, {$totalErrores} errores. Rango: {$this->fechaInicio} a {$this->fechaFin}"
+            . ($this->personaId ? " (persona {$this->personaId})" : '')
+        );
     }
 }

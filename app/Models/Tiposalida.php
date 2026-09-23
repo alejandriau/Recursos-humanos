@@ -88,4 +88,25 @@ class TipoSalida extends Model
         return $this->hasMany(TipoSalida::class, 'id_padre');
     }
 
+
+    /**
+     * Configuración que el frontend usará para mostrar/validar.
+     * Endpoint sugerido: GET /tiposalida/{id}
+     */
+    public function getConfiguracionAttribute(): array
+    {
+        $unidad = in_array($this->unidad, ['dias', 'horas', 'mixto'])
+            ? $this->unidad
+            : 'dias';
+
+        return [
+            'sustLegal'  => $this->sustLegal,
+            'unidad'     => $unidad,                          // dias | horas | mixto
+            'max_unidad' => (float) ($this->cantidad_default ?? 0), // tope en la unidad
+            'usa_horas'  => in_array($unidad, ['horas', 'mixto']),
+            // Regla fija: cuando se trabaja por horas, máx. 2 días de rango
+            'max_dias'   => $unidad === 'horas' ? 2 : null,
+        ];
+    }
+
 }

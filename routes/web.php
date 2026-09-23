@@ -1110,6 +1110,7 @@ Route::middleware([
 
         //tipo de salida
         Route::get('/tiposalida/{id}', [SalidaController::class, 'showParticular'])->name('tiposalida.show');
+        
         // ********************* reportes usuario ******************************************
         Route::get('/reportesusr', [SalidaController::class, "reporteusr"]); // reporte de salidas del personal
         Route::get('/reportesusr/data', [SalidaController::class, "reporteusrData"]); // consulta api para generar reporte de salidas del personal

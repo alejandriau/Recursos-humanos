@@ -702,14 +702,20 @@ document.addEventListener('DOMContentLoaded', function() {
         minDate: "today",
         disable: [deshabilitarFechas],
         locale: "es",
-        dateFormat: "Y-m-d"
+        dateFormat: "Y-m-d",      // valor real que se envía al backend
+        altInput: true,           // muestra otro formato al usuario
+        altFormat: "d-m-Y",       // formato visible: día-mes-año
+        allowInput: true
     });
 
     const pickerRetorno = flatpickr("#fretorno", {
         minDate: "today",
         disable: [deshabilitarFechas],
         locale: "es",
-        dateFormat: "Y-m-d"
+        dateFormat: "Y-m-d",
+        altInput: true,
+        altFormat: "d-m-Y",
+        allowInput: true
     });
 
     // ============================================================
@@ -975,9 +981,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         document.getElementById('fechasol').value = data.fechasol;
                         document.getElementById('motivo').value = data.motivo;
                         document.getElementById('fsalida').value = data.fechasal;
-                        document.getElementById('horasal').value = data.horasal;
+                        document.getElementById('horasal').value = data.horasal ? data.horasal.substring(0, 5) : '';
                         document.getElementById('fretorno').value = data.fecharet;
-                        document.getElementById('horaret').value = data.horaret;
+                        document.getElementById('horaret').value = data.horaret ? data.horaret.substring(0, 5) : '';
                         document.getElementById('cantidad').value = data.cantidad;
                         if (data.jefe) {
                             document.getElementById('idSup').value = data.jefe_id;

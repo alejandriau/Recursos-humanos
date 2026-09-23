@@ -119,17 +119,23 @@ function renderReporte(r) {
 
     const filasDias = r.dias.map(d => {
         // Si es hoy y la salida está pendiente, mostrar "Pendiente" en vez de "No marcó"
-        const entradaHtml = d.entrada
-            ? d.entrada
-            : (d.es_hoy && d.estado === 'pendiente'
-                ? '<span class="text-muted fst-italic">Pendiente</span>'
-                : '<span class="text-danger fw-bold">No marcó</span>');
+        const entradaHtml =
+            d.estado === 'feriado'
+                ? '<span class="text-muted fw-bold">Feriado</span>'
+                : d.entrada
+                    ? d.entrada
+                    : (d.es_hoy && d.estado === 'pendiente'
+                        ? '<span class="text-muted fst-italic">Pendiente</span>'
+                        : '<span class="text-danger fw-bold">No marcó</span>');
 
-        const salidaHtml = d.salida
-            ? d.salida
-            : (d.es_hoy && d.estado === 'pendiente'
-                ? '<span class="text-muted fst-italic">Pendiente</span>'
-                : '<span class="text-danger fw-bold">No marcó</span>');
+        const salidaHtml =
+            d.estado === 'feriado'
+                ? '<span class="text-muted fw-bold">Feriado</span>'
+                : d.salida
+                    ? d.salida
+                    : (d.es_hoy && d.estado === 'pendiente'
+                        ? '<span class="text-muted fst-italic">Pendiente</span>'
+                        : '<span class="text-danger fw-bold">No marcó</span>');
 
         // Resaltar fila del día en curso
         const filaClase = d.es_hoy ? 'table-warning' : '';
@@ -169,18 +175,38 @@ function renderReporte(r) {
             <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table table-bordered table-hover table-sm mb-0" style="font-size: 0.9rem;">
-                        <thead class="table-success text-center align-middle">
+                        <thead class="text-center align-middle">
                             <tr>
-                                <th style="min-width: 160px;">Fecha / Estado</th>
-                                <th>Turnos</th>
-                                <th>Entrada</th>
-                                <th>Salida</th>
-                                <th>Atraso</th>
-                                <th>Sal Ant</th>
-                                <th>Ausen</th>
-                                <th>Justificaciones</th>
-                                <th>Hrs. Ext</th>
-                                <th>Jor</th>
+                                <th style="min-width: 160px; background-color: #35b335 !important; color: #fff !important;">
+                                    Fecha / Estado
+                                </th>
+                                <th style="background-color: #35b335 !important; color: #fff !important;">
+                                    Turnos
+                                </th>
+                                <th style="background-color: #35b335 !important; color: #fff !important;">
+                                    Entrada
+                                </th>
+                                <th style="background-color: #35b335 !important; color: #fff !important;">
+                                    Salida
+                                </th>
+                                <th style="background-color: #35b335 !important; color: #fff !important;">
+                                    Atraso
+                                </th>
+                                <th style="background-color: #35b335 !important; color: #fff !important;">
+                                    Sal Ant
+                                </th>
+                                <th style="background-color: #35b335 !important; color: #fff !important;">
+                                    Ausen
+                                </th>
+                                <th style="background-color: #35b335 !important; color: #fff !important;">
+                                    Justificaciones
+                                </th>
+                                <th style="background-color: #35b335 !important; color: #fff !important;">
+                                    Hrs. Ext
+                                </th>
+                                <th style="background-color: #35b335 !important; color: #fff !important;">
+                                    Jor
+                                </th>
                             </tr>
                         </thead>
                         

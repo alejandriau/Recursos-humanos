@@ -244,64 +244,70 @@ public function misSolicitudes()
     }
 }
 
-public function indexParticular()
-{
-    // Obtener el tipo padre "SALIDA PARTICULAR"
-    $particular = TipoSalida::where('descripcion', 'SALIDA PARTICULAR')->first();
+    public function indexParticular()
+    {
+        // Obtener el tipo padre "SALIDA PARTICULAR"
+        $particular = TipoSalida::where('descripcion', 'SALIDA PARTICULAR')->first();
 
 
-    // Obtener SOLO los hijos (subtipos) usando la relación del modelo
-    $tiposHijos = $particular->hijos()->get(); // <-- método hijos() definido en el modelo
+        // Obtener SOLO los hijos (subtipos) usando la relación del modelo
+        $tiposHijos = $particular->hijos()->get(); // <-- método hijos() definido en el modelo
 
 
 
-    // IDs de todos los tipos (padre + hijos) para filtrar las salidas del usuario
-    $todosTipos = $tiposHijos->pluck('id')->push($particular->id)->toArray();
+        // IDs de todos los tipos (padre + hijos) para filtrar las salidas del usuario
+        $todosTipos = $tiposHijos->pluck('id')->push($particular->id)->toArray();
 
-    // Persona autenticada
-    $user = Auth::user();
-    $persona = Persona::where('user_id', $user->id)->first();
+        // Persona autenticada
+        $user = Auth::user();
+        $persona = Persona::where('user_id', $user->id)->first();
 
 
-    // Salidas particulares de esta persona (incluye padre e hijos)
-    $salidas = Salida::where('persona_id', $persona->id)
-                     ->whereIn('tiposalida_id', $todosTipos)
-                     ->orderBy('created_at', 'desc')
-                     ->get();
+        // Salidas particulares de esta persona (incluye padre e hijos)
+        $salidas = Salida::where('persona_id', $persona->id)
+                        ->whereIn('tiposalida_id', $todosTipos)
+                        ->orderBy('created_at', 'desc')
+                        ->get();
 
-    // Datos para feriados
-    $gestion = Gestion::where('estado', 'Habilitado')->get();
-    $idg = $gestion->first()?->id ?? 0;
-    $feriado = Feriado::where('gestion_id', $idg)->get();
+        // Datos para feriados
+        $gestion = Gestion::where('estado', 'Habilitado')->get();
+        $idg = $gestion->first()?->id ?? 0;
+        $feriado = Feriado::where('gestion_id', $idg)->get();
 
-    // Pasamos SOLO los hijos a la vista para el select del formulario
-    return view('empleado.salidas.salidaParticular', compact(
-        'salidas',
-        'persona',
-        'tiposHijos',      // <-- esto es lo que usaremos en el select
-        'gestion',
-        'feriado',
-        'particular'
-    ));
+        // Pasamos SOLO los hijos a la vista para el select del formulario
+        return view('empleado.salidas.salidaParticular', compact(
+            'salidas',
+            'persona',
+            'tiposHijos',      // <-- esto es lo que usaremos en el select
+            'gestion',
+            'feriado',
+            'particular'
+        ));
 
-}
+    }
+
 
     public function showParticular($id)
     {
-        // Buscar el tipo de salida por ID
         $tipo = TipoSalida::find($id);
 
-        // Si no existe, devolver error 404
         if (!$tipo) {
             return response()->json(['error' => 'Tipo de salida no encontrado'], 404);
         }
 
-        // Devolver los campos necesarios para el frontend
+        // Normalizar unidad
+        $unidad = strtolower(trim($tipo->unidad ?? 'dias'));
+        if (!in_array($unidad, ['dias', 'horas', 'mixto'])) {
+            $unidad = 'dias';
+        }
+
         return response()->json([
             'id'          => $tipo->id,
             'descripcion' => $tipo->descripcion,
-            'sustLegal'   => $tipo->sustLegal,  // Asegúrate que el campo exista en tu tabla
-            'tipo_medida' => $tipo->unidad ?? 'dias', // 'dias' o 'horas' (valor por defecto)
+            'sustLegal'   => $tipo->sustLegal,
+            'unidad'      => $unidad,                                  // ← el JS espera esta clave
+            'max_unidad'  => (float) ($tipo->cantidad_default ?? 0),   // tope en la unidad
+            'max_dias'    => $unidad === 'horas' ? 2 : null,           // tope en días solo para horas
         ]);
     }
     // ========================== REGISTRAR SALIDA PARTICULAR ==========================
@@ -315,8 +321,8 @@ public function registrarParticular(Request $request)
         'idSup' => 'required|exists:persona,id',
         'fsalida' => 'required|date',
         'fretorno' => 'required|date|after_or_equal:fsalida',
-        'horasal' => 'required|date_format:H:i',
-        'horaret' => 'required|date_format:H:i|after:horasal',
+        'horasal' => 'nullable|date_format:H:i',
+        'horaret' => 'nullable|date_format:H:i|after:horasal',
         'fechasol' => 'required|date|before_or_equal:fsalida',
         'motivo' => 'nullable|string|max:500',
         'tipoSal' => 'required|exists:tiposalidas,id',
@@ -563,6 +569,7 @@ public function registrarParticular(Request $request)
         ], 500);
     }
 }
+
 public function editParticular($id)
 {
     // Cargar la salida con sus relaciones: persona, jefe y también el tipo de salida
@@ -1405,7 +1412,7 @@ public function updateVacacion(Request $request, $id)
             'fsalida' => 'required|date',
             'fretorno' => 'required|date|after_or_equal:fsalida',
             'horasal' => 'required|date_format:H:i',
-            'horaret' => 'required|date_format:H:i|after:horasal',
+            'horaret' => 'nullable|date_format:H:i|after:horasal',
             'fechasol' => 'required|date|before_or_equal:fsalida',
             'motivo' => 'nullable|string|max:500',
             'tipoSal' => 'required|exists:tiposalidas,id',
@@ -1645,8 +1652,8 @@ public function updateVacacion(Request $request, $id)
             data: $urlVerificacion,
             encoding: new Encoding('UTF-8'),
             errorCorrectionLevel: ErrorCorrectionLevel::High,
-            size: 220,
-            margin: 8
+            size: 280,
+            margin: 2
         );
 
         $writer = new PngWriter();
@@ -1708,8 +1715,8 @@ public function updateVacacion(Request $request, $id)
             data: $urlVerificacion,
             encoding: new Encoding('UTF-8'),
             errorCorrectionLevel: ErrorCorrectionLevel::High,
-            size: 220,
-            margin: 8
+            size: 280,
+            margin: 2
         );
         $writer = new PngWriter();
         $qrBase64 = base64_encode($writer->write($qrCode)->getString());

@@ -809,29 +809,41 @@
             minDate: "today",
             disable: [deshabilitarFechas],
             locale: "es",
-            dateFormat: "Y-m-d"
+            dateFormat: "Y-m-d",     // valor real que se envía al backend
+            altInput: true,          // input visible alterno
+            altFormat: "d-m-Y",      // lo que ve el usuario: día-mes-año
+            allowInput: true
         });
 
         const createFretornoPicker = flatpickr("#createFretorno", {
             minDate: "today",
             disable: [deshabilitarFechas],
             locale: "es",
-            dateFormat: "Y-m-d"
+            dateFormat: "Y-m-d",
+            altInput: true,
+            altFormat: "d-m-Y",
+            allowInput: true
         });
 
         // Configurar flatpickr para el modal de edición
-        flatpickr("#editFsalida", {
+        const editFsalidaPicker = flatpickr("#editFsalida", {
             minDate: "today",
             disable: [deshabilitarFechas],
             locale: "es",
-            dateFormat: "Y-m-d"
+            dateFormat: "Y-m-d",
+            altInput: true,
+            altFormat: "d-m-Y",
+            allowInput: true
         });
 
-        flatpickr("#editFretorno", {
+        const editFretornoPicker = flatpickr("#editFretorno", {
             minDate: "today",
             disable: [deshabilitarFechas],
             locale: "es",
-            dateFormat: "Y-m-d"
+            dateFormat: "Y-m-d",
+            altInput: true,
+            altFormat: "d-m-Y",
+            allowInput: true
         });
 
         // ----- FUNCIONALIDAD DEL MODAL DE CREACIÓN -----
@@ -929,7 +941,7 @@
             const idSup = document.getElementById("createIdSup").value;
 
             // Validación básica
-            if (!idpersona || !tipoSal || !fechasol || !fsalida || !fretorno || !horasal || !horaret || !motivo || !idSup) {
+            if (!idpersona || !tipoSal || !fechasol || !fsalida || !fretorno || !motivo || !idSup) {
                 Swal.fire("Faltan datos", "Complete todos los campos obligatorios", "warning");
                 return;
             }
@@ -1189,7 +1201,7 @@
                 motivo: document.getElementById('editMotivo').value,
                 idSup: document.getElementById('editIdSup').value,
             };
-            if (!data.fsalida || !data.fretorno || !data.horasal || !data.horaret || !data.motivo || !data.idSup) {
+            if (!data.fsalida || !data.horasal || !data.motivo || !data.idSup) {
                 Swal.fire('Faltan datos', 'Complete todos los campos', 'warning');
                 return;
             }

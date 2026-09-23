@@ -361,7 +361,7 @@ class AsistenciaController extends Controller
         $reporte = $this->construirReporte($persona, $fechaInicio, $fechaFin);
 
         $pdf = Pdf::loadView('admin.dispositivos.asistencias.reportes.asistencia-pdf', compact('reporte'))
-                  ->setPaper('a4', 'landscape');
+                  ->setPaper('a4', 'portrait');
 
         /* ─── Footer con número de página (dompdf nativo) ─── */
         $canvas = $pdf->getDomPdf()->getCanvas();

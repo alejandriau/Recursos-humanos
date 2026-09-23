@@ -136,6 +136,11 @@ class GenerarAsistenciaService
 
             $diaYaCerrado = !$esDiaEnCurso || now()->gte($horaCierreCalculada);
 
+            // Tipo de checkpoint que representa la salida final del día
+            // (la última en orden cronológico). Solo ahí cuenta el "tiempo
+            // trabajado después de la salida esperada" como hora extra.
+            $ultimoTipoMarca = array_key_last($checkpoints);
+
             $minutosTardanzaTotal = 0;
             $cumplidas = 0;
             $justificadas = 0;
@@ -182,13 +187,22 @@ class GenerarAsistenciaService
                         }
                     } else {
                         if ($diferenciaReal < 0) {
+                            // Salió antes de lo esperado: tardanza (como antes)
                             $exceso = abs($diferenciaReal) - $tolerancia;
                             if ($exceso > 0) {
                                 $esTardanza = true;
                                 $minutosTardanzaTotal += $exceso;
                                 $diferenciaEfectiva = -$exceso;
                             }
+                        } elseif ($diferenciaReal > 0 && $tipoMarca === $ultimoTipoMarca) {
+                            // Se quedó después de la última salida del día: hora extra.
+                            // No se acumula en ningún total; queda solo en
+                            // diferencia_minutos de esta marca (positivo = extra).
+                            $diferenciaEfectiva = $diferenciaReal;
                         }
+                        // Si sale tarde en un checkpoint que NO es el último
+                        // (ej. salida_manana antes del almuerzo) no se
+                        // considera ni tardanza ni extra.
                     }
 
                     AsistenciaMarca::create([
@@ -387,8 +401,10 @@ class GenerarAsistenciaService
      * tolerancia_salida_tarde_minutos) y este método ya la toma en cuenta,
      * sin tocar código.
      */
-    protected function getTolerancia(\App\Models\Horario $horario, string $tipoMarca): int
+    protected function getTolerancia(?\App\Models\Horario $horario, string $tipoMarca): int
     {
+        if (!$horario) return 0;
+
         return match ($tipoMarca) {
             'entrada_manana', 'entrada' => $horario->tolerancia_entrada_manana_minutos ?? 0,
             'salida_manana' => $horario->tolerancia_salida_manana_minutos ?? 0,

@@ -5,112 +5,178 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reporte de Asistencia</title>
     <style>
-        @page {
-            margin: 20mm 15mm 25mm 15mm; /* Margen inferior para que el footer no se superponga */
-            size: landscape;
-        }
-        body {
-            font-family: 'DejaVu Sans', 'Arial', sans-serif;
-            font-size: 10pt;
-            color: #333;
-        }
-        /* ... el resto de tus estilos (logos, tabla, etc.) ... */
-        .badge {
-            display: inline-block;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 7pt;
-            font-weight: bold;
-        }
-        body {
-            font-family: 'DejaVu Sans', 'Arial', sans-serif;
-            font-size: 10pt;
-            color: #333;
-            position: relative;
-        }
-        /* Logos en esquinas */
-        .logo-superior-izquierdo {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 80px;
-            height: auto;
-        }
-        .logo-superior-derecho {
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 80px;
-            height: auto;
-        }
-        .logo-inferior-izquierdo {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 80px;
-            height: auto;
-        }
-        .logo-inferior-derecho {
-            position: absolute;
-            bottom: 0;
-            right: 0;
-            width: 80px;
-            height: auto;
-        }
-        .contenido {
-            margin-top: 25px;
-            margin-bottom: 25px;
-        }
-        h2 {
-            font-size: 16pt;
-            text-align: center;
-            margin-bottom: 5px;
-        }
-        .subtitulo {
-            text-align: center;
-            font-size: 11pt;
-            color: #555;
-            margin-bottom: 15px;
-        }
-        .info-empleado {
-            margin-bottom: 15px;
-            font-size: 11pt;
-        }
-        .info-empleado strong {
-            display: inline-block;
-            width: 120px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 8.5pt;
-        }
-        th, td {
-            border: 1px solid #999;
-            padding: 4px 6px;
-            text-align: center;
-        }
-        th {
-            background-color: #e9f5e9;
-            font-weight: bold;
-        }
-        .totales {
-            background-color: #f2f2f2;
-            font-weight: bold;
-        }
-        .text-end {
-            text-align: right;
-        }
-        .text-muted {
-            color: #777;
-        }
-        .badge {
-            display: inline-block;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 7pt;
-            font-weight: bold;
-        }
+
+@page {
+    size: A4 portrait;
+    margin: 8mm 7mm 12mm 7mm;
+}
+
+body {
+    font-family: 'DejaVu Sans', 'Arial', sans-serif;
+    font-size: 9pt;
+    color: #333;
+    position: relative;
+}
+
+/* Logos superiores */
+.logo-superior-izquierdo,
+.logo-superior-derecho {
+    position: absolute;
+    top: 0;
+    width: 60px;
+    height: auto;
+}
+
+.logo-superior-izquierdo {
+    left: 0;
+}
+
+.logo-superior-derecho {
+    right: 0;
+}
+
+/* Contenido */
+.contenido {
+    margin-top: 5px;
+    margin-bottom: 10px;
+}
+
+/* Título */
+h2 {
+    font-size: 15pt;
+    text-align: center;
+    margin: 0 0 3px 0;
+}
+
+/* Período */
+.subtitulo {
+    text-align: center;
+    font-size: 9pt;
+    color: #555;
+    margin-bottom: 8px;
+}
+
+/* Datos empleado */
+.info-empleado {
+    margin-bottom: 8px;
+    font-size: 9pt;
+}
+
+.info-empleado strong {
+    display: inline-block;
+    width: 75px;
+}
+
+/* Tabla */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 7.5pt;
+}
+
+th,
+td {
+    border: 1px solid #999;
+    padding: 3px 3px;
+    text-align: center;
+}
+
+th {
+    background-color: #35b335;
+    font-weight: bold;
+}
+
+/* Totales */
+.totales {
+    background-color: #f2f2f2;
+    font-weight: bold;
+}
+
+/* Texto */
+.text-end {
+    text-align: right;
+}
+
+.text-muted {
+    color: #777;
+}
+
+/* Badges */
+.badge {
+    display: inline-block;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-size: 6pt;
+    font-weight: bold;
+}
+
+/* Estados */
+.bg-success {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.bg-danger {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.bg-warning {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.bg-info {
+    background-color: #d1ecf1;
+    color: #0c5460;
+}
+
+.bg-secondary {
+    background-color: #e2e3e5;
+    color: #383d41;
+}
+
+.bg-primary {
+    background-color: #cce5ff;
+    color: #004085;
+}
+
+.bg-light {
+    background-color: #f8f9fa;
+    color: #212529;
+}
+
+.fst-italic {
+    font-style: italic;
+}
+
+.fw-bold {
+    font-weight: bold;
+}
+
+.text-danger {
+    color: #dc3545;
+}
+
+.small {
+    font-size: 7pt;
+}
+
+.mt-1 {
+    margin-top: 2px;
+}
+
+.mb-0 {
+    margin-bottom: 0;
+}
+
+.table-warning {
+    background-color: #fff3cd;
+}
+
+.text-center {
+    text-align: center;
+}
         .bg-success { background-color: #d4edda; color: #155724; }
         .bg-danger { background-color: #f8d7da; color: #721c24; }
         .bg-warning { background-color: #fff3cd; color: #856404; }
@@ -196,6 +262,8 @@
                                 {{ $dia['entrada'] }}
                             @elseif($dia['es_hoy'] && $dia['estado'] === 'pendiente')
                                 <span class="text-muted fst-italic">Pendiente</span>
+                            @elseif($dia['estado'] === 'feriado')
+                                <span class="text-muted fst-italic">Feriado</span>
                             @else
                                 <span class="text-danger fw-bold">No marcó</span>
                             @endif
@@ -205,6 +273,8 @@
                                 {{ $dia['salida'] }}
                             @elseif($dia['es_hoy'] && $dia['estado'] === 'pendiente')
                                 <span class="text-muted fst-italic">Pendiente</span>
+                            @elseif($dia['estado'] === 'feriado')
+                                <span class="text-muted fst-italic">Feriado</span>
                             @else
                                 <span class="text-danger fw-bold">No marcó</span>
                             @endif

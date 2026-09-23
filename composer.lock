@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "3f9c1a2ea8008e7d3bc296f99f823c33",
+    "content-hash": "b033df059fe0efea3747cef19bd088e1",
     "packages": [
         {
             "name": "bacon/bacon-qr-code",
@@ -1681,23 +1681,26 @@
         },
         {
             "name": "jmrashed/zkteco",
-            "version": "1.2.0",
+            "version": "2.1.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/jmrashed/zkteco.git",
-                "reference": "4672f6769a760e28cd10c4721bf418af28bed970"
+                "reference": "06873e6fedb44a302fcb147526ce1ed176f6aa86"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/jmrashed/zkteco/zipball/4672f6769a760e28cd10c4721bf418af28bed970",
-                "reference": "4672f6769a760e28cd10c4721bf418af28bed970",
+                "url": "https://api.github.com/repos/jmrashed/zkteco/zipball/06873e6fedb44a302fcb147526ce1ed176f6aa86",
+                "reference": "06873e6fedb44a302fcb147526ce1ed176f6aa86",
                 "shasum": ""
             },
             "require": {
-                "php": "^8.0"
+                "ext-sockets": "*",
+                "php": "^8.1"
             },
             "require-dev": {
-                "orchestra/testbench": "^6.0",
+                "friendsofphp/php-cs-fixer": "^3.0",
+                "orchestra/testbench": "^9.0",
+                "phpstan/phpstan": "^1.12",
                 "phpunit/phpunit": "^10.0"
             },
             "type": "library",
@@ -1719,9 +1722,9 @@
             "description": "ZKTeco Package For Laravel. This package provides seamless integration with ZKTeco devices within Laravel applications, enabling communication with attendance devices such as fingerprint, face recognition, or RFID using UDP protocol.",
             "support": {
                 "issues": "https://github.com/jmrashed/zkteco/issues",
-                "source": "https://github.com/jmrashed/zkteco/tree/v1.2.0"
+                "source": "https://github.com/jmrashed/zkteco/tree/v2.1.0"
             },
-            "time": "2025-10-01T12:47:08+00:00"
+            "time": "2026-07-25T17:47:23+00:00"
         },
         {
             "name": "laravel/fortify",
